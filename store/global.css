@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 90% 15%;--card: 0 0% 100%;
+--card-foreground: 220 90% 15%;
+
+--popover: 0 0% 100%;
+--popover-foreground: 220 90% 15%;
+
+--primary: 220 90% 15%;
+--primary-foreground: 0 0% 100%;
+
+--secondary: 220 20% 95%;
+--secondary-foreground: 220 90% 15%;
+
+--muted: 220 20% 95%;
+--muted-foreground: 220 30% 45%;
+
+--accent: 25 95% 53%;
+--accent-foreground: 0 0% 100%;
+
+--destructive: 0 84.2% 60.2%;
+--destructive-foreground: 0 0% 100%;
+
+--border: 220 20% 90%; /* Your default border color variable */
+--input: 220 20% 90%;
+--ring: 25 95% 53%;
+
+--radius: 0.5rem;
+
+--sidebar-background: 220 90% 15%;
+--sidebar-foreground: 0 0% 100%;
+--sidebar-primary: 25 95% 53%;
+--sidebar-primary-foreground: 0 0% 100%;
+--sidebar-accent: 220 80% 20%;
+--sidebar-accent-foreground: 0 0% 100%;
+--sidebar-border: 220 80% 20%; /* Your sidebar border color variable */
+--sidebar-ring: 25 95% 53%;
+  }
+
+  .dark {
+    --background: 220 90% 15%;
+    --foreground: 0 0% 100%;--card: 220 85% 18%;
+--card-foreground: 0 0% 100%;
+
+--popover: 220 85% 18%;
+--popover-foreground: 0 0% 100%;
+
+--primary: 25 95% 53%;
+--primary-foreground: 0 0% 100%;
+
+--secondary: 220 80% 20%;
+--secondary-foreground: 0 0% 100%;
+
+--muted: 220 80% 20%;
+--muted-foreground: 220 20% 70%;
+
+--accent: 25 95% 53%;
+--accent-foreground: 0 0% 100%;
+
+--destructive: 0 62.8% 30.6%;
+--destructive-foreground: 0 0% 100%;
+
+--border: 220 80% 20%; /* Dark mode border color */
+--input: 220 80% 20%;
+--ring: 25 95% 53%;
+
+--sidebar-background: 220 90% 12%;
+--sidebar-foreground: 0 0% 100%;
+--sidebar-primary: 25 95% 53%;
+--sidebar-primary-foreground: 0 0% 100%;
+--sidebar-accent: 220 80% 18%;
+--sidebar-accent-foreground: 0 0% 100%;
+--sidebar-border: 220 80% 18%; /* Dark mode sidebar border color */
+--sidebar-ring: 25 95% 53%;
+  }
+}
+
+@layer base {
+  /* Apply default background, foreground, and border using Tailwind classes */
+  body {
+    @apply bg-background text-foreground border-border; /* Added border-border class here */
+  }
+
