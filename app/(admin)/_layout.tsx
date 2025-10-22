@@ -17,19 +17,19 @@ function CustomDrawerContent(props) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#1E3A8A' }}>
-      <View style={{ padding: 16, paddingTop: 50, borderBottomWidth: 1, borderBottomColor: '#FB923C' }}>
+    <View style={{ flex: 1, backgroundColor: '#0d1938' }}>
+      <View style={{ padding: 16, paddingTop: 50, borderBottomWidth: 1, borderBottomColor: '#fff' }}>
         <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 'bold' }}>Shop Manager</Text>
         <Text style={{ color: '#FB923C' }}>Admin Panel</Text>
       </View>
       
-      <DrawerContentScrollView {...props} style={{ backgroundColor: '#1E3A8A' }}>
+      <DrawerContentScrollView {...props} style={{ backgroundColor: '#0d1938' }}>
         {/* This renders all your drawer items */}
         <DrawerItemList {...props} />
       </DrawerContentScrollView>
       
       <TouchableOpacity
-        style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#FB923C' }}
+        style={{ padding: 16, borderTopWidth: 1, borderTopColor: '#fff' }}
         onPress={handleLogout}
       >
         <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Logout</Text>
@@ -44,7 +44,7 @@ export default function AdminLayout() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#1E3A8A',
+          backgroundColor: '#0d1938',
         },
         headerTintColor: '#FFFFFF',
         drawerActiveTintColor: '#FB923C',
@@ -108,15 +108,17 @@ export default function AdminLayout() {
           ),
         }}
       />
-      <Drawer.Screen
-        name="accounting"
-        options={{
-          title: 'Accounting',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="calculator" size={size} color={color} />
-          ),
-        }}
-      />
+
+<Drawer.Screen
+  name="assets"
+  options={{
+    title: 'Assets Management',
+    drawerIcon: ({ color, size }) => (
+      <Ionicons name="cube" size={size} color={color} />
+    ),
+  }}
+/>
+
       <Drawer.Screen
         name="users"
         options={{

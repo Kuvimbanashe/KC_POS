@@ -1,171 +1,216 @@
-// app/(admin)/index.js - Update with accounting metrics
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+// app/(admin)/index.js
+import { useEffect, useState } from 'react';
+import { View, Text, ScrollView } from 'react-native';
 import { useSelector } from 'react-redux';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function AdminDashboard() {
-  const { user } = useSelector(state => state.auth);
-  const { products, sales, purchases, expenses } = useSelector(state => state.user);
-  const { financialReports } = useSelector(state => state.accounting);
+const AdminHome = () => {
+  const [stats, setStats] = useState({
+    todaySales: 0,
+    todayRevenue: 0,
+    lowStockItems: 0,
+    totalProducts: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalPurchases = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const lowStockProducts = products.filter(p => p.stock < 10);
-  const inventoryValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
+  const { sales, products } = useSelector(state => state.user);
 
-  // Key Performance Indicators
-  const kpis = [
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const today = new Date().toDateString();
+        const todaySales = sales.filter(
+          (sale) => new Date(sale.date).toDateString() === today
+        );
+
+        const todayRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+        const lowStockItems = products.filter((p) => p.stock < 10).length;
+
+        setStats({
+          todaySales: todaySales.length,
+          todayRevenue,
+          lowStockItems,
+          totalProducts: products.length,
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [sales, products]);
+
+  const statCards = [
     {
-      title: 'Gross Profit Margin',
-      value: `${((financialReports.incomeStatement.gross_profit / financialReports.incomeStatement.revenue) * 100).toFixed(1)}%`,
-      trend: '+2.5%',
-      color: 'text-green-600',
+      title: "Today's Sales",
+      value: stats.todaySales.toString(),
+      description: 'Number of transactions',
+      icon: 'cart-outline',
+      color: 'text-accent',
     },
     {
-      title: 'Current Ratio',
-      value: (financialReports.balanceSheet.assets.current_assets / financialReports.balanceSheet.liabilities.current_liabilities).toFixed(2),
-      trend: 'Stable',
-      color: 'text-blue-600',
+      title: "Today's Revenue",
+      value: `$${stats.todayRevenue.toFixed(2)}`,
+      description: 'Total earnings today',
+      icon: 'cash-outline',
+      color: 'text-accent',
     },
     {
-      title: 'Inventory Turnover',
-      value: (totalSales / inventoryValue).toFixed(2),
-      trend: '+0.3',
-      color: 'text-purple-600',
+      title: 'Total Products',
+      value: stats.totalProducts.toString(),
+      description: 'Items in inventory',
+      icon: 'cube-outline',
+      color: 'text-primary',
     },
     {
-      title: 'ROI',
-      value: `${((financialReports.incomeStatement.net_income / financialReports.balanceSheet.total_assets) * 100).toFixed(1)}%`,
-      trend: '+1.2%',
-      color: 'text-orange-600',
+      title: 'Low Stock Alert',
+      value: stats.lowStockItems.toString(),
+      description: 'Items below 10 units',
+      icon: 'warning-outline',
+      color: 'text-destructive',
     },
   ];
 
-  return (
-    <ScrollView className="flex-1 bg-primary-white p-4">
-      <Text className="text-2xl font-bold text-primary-navy-dark mb-2">
-        Admin Dashboard
-      </Text>
-      <Text className="text-gray-600 mb-6">Welcome back, {user?.name}!</Text>
-
-      <View className="space-y-6">
-        {/* Financial Overview */}
-        <View className="bg-primary-navy-dark p-4 rounded-lg">
-          <Text className="text-primary-white text-lg font-semibold mb-4">
-            Financial Overview
-          </Text>
-          <View className="flex-row flex-wrap justify-between">
-            <View className="mb-4">
-              <Text className="text-primary-orange-400 text-sm">Revenue</Text>
-              <Text className="text-primary-white text-xl font-bold">
-                ${financialReports.incomeStatement.revenue.toLocaleString()}
-              </Text>
-            </View>
-            <View className="mb-4">
-              <Text className="text-primary-orange-400 text-sm">Net Income</Text>
-              <Text className="text-primary-white text-xl font-bold">
-                ${financialReports.incomeStatement.net_income.toLocaleString()}
-              </Text>
-            </View>
-            <View className="mb-4">
-              <Text className="text-primary-orange-400 text-sm">Cash Flow</Text>
-              <Text className="text-primary-white text-xl font-bold">
-                ${financialReports.cashFlow.net_cash_flow.toLocaleString()}
-              </Text>
-            </View>
-            <View className="mb-4">
-              <Text className="text-primary-orange-400 text-sm">Assets</Text>
-              <Text className="text-primary-white text-xl font-bold">
-                ${financialReports.balanceSheet.total_assets}
-              </Text>
-            </View>
+  if (isLoading) {
+    return (
+      <ScrollView className="flex-1 bg-background">
+        <View className="space-y-4 md:space-y-6 p-4 md:p-6">
+          {/* Header Skeleton */}
+          <View>
+            <View className="h-8 w-48 bg-muted rounded mb-2 animate-pulse" />
+            <View className="h-4 w-64 bg-muted rounded animate-pulse" />
           </View>
-        </View>
 
-        {/* Key Performance Indicators */}
-        <View>
-          <Text className="text-xl font-semibold text-primary-navy-dark mb-4">
-            Key Performance Indicators
-          </Text>
-          <View className="flex-row flex-wrap justify-between">
-            {kpis.map((kpi, index) => (
-              <View key={index} className="bg-gray-50 p-4 rounded-lg w-48 mb-4">
-                <Text className="text-primary-navy-dark font-semibold text-sm">
-                  {kpi.title}
-                </Text>
-                <Text className="text-2xl font-bold text-primary-navy-dark my-1">
-                  {kpi.value}
-                </Text>
-                <Text className={`text-xs ${kpi.color}`}>
-                  {kpi.trend} from last month
-                </Text>
+          {/* Stats Grid Skeleton */}
+          <View className="flex-row flex-wrap justify-between gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} className="bg-card rounded-lg p-4 w-[48%] min-w-[160px]">
+                <View className="flex-row justify-between items-center mb-2">
+                  <View className="h-4 w-20 bg-muted rounded animate-pulse" />
+                  <View className="h-4 w-4 bg-muted rounded animate-pulse" />
+                </View>
+                <View className="h-6 w-12 bg-muted rounded mb-1 animate-pulse" />
+                <View className="h-3 w-24 bg-muted rounded animate-pulse" />
               </View>
             ))}
           </View>
-        </View>
 
-        {/* Quick Stats */}
-        <View className="flex-row flex-wrap justify-between">
-          <View className="bg-primary-orange-400 p-4 rounded-lg w-48 mb-4">
-            <Text className="text-primary-white text-lg font-semibold">Today's Sales</Text>
-            <Text className="text-primary-white text-2xl font-bold">
-              ${sales
-                .filter(s => new Date(s.date).toDateString() === new Date().toDateString())
-                .reduce((sum, sale) => sum + sale.total, 0)
-                .toLocaleString()}
-            </Text>
-          </View>
-          
-          <View className="bg-primary-navy-dark p-4 rounded-lg w-48 mb-4">
-            <Text className="text-primary-white text-lg font-semibold">Low Stock Items</Text>
-            <Text className="text-primary-white text-2xl font-bold">
-              {lowStockProducts.length}
-            </Text>
-          </View>
-          
-          <View className="bg-primary-orange-400 p-4 rounded-lg w-48 mb-4">
-            <Text className="text-primary-white text-lg font-semibold">Pending Orders</Text>
-            <Text className="text-primary-white text-2xl font-bold">12</Text>
-          </View>
-          
-          <View className="bg-primary-navy-dark p-4 rounded-lg w-48 mb-4">
-            <Text className="text-primary-white text-lg font-semibold">Customer Satisfaction</Text>
-            <Text className="text-primary-white text-2xl font-bold">94%</Text>
+          {/* Content Skeleton */}
+          <View className="flex-row flex-wrap justify-between gap-4">
+            <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
+              <View className="h-6 w-32 bg-muted rounded mb-1 animate-pulse" />
+              <View className="h-4 w-48 bg-muted rounded mb-4 animate-pulse" />
+              {[1, 2, 3].map((i) => (
+                <View key={i} className="bg-secondary rounded-lg p-3 mb-2">
+                  <View className="h-4 w-40 bg-muted rounded mb-1 animate-pulse" />
+                  <View className="h-3 w-32 bg-muted rounded animate-pulse" />
+                </View>
+              ))}
+            </View>
+            <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
+              <View className="h-6 w-32 bg-muted rounded mb-1 animate-pulse" />
+              <View className="h-4 w-48 bg-muted rounded mb-4 animate-pulse" />
+              {[1, 2, 3].map((i) => (
+                <View key={i} className="bg-secondary rounded-lg p-3 mb-2">
+                  <View className="h-4 w-40 bg-muted rounded mb-1 animate-pulse" />
+                  <View className="h-3 w-24 bg-muted rounded animate-pulse" />
+                </View>
+              ))}
+            </View>
           </View>
         </View>
+      </ScrollView>
+    );
+  }
 
-        {/* Quick Actions */}
+  return (
+    <ScrollView className="flex-1 bg-background">
+      <View className="space-y-4 md:space-y-6 p-4 md:p-6">
+        {/* Header */}
         <View>
-          <Text className="text-xl font-semibold text-primary-navy-dark mb-4">
-            Quick Actions
+          <Text className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</Text>
+          <Text className="text-sm md:text-base text-muted-foreground">
+            Welcome to your shop management system
           </Text>
-          <View className="flex-row flex-wrap justify-between">
-            <TouchableOpacity className="bg-primary-orange-400 p-4 rounded-lg w-48 mb-4">
-              <Text className="text-primary-white text-center font-semibold">
-                View Reports
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity className="bg-primary-navy-dark p-4 rounded-lg w-48 mb-4">
-              <Text className="text-primary-white text-center font-semibold">
-                Manage Inventory
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity className="bg-primary-orange-400 p-4 rounded-lg w-48 mb-4">
-              <Text className="text-primary-white text-center font-semibold">
-                Accounting
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity className="bg-primary-navy-dark p-4 rounded-lg w-48 mb-4">
-              <Text className="text-primary-white text-center font-semibold">
-                Tax Filing
-              </Text>
-            </TouchableOpacity>
+        </View>
+
+        {/* Stats Cards */}
+        <View className="flex-row flex-wrap justify-between gap-4">
+          {statCards.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <View key={stat.title} className="bg-card rounded-lg p-4 w-[48%] min-w-[160px]">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-sm font-medium text-foreground">{stat.title}</Text>
+                  <Ionicons name={stat.icon} size={16} className={stat.color} />
+                </View>
+                <Text className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</Text>
+                <Text className="text-xs text-muted-foreground">{stat.description}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Quick Actions and Recent Activity */}
+        <View className="flex-row flex-wrap justify-between gap-4">
+          {/* Quick Actions */}
+          <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
+            <Text className="text-lg font-bold text-foreground">Quick Actions</Text>
+            <Text className="text-sm text-muted-foreground mb-4">
+              Common tasks for shop management
+            </Text>
+            <View className="space-y-2">
+              <View className="p-3 bg-secondary rounded-lg">
+                <Text className="font-medium text-foreground">View Sales Report</Text>
+                <Text className="text-sm text-muted-foreground">Check today's transactions</Text>
+              </View>
+              <View className="p-3 bg-secondary rounded-lg">
+                <Text className="font-medium text-foreground">Manage Inventory</Text>
+                <Text className="text-sm text-muted-foreground">Update stock levels</Text>
+              </View>
+              <View className="p-3 bg-secondary rounded-lg">
+                <Text className="font-medium text-foreground">Add Expense</Text>
+                <Text className="text-sm text-muted-foreground">Record business expenses</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Recent Activity */}
+          <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
+            <Text className="text-lg font-bold text-foreground">Recent Activity</Text>
+            <Text className="text-sm text-muted-foreground mb-4">
+              Latest transactions and updates
+            </Text>
+            <View className="space-y-3">
+              <View className="flex-row justify-between items-center p-2 bg-secondary rounded-lg">
+                <View className="flex-1">
+                  <Text className="text-sm font-medium text-foreground">Sale completed</Text>
+                  <Text className="text-xs text-muted-foreground">2 minutes ago</Text>
+                </View>
+                <Text className="text-sm font-bold text-accent">$349.99</Text>
+              </View>
+              <View className="flex-row justify-between items-center p-2 bg-secondary rounded-lg">
+                <View className="flex-1">
+                  <Text className="text-sm font-medium text-foreground">Stock updated</Text>
+                  <Text className="text-xs text-muted-foreground">15 minutes ago</Text>
+                </View>
+                <Text className="text-sm font-medium text-foreground">+50 units</Text>
+              </View>
+              <View className="flex-row justify-between items-center p-2 bg-secondary rounded-lg">
+                <View className="flex-1">
+                  <Text className="text-sm font-medium text-foreground">New purchase order</Text>
+                  <Text className="text-xs text-muted-foreground">1 hour ago</Text>
+                </View>
+                <Text className="text-sm font-medium text-foreground">20 items</Text>
+              </View>
+            </View>
           </View>
         </View>
       </View>
     </ScrollView>
   );
-}
+};
+
+export default AdminHome;

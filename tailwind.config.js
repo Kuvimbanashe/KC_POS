@@ -1,40 +1,47 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // NOTE: Update this to include the paths to all files that contain Nativewind classes.
-  content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
+  content: [
+    "./app/**/*.{js,jsx,ts,tsx}",
+    "./components/**/*.{js,jsx,ts,tsx}"
+  ],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      
       colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: 'hsl(var(--card))',
-        'card-foreground': 'hsl(var(--card-foreground))',
-        popover: 'hsl(var(--popover))',
-        'popover-foreground': 'hsl(var(--popover-foreground))',
-        primary: 'hsl(var(--primary))',
-        'primary-foreground': 'hsl(var(--primary-foreground))',
-        secondary: 'hsl(var(--secondary))',
-        'secondary-foreground': 'hsl(var(--secondary-foreground))',
-        muted: 'hsl(var(--muted))',
-        'muted-foreground': 'hsl(var(--muted-foreground))',
-        accent: 'hsl(var(--accent))',
-        'accent-foreground': 'hsl(var(--accent-foreground))',
-        destructive: 'hsl(var(--destructive))',
-        'destructive-foreground': 'hsl(var(--destructive-foreground))',
-        border: 'hsl(var(--border))', // This maps 'border' to your --border variable
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        // Sidebar colors
-        'sidebar-background': 'hsl(var(--sidebar-background))',
-        'sidebar-foreground': 'hsl(var(--sidebar-foreground))',
-        'sidebar-primary': 'hsl(var(--sidebar-primary))',
-        'sidebar-primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-        'sidebar-accent': 'hsl(var(--sidebar-accent))',
-        'sidebar-accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-        'sidebar-border': 'hsl(var(--sidebar-border))', // This maps 'sidebar-border' to your --sidebar-border variable
-        'sidebar-ring': 'hsl(var(--sidebar-ring))',
+        border: "hsl(220 20% 90%)",
+        input: "hsl(220 20% 90%)",
+        ring: "hsl(25 95% 53%)",
+        background: "hsl(0 0% 100%)",
+        foreground: "hsl(220 90% 15%)",
+        primary: {
+          DEFAULT: "hsl(220 90% 15%)",
+          foreground: "hsl(0 0% 100%)",
+        },
+        secondary: {
+          DEFAULT: "hsl(220 20% 95%)",
+          foreground: "hsl(220 90% 15%)",
+        },
+        destructive: {
+          DEFAULT: "hsl(0 84.2% 60.2%)",
+          foreground: "hsl(0 0% 100%)",
+        },
+        muted: {
+          DEFAULT: "hsl(220 20% 95%)",
+          foreground: "hsl(220 30% 45%)",
+        },
+        accent: {
+          DEFAULT: "hsl(25 95% 53%)",
+          foreground: "hsl(0 0% 100%)",
+        },
+        popover: {
+          DEFAULT: "hsl(0 0% 100%)",
+          foreground: "hsl(220 90% 15%)",
+        },
+        card: {
+          DEFAULT: "hsl(0 0% 100%)",
+          foreground: "hsl(220 90% 15%)",
+        },
       },
       
     },
