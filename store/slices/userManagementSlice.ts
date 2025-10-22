@@ -109,12 +109,12 @@ const userManagementSlice = createSlice({
       });
     },
     updateUser: (state, action) => {
-      const { id, ...updates } = action.payload;
-      const userIndex = state.users.findIndex(user => user.id === id);
-      if (userIndex !== -1) {
-        state.users[userIndex] = { ...state.users[userIndex], ...updates };
-      }
-    },
+  const { id, ...updates } = action.payload;
+  const userIndex = state.users.findIndex(user => user.id === id);
+  if (userIndex !== -1) {
+    state.users[userIndex] = { ...state.users[userIndex], ...updates };
+  }
+},
     deleteUser: (state, action) => {
       state.users = state.users.filter(user => user.id !== action.payload);
     },

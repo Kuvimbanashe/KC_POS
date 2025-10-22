@@ -88,9 +88,22 @@ const userSlice = createSlice({
     addPurchase: (state, action) => {
       state.purchases.unshift(action.payload);
     },
+    updateProfile: (state, action) => {
+  if (state.user) {
+    state.user = { ...state.user, ...action.payload };
+    // Update AsyncStorage if you're using it
+    AsyncStorage.setItem('userData', JSON.stringify({ 
+      user: state.user, 
+      userType: state.userType 
+    }));
+  }
+},
     addExpense: (state, action) => {
-      state.expenses.unshift(action.payload);
-    },
+  state.expenses.unshift({
+    ...action.payload,
+    id: Math.max(...state.expenses.map(e => e.id)) + 1,
+  });
+},
   },
 });
 
