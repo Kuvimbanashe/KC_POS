@@ -57,11 +57,11 @@ const CashierHome = () => {
   );
 
   const renderSaleItem = (sale) => (
-    <View key={sale.id} className="border border-border rounded-lg p-4 mb-3">
-      <View className="flex-row justify-between items-start mb-3">
+    <View key={sale.id} className="p-4 border-t border-border">
+      <View className="flex-row justify-between items-center ">
         <View>
           <Text className="font-semibold text-foreground text-base">
-            Receipt #{sale.id}
+            Receipt  #{sale.id}
           </Text>
           <Text className="text-muted-foreground text-sm">
             {new Date(sale.date).toLocaleTimeString()}
@@ -72,10 +72,14 @@ const CashierHome = () => {
             {sale.paymentMethod}
           </Text>
         </View>
+      
+      <View>
+         <Text className="text-primary text-xl font-bold">${sale.total.toFixed(2)}</Text>
+      </View>
       </View>
       
       {/* Product details */}
-      <View className="mb-2">
+      <View className="mb-2 hidden">
         <View className="flex-row justify-between">
           <Text className="text-muted-foreground text-sm">
             {sale.quantity}x {sale.productName}
@@ -86,7 +90,7 @@ const CashierHome = () => {
         </View>
       </View>
       
-      <View className="flex-row justify-between font-semibold pt-2 border-t border-border">
+      <View className="hidden fle-row justify-between font-semibold pt-2 border-t border-border">
         <Text className="text-foreground">Total</Text>
         <Text className="text-accent text-lg">${sale.total.toFixed(2)}</Text>
       </View>
@@ -174,8 +178,8 @@ const CashierHome = () => {
           )}
 
           {/* Today's Tickets */}
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-4">
+          <View className="bg-card p-4 rounded-lg border border-border divide-y divide-border ">
+            <Text className="text-lg font-bold text-foreground mb-4 ">
               Today's Tickets
             </Text>
             
@@ -195,10 +199,10 @@ const CashierHome = () => {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View className="max-h-80">
+              <View className="h-fit">
                 <ScrollView 
                   showsVerticalScrollIndicator={false}
-                  className="pr-2"
+                  className="divide-y divide-border border-0 "
                 >
                   {todaySales.map(renderSaleItem)}
                 </ScrollView>
@@ -230,7 +234,7 @@ const CashierHome = () => {
                   ${todayReceiptsCount > 0 ? (todaySalesAmount / todayReceiptsCount).toFixed(2) : '0.00'}
                 </Text>
               </View>
-              <View className="flex-row justify-between border-t border-primary-foreground/20 pt-2">
+              <View className="hidden fle-row justify-between border-t border-primary-foreground/20 pt-2">
                 <Text className="text-primary-foreground font-bold">Performance</Text>
                 <Text className={`font-bold text-lg ${
                   todaySalesAmount > 500 ? 'text-green-300' : 
@@ -244,7 +248,7 @@ const CashierHome = () => {
           </View>
 
           {/* Recent Activity */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-3">
               Recent Activity
             </Text>
