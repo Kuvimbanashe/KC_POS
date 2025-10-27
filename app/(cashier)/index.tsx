@@ -159,7 +159,7 @@ const CashierHome = () => {
           </View>
 
           {/* Alerts */}
-          {lowStockProducts.length > 0 && (
+          {lowStockProducts.length < 10 && (
             <View className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="warning" size={20} className="text-yellow-600 mr-2" />
@@ -174,7 +174,7 @@ const CashierHome = () => {
           )}
 
           {/* Today's Tickets */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-4">
               Today's Tickets
             </Text>
