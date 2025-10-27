@@ -9,7 +9,7 @@ export default function CashierLayout() {
         tabBarActiveTintColor: '#FB923C',
         tabBarInactiveTintColor: '#1E3A8A',
         headerStyle: {
-          backgroundColor: '#1E3A8A',
+          backgroundColor: '#0d1938',
         },
         headerTintColor: '#FFFFFF',
       }}
