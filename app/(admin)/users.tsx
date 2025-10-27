@@ -1,62 +1,112 @@
 // app/(admin)/users.js
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity, 
+  TextInput,
+  Modal,
+  FlatList,
+  Alert
+} from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { 
   addUser, 
   updateUser, 
   deleteUser, 
-  toggleUserStatus,
-  updateUserPermissions 
+  toggleUserStatus 
 } from '../../store/slices/userManagementSlice';
 
-export default function UsersManagementScreen() {
-  const [activeTab, setActiveTab] = useState('list');
+const AdminUsers = () => {
+  const { users } = useSelector(state => state.userManagement);
+  const dispatch = useDispatch();
+  
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showUserForm, setShowUserForm] = useState(false);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     phone: '',
     address: '',
-    password: '',
     type: 'cashier',
     permissions: ['sales'],
   });
 
-  const { users, roles, permissions } = useSelector(state => state.userManagement);
-  const dispatch = useDispatch();
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      setFilteredUsers(users);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    let filtered = users;
 
-  const handleAddUser = () => {
-    if (!formData.name || !formData.email || !formData.password) {
+    if (searchQuery) {
+      filtered = filtered.filter(user =>
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(user => user.type === roleFilter);
+    }
+
+    setFilteredUsers(filtered);
+  }, [searchQuery, roleFilter, users]);
+
+  const handleSubmit = () => {
+    if (!formData.name || !formData.email || (!editingUser && !formData.password)) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
-    dispatch(addUser(formData));
-    setShowUserForm(false);
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      password: '',
-      type: 'cashier',
-      permissions: ['sales'],
-    });
-    Alert.alert('Success', 'User added successfully');
+    try {
+      if (editingUser) {
+        dispatch(updateUser({
+          id: editingUser.id,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          type: formData.type,
+          permissions: formData.permissions,
+        }));
+        Alert.alert('Success', 'User updated successfully');
+      } else {
+        dispatch(addUser({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          address: formData.address,
+          type: formData.type,
+          permissions: formData.permissions,
+        }));
+        Alert.alert('Success', 'User created successfully');
+      }
+      
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save user');
+    }
   };
 
-  const handleDeleteUser = (userId, userName) => {
+  const handleDelete = (userId, userName) => {
     Alert.alert(
-      'Confirm Delete',
+      'Delete User',
       `Are you sure you want to delete ${userName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -80,279 +130,512 @@ export default function UsersManagementScreen() {
     );
   };
 
-  const renderUserList = () => (
-    <View className="space-y-4">
-      <View className="bg-gray-100 p-3 rounded-lg">
-        <TextInput
-          className="bg-primary-white p-2 rounded"
-          placeholder="Search users..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+  const openEditDialog = (user) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      password: '',
+      phone: user.phone || '',
+      address: user.address || '',
+      type: user.type,
+      permissions: user.permissions || ['sales'],
+    });
+    setIsDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setEditingUser(null);
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      phone: '',
+      address: '',
+      type: 'cashier',
+      permissions: ['sales'],
+    });
+  };
+
+  const getRoleBadge = (type) => {
+    const colorMap = {
+      'admin': 'bg-purple-100 text-purple-800',
+      'cashier': 'bg-blue-100 text-blue-800',
+    };
+    
+    return (
+      <View className={`px-2 py-1 rounded-full ${colorMap[type] || 'bg-gray-100'}`}>
+        <Text className="text-xs font-medium capitalize">
+          {type}
+        </Text>
+      </View>
+    );
+  };
+
+  const getStatusBadge = (status) => {
+    const colorMap = {
+      'active': 'bg-green-100 text-green-800',
+      'inactive': 'bg-red-100 text-red-800',
+    };
+    
+    return (
+      <View className={`px-2 py-1 rounded-full ${colorMap[status] || 'bg-gray-100'}`}>
+        <Text className="text-xs font-medium capitalize">
+          {status}
+        </Text>
+      </View>
+    );
+  };
+
+  const roleOptions = [
+    { value: 'all', label: 'All Roles' },
+    { value: 'admin', label: 'Admin' },
+    { value: 'cashier', label: 'Cashier' },
+  ];
+
+  const permissionOptions = [
+    'sales',
+    'inventory_view',
+    'inventory_manage',
+    'reports_view',
+    'users_view',
+    'settings'
+  ];
+
+  const renderUserItem = ({ item }) => (
+    <View className="border-b border-border py-3 px-4 bg-card">
+      <View className="flex-row justify-between items-start mb-2">
+        <View className="flex-1">
+          <Text className="font-semibold text-foreground text-base">{item.name}</Text>
+          <Text className="text-muted-foreground text-sm">{item.email}</Text>
+        </View>
+        <View className="items-end">
+          {getStatusBadge(item.status)}
+          {getRoleBadge(item.type)}
+        </View>
+      </View>
+      
+      <View className="flex-row justify-between items-center">
+        <Text className="text-xs text-muted-foreground">
+          {item.phone}
+        </Text>
+        <Text className="text-xs text-muted-foreground">
+          Joined: {new Date(item.joinDate).toLocaleDateString()}
+        </Text>
       </View>
 
-      <TouchableOpacity
-        className="bg-primary-orange-400 py-3 rounded-lg flex-row items-center justify-center"
-        onPress={() => setShowUserForm(true)}
-      >
-        <Ionicons name="add" size={20} color="#FFFFFF" />
-        <Text className="text-primary-white ml-2 font-semibold">Add New User</Text>
-      </TouchableOpacity>
-
-      {filteredUsers.map(user => (
-        <View key={user.id} className="bg-white p-4 rounded-lg shadow-sm">
-          <View className="flex-row justify-between items-start mb-3">
-            <View className="flex-1">
-              <Text className="text-lg font-semibold text-primary-navy-dark">
-                {user.name}
-              </Text>
-              <Text className="text-gray-600">{user.email}</Text>
-              <Text className="text-gray-600">{user.phone}</Text>
-            </View>
-            <View className="items-end">
-              <View className={`px-2 py-1 rounded-full ${
-                user.status === 'active' ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                <Text className={
-                  user.status === 'active' ? 'text-green-800' : 'text-red-800'
-                }>
-                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                </Text>
-              </View>
-              <Text className="text-gray-600 text-sm mt-1">
-                {user.type.charAt(0).toUpperCase() + user.type.slice(1)}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row justify-between items-center">
-            <Text className="text-gray-600 text-sm">
-              Joined: {new Date(user.joinDate).toLocaleDateString()}
-            </Text>
-            <View className="flex-row space-x-2">
-              <TouchableOpacity 
-                className={`px-3 py-1 rounded ${
-                  user.status === 'active' ? 'bg-red-500' : 'bg-green-500'
-                }`}
-                onPress={() => handleToggleStatus(user.id, user.name, user.status)}
-              >
-                <Text className="text-primary-white text-sm">
-                  {user.status === 'active' ? 'Deactivate' : 'Activate'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                className="bg-primary-orange-400 px-3 py-1 rounded"
-                onPress={() => {
-                  setSelectedUser(user);
-                  setActiveTab('permissions');
-                }}
-              >
-                <Text className="text-primary-white text-sm">Permissions</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                className="bg-red-500 px-3 py-1 rounded"
-                onPress={() => handleDeleteUser(user.id, user.name)}
-              >
-                <Text className="text-primary-white text-sm">Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      ))}
+      {/* Action Buttons */}
+      <View className="flex-row justify-end space-x-2 mt-3">
+        <TouchableOpacity 
+          className={`px-3 py-1 rounded ${
+            item.status === 'active' ? 'bg-red-500' : 'bg-green-500'
+          }`}
+          onPress={() => handleToggleStatus(item.id, item.name, item.status)}
+        >
+          <Text className="text-primary-white text-sm">
+            {item.status === 'active' ? 'Deactivate' : 'Activate'}
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          className="bg-accent px-3 py-1 rounded"
+          onPress={() => openEditDialog(item)}
+        >
+          <Text className="text-accent-foreground text-sm">Edit</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          className="bg-destructive px-3 py-1 rounded"
+          onPress={() => handleDelete(item.id, item.name)}
+        >
+          <Text className="text-destructive-foreground text-sm">Delete</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
-  const renderUserForm = () => (
-    <View className="bg-white p-4 rounded-lg shadow-sm">
-      <Text className="text-xl font-semibold text-primary-navy-dark mb-4">
-        Add New User
-      </Text>
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-background">
+        <ScrollView className="flex-1 p-4 md:p-6 space-y-6">
+          {/* Header Skeleton */}
+          <View className="flex-row justify-between items-center">
+            <View>
+              <View className="h-8 w-40 bg-muted rounded mb-2 animate-pulse" />
+              <View className="h-4 w-56 bg-muted rounded animate-pulse" />
+            </View>
+            <View className="h-10 w-32 bg-muted rounded animate-pulse" />
+          </View>
 
-      <View className="space-y-3">
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3"
-          placeholder="Full Name *"
-          value={formData.name}
-          onChangeText={(text) => setFormData({...formData, name: text})}
-        />
-        
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3"
-          placeholder="Email *"
-          value={formData.email}
-          onChangeText={(text) => setFormData({...formData, email: text})}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3"
-          placeholder="Phone"
-          value={formData.phone}
-          onChangeText={(text) => setFormData({...formData, phone: text})}
-          keyboardType="phone-pad"
-        />
-        
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3"
-          placeholder="Address"
-          value={formData.address}
-          onChangeText={(text) => setFormData({...formData, address: text})}
-        />
+          {/* Search and Filter Skeleton */}
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <View className="h-6 w-40 bg-muted rounded mb-2 animate-pulse" />
+            <View className="flex-row gap-4">
+              <View className="flex-1 h-10 bg-muted rounded animate-pulse" />
+              <View className="w-32 h-10 bg-muted rounded animate-pulse" />
+            </View>
+          </View>
 
-        <TextInput
-          className="border border-gray-300 rounded-lg p-3"
-          placeholder="Password *"
-          value={formData.password}
-          onChangeText={(text) => setFormData({...formData, password: text})}
-          secureTextEntry
-        />
-
-        <View className="border border-gray-300 rounded-lg p-3">
-          <Text className="text-gray-600 mb-2">User Type</Text>
-          <View className="flex-row space-x-2">
-            {['cashier', 'admin'].map((type) => (
-              <TouchableOpacity
-                key={type}
-                className={`flex-1 py-2 rounded ${
-                  formData.type === type 
-                    ? 'bg-primary-orange-400' 
-                    : 'bg-gray-200'
-                }`}
-                onPress={() => setFormData({...formData, type})}
-              >
-                <Text className={
-                  `text-center font-semibold ${
-                    formData.type === type 
-                      ? 'text-primary-white' 
-                      : 'text-gray-600'
-                  }`
-                }>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </Text>
-              </TouchableOpacity>
+          {/* Users List Skeleton */}
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} className="border-b border-border py-3 mb-2">
+                <View className="flex-row justify-between mb-2">
+                  <View className="flex-1">
+                    <View className="h-4 w-32 bg-muted rounded mb-1 animate-pulse" />
+                    <View className="h-3 w-48 bg-muted rounded animate-pulse" />
+                  </View>
+                  <View className="space-y-1">
+                    <View className="h-4 w-16 bg-muted rounded animate-pulse" />
+                    <View className="h-4 w-12 bg-muted rounded animate-pulse" />
+                  </View>
+                </View>
+                <View className="flex-row justify-between">
+                  <View className="h-3 w-24 bg-muted rounded animate-pulse" />
+                  <View className="h-3 w-20 bg-muted rounded animate-pulse" />
+                </View>
+              </View>
             ))}
           </View>
-        </View>
-
-        <View className="flex-row space-x-2">
-          <TouchableOpacity
-            className="flex-1 bg-gray-500 py-3 rounded-lg"
-            onPress={() => setShowUserForm(false)}
-          >
-            <Text className="text-primary-white text-center font-semibold">Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 bg-primary-orange-400 py-3 rounded-lg"
-            onPress={handleAddUser}
-          >
-            <Text className="text-primary-white text-center font-semibold">Add User</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
-    </View>
-  );
+    );
+  }
 
-  const renderPermissions = () => (
-    <View className="space-y-4">
-      {selectedUser && (
-        <>
-          <View className="bg-white p-4 rounded-lg shadow-sm">
-            <Text className="text-lg font-semibold text-primary-navy-dark mb-2">
-              Permissions for {selectedUser.name}
-            </Text>
-            <Text className="text-gray-600 mb-4">{selectedUser.email}</Text>
+  return (
+    <View className="flex-1 bg-background">
+      <ScrollView className="flex-1">
+        <View className="p-4 md:p-6 space-y-6">
+          {/* Header */}
+          <View className="flex-row justify-between items-center">
+            <View>
+              <Text className="text-2xl md:text-3xl font-bold text-foreground">
+                User Management
+              </Text>
+              <Text className="text-sm md:text-base text-muted-foreground">
+                Manage system users and permissions
+              </Text>
+            </View>
+            <TouchableOpacity
+              className="bg-accent rounded-lg px-4 py-2 flex-row items-center"
+              onPress={() => setIsDialogOpen(true)}
+            >
+              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
+              <Text className="text-accent-foreground font-semibold">Add User</Text>
+            </TouchableOpacity>
+          </View>
 
-            <View className="space-y-3">
-              {permissions.map(permission => (
-                <TouchableOpacity
-                  key={permission}
-                  className="flex-row items-center"
-                  onPress={() => {
-                    const newPermissions = selectedUser.permissions.includes(permission)
-                      ? selectedUser.permissions.filter(p => p !== permission)
-                      : [...selectedUser.permissions, permission];
-                    
-                    dispatch(updateUserPermissions({
-                      userId: selectedUser.id,
-                      permissions: newPermissions
-                    }));
-                    
-                    setSelectedUser({
-                      ...selectedUser,
-                      permissions: newPermissions
-                    });
-                  }}
-                >
-                  <View className={`w-6 h-6 rounded border-2 mr-3 ${
-                    selectedUser.permissions.includes(permission)
-                      ? 'bg-primary-orange-400 border-primary-orange-400'
-                      : 'border-gray-300'
-                  }`}>
-                    {selectedUser.permissions.includes(permission) && (
-                      <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                    )}
-                  </View>
-                  <Text className="text-primary-navy-dark">
-                    {permission.split('_').map(word => 
-                      word.charAt(0).toUpperCase() + word.slice(1)
-                    ).join(' ')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          {/* Stats */}
+          <View className="flex-row flex-wrap justify-between gap-4">
+            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="people" size={20} className="text-accent mr-2" />
+                <Text className="text-sm font-medium text-muted-foreground">
+                  All Users
+                </Text>
+              </View>
+              <Text className="text-xl md:text-2xl font-bold text-foreground">
+                {users.length}
+              </Text>
+            </View>
+            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="shield" size={20} className="text-purple-500 mr-2" />
+                <Text className="text-sm font-medium text-muted-foreground">
+                  Admins
+                </Text>
+              </View>
+              <Text className="text-xl md:text-2xl font-bold text-foreground">
+                {users.filter(u => u.type === 'admin').length}
+              </Text>
+            </View>
+            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="person" size={20} className="text-blue-500 mr-2" />
+                <Text className="text-sm font-medium text-muted-foreground">
+                  Cashiers
+                </Text>
+              </View>
+              <Text className="text-xl md:text-2xl font-bold text-foreground">
+                {users.filter(u => u.type === 'cashier').length}
+              </Text>
+            </View>
+            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+              <View className="flex-row items-center mb-2">
+                <Ionicons name="checkmark-circle" size={20} className="text-green-500 mr-2" />
+                <Text className="text-sm font-medium text-muted-foreground">
+                  Active
+                </Text>
+              </View>
+              <Text className="text-xl md:text-2xl font-bold text-foreground">
+                {users.filter(u => u.status === 'active').length}
+              </Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            className="bg-primary-orange-400 py-3 rounded-lg"
-            onPress={() => setActiveTab('list')}
-          >
-            <Text className="text-primary-white text-center font-semibold">
-              Back to User List
-            </Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
-  );
-
-  return (
-    <View className="flex-1 bg-primary-white">
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="bg-gray-100">
-        <View className="flex-row p-2 space-x-2">
-          {['list', 'permissions'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              className={`px-4 py-2 rounded-full ${
-                activeTab === tab 
-                  ? 'bg-primary-orange-400' 
-                  : 'bg-primary-white'
-              }`}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text className={
-                activeTab === tab 
-                  ? 'text-primary-white font-semibold' 
-                  : 'text-primary-navy-dark'
-              }>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          {/* Search and Filter */}
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <View className="flex-row items-center mb-4">
+              <Ionicons name="people" size={20} className="text-foreground mr-2" />
+              <Text className="text-lg font-bold text-foreground">
+                All Users ({filteredUsers.length})
               </Text>
-            </TouchableOpacity>
-          ))}
+            </View>
+            
+            <View className="flex-row gap-4">
+              {/* Search Input */}
+              <View className="flex-1">
+                <View className="relative">
+                  <Ionicons 
+                    name="search" 
+                    size={20} 
+                    className="absolute left-3 top-3 text-muted-foreground" 
+                  />
+                  <TextInput
+                    placeholder="Search by name or email..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    className="bg-background border border-input rounded-lg pl-10 pr-4 py-3 text-foreground"
+                    placeholderTextColor="#6B7280"
+                  />
+                </View>
+              </View>
+
+              {/* Role Filter */}
+              <View className="border border-input rounded-lg bg-background min-w-[140px]">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row px-2 py-1">
+                    {roleOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        className={`px-3 py-2 rounded mx-1 ${
+                          roleFilter === option.value 
+                            ? 'bg-accent' 
+                            : 'bg-transparent'
+                        }`}
+                        onPress={() => setRoleFilter(option.value)}
+                      >
+                        <Text className={
+                          roleFilter === option.value 
+                            ? 'text-accent-foreground text-xs font-medium'
+                            : 'text-muted-foreground text-xs'
+                        }>
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          </View>
+
+          {/* Users List */}
+          <View className="bg-card rounded-lg shadow-sm overflow-hidden">
+            {filteredUsers.length === 0 ? (
+              <View className="p-8 items-center">
+                <Ionicons name="people-outline" size={48} className="text-muted-foreground mb-4" />
+                <Text className="text-lg font-medium text-foreground mb-2">
+                  No users found
+                </Text>
+                <Text className="text-muted-foreground text-center mb-4">
+                  {searchQuery || roleFilter !== 'all' 
+                    ? 'Try adjusting your search or filter criteria'
+                    : 'Get started by adding your first user'
+                  }
+                </Text>
+                {(searchQuery || roleFilter !== 'all') && (
+                  <TouchableOpacity
+                    className="bg-accent rounded-lg px-4 py-2"
+                    onPress={() => {
+                      setSearchQuery('');
+                      setRoleFilter('all');
+                    }}
+                  >
+                    <Text className="text-accent-foreground font-semibold">
+                      Clear Filters
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <FlatList
+                data={filteredUsers}
+                renderItem={renderUserItem}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={false}
+                className="max-h-96"
+              />
+            )}
+          </View>
         </View>
       </ScrollView>
 
-      {/* Content */}
-      <ScrollView className="flex-1 p-4">
-        {showUserForm ? (
-          renderUserForm()
-        ) : activeTab === 'list' ? (
-          renderUserList()
-        ) : activeTab === 'permissions' ? (
-          renderPermissions()
-        ) : null}
-      </ScrollView>
+      {/* Add/Edit User Modal */}
+      <Modal
+        visible={isDialogOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View className="flex-1 bg-background pt-4">
+          <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
+            <Text className="text-xl font-bold text-foreground">
+              {editingUser ? 'Edit User' : 'Create New User'}
+            </Text>
+            <TouchableOpacity onPress={() => {
+              setIsDialogOpen(false);
+              resetForm();
+            }}>
+              <Ionicons name="close" size={24} className="text-foreground" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView className="flex-1 p-4">
+            <View className="space-y-4">
+              {/* Name */}
+              <View>
+                <Text className="text-sm font-medium text-foreground mb-2">Full Name</Text>
+                <TextInput
+                  value={formData.name}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  placeholder="Enter full name"
+                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#6B7280"
+                />
+              </View>
+
+              {/* Email */}
+              <View>
+                <Text className="text-sm font-medium text-foreground mb-2">Email</Text>
+                <TextInput
+                  value={formData.email}
+                  onChangeText={(text) => setFormData({ ...formData, email: text })}
+                  placeholder="Enter email address"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#6B7280"
+                />
+              </View>
+
+              {/* Password (only for new users) */}
+              {!editingUser && (
+                <View>
+                  <Text className="text-sm font-medium text-foreground mb-2">Password</Text>
+                  <TextInput
+                    value={formData.password}
+                    onChangeText={(text) => setFormData({ ...formData, password: text })}
+                    placeholder="Enter password"
+                    secureTextEntry
+                    className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                    placeholderTextColor="#6B7280"
+                  />
+                </View>
+              )}
+
+              {/* Phone */}
+              <View>
+                <Text className="text-sm font-medium text-foreground mb-2">Phone</Text>
+                <TextInput
+                  value={formData.phone}
+                  onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                  placeholder="Enter phone number"
+                  keyboardType="phone-pad"
+                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  placeholderTextColor="#6B7280"
+                />
+              </View>
+
+              {/* Address */}
+              <View>
+                <Text className="text-sm font-medium text-foreground mb-2">Address</Text>
+                <TextInput
+                  value={formData.address}
+                  onChangeText={(text) => setFormData({ ...formData, address: text })}
+                  placeholder="Enter address"
+                  multiline
+                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground min-h-[80px]"
+                  placeholderTextColor="#6B7280"
+                />
+              </View>
+
+              {/* Role */}
+              <View>
+                <Text className="text-sm font-medium text-foreground mb-2">Role</Text>
+                <View className="flex-row space-x-2">
+                  {['cashier', 'admin'].map((role) => (
+                    <TouchableOpacity
+                      key={role}
+                      className={`flex-1 px-4 py-3 rounded-lg border ${
+                        formData.type === role
+                          ? 'bg-accent border-accent'
+                          : 'bg-background border-input'
+                      }`}
+                      onPress={() => setFormData({ ...formData, type: role })}
+                    >
+                      <Text className={
+                        formData.type === role
+                          ? 'text-accent-foreground font-medium text-center capitalize'
+                          : 'text-foreground text-center capitalize'
+                      }>
+                        {role}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Permissions (for admin users) */}
+              {formData.type === 'admin' && (
+                <View>
+                  <Text className="text-sm font-medium text-foreground mb-2">Permissions</Text>
+                  <View className="space-y-2">
+                    {permissionOptions.map((permission) => (
+                      <TouchableOpacity
+                        key={permission}
+                        className="flex-row items-center"
+                        onPress={() => {
+                          const newPermissions = formData.permissions.includes(permission)
+                            ? formData.permissions.filter(p => p !== permission)
+                            : [...formData.permissions, permission];
+                          setFormData({ ...formData, permissions: newPermissions });
+                        }}
+                      >
+                        <View className={`w-6 h-6 rounded border-2 mr-3 ${
+                          formData.permissions.includes(permission)
+                            ? 'bg-accent border-accent'
+                            : 'border-gray-300'
+                        }`}>
+                          {formData.permissions.includes(permission) && (
+                            <Ionicons name="checkmark" size={16} className="text-accent-foreground" />
+                          )}
+                        </View>
+                        <Text className="text-foreground">
+                          {permission.split('_').map(word => 
+                            word.charAt(0).toUpperCase() + word.slice(1)
+                          ).join(' ')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              className="bg-accent rounded-lg py-4 mt-6"
+              onPress={handleSubmit}
+            >
+              <Text className="text-accent-foreground text-center font-semibold text-lg">
+                {editingUser ? 'Update User' : 'Create User'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>0
+        </View>
+      </Modal>
     </View>
   );
-}
+};
+
+export default AdminUsers;

@@ -1,356 +1,513 @@
 // app/(admin)/reports.js
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity,
+  ActivityIndicator
+} from 'react-native';
 import { useSelector } from 'react-redux';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function ReportsScreen() {
-  const [selectedReport, setSelectedReport] = useState('financial');
+const AdminReports = () => {
   const { sales, purchases, expenses, products } = useSelector(state => state.user);
+  const { assets } = useSelector(state => state.assets);
   const { financialReports } = useSelector(state => state.accounting);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState('income');
 
-  const screenWidth = Dimensions.get('window').width;
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
-  // Sales data for charts
-  const monthlySales = sales.reduce((acc, sale) => {
-    const month = new Date(sale.date).getMonth();
-    acc[month] = (acc[month] || 0) + sale.total;
-    return acc;
-  }, {});
+  // Calculate financial metrics
+  const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalCost = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const grossProfit = totalRevenue - totalCost;
+  const netProfit = grossProfit - totalExpenses;
+  const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-  const salesChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [{
-      data: Object.values(monthlySales).slice(0, 6),
-    }],
-  };
+  const totalAssetsValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+  const totalInventoryValue = products.reduce((sum, product) => sum + (product.price * product.stock), 0);
+  const totalAssetsPurchaseValue = assets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
+  const assetDepreciation = totalAssetsPurchaseValue - totalAssetsValue;
+  
+  const returnOnAssets = totalAssetsValue > 0 ? (netProfit / totalAssetsValue) * 100 : 0;
+  const inventoryTurnover = totalCost > 0 && totalInventoryValue > 0 ? totalCost / totalInventoryValue : 0;
+  
+  const currentAssets = totalAssetsValue + totalInventoryValue;
+  const currentLiabilities = totalExpenses;
+  const currentRatio = currentLiabilities > 0 ? currentAssets / currentLiabilities : 0;
+  
+  const operatingIncome = grossProfit - totalExpenses;
+  const operatingMargin = totalRevenue > 0 ? (operatingIncome / totalRevenue) * 100 : 0;
+  
+  const expenseRatio = totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0;
+  const costOfGoodsSoldRatio = totalRevenue > 0 ? (totalCost / totalRevenue) * 100 : 0;
 
-  const productPerformance = products.slice(0, 5).map(product => {
-    const productSales = sales.filter(s => s.productId === product.id);
-    const totalRevenue = productSales.reduce((sum, sale) => sum + sale.total, 0);
-    return {
-      name: product.name,
-      revenue: totalRevenue,
-      quantity: productSales.reduce((sum, sale) => sum + sale.quantity, 0),
-    };
-  });
+  const averageTransactionValue = sales.length > 0 ? totalRevenue / sales.length : 0;
+  const grossProfitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+  const assetDepreciationRate = totalAssetsPurchaseValue > 0 ? (assetDepreciation / totalAssetsPurchaseValue) * 100 : 0;
 
-  const pieChartData = productPerformance.map((product, index) => ({
-    name: product.name,
-    population: product.revenue,
-    color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-    legendFontColor: '#1E3A8A',
-    legendFontSize: 12,
-  }));
-
-  const chartConfig = {
-    backgroundColor: '#FFFFFF',
-    backgroundGradientFrom: '#FFFFFF',
-    backgroundGradientTo: '#FFFFFF',
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(251, 146, 60, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(30, 58, 138, ${opacity})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '6',
-      strokeWidth: '2',
-      stroke: '#FB923C',
-    },
-  };
-
-  const renderFinancialReports = () => (
-    <View className="space-y-6">
-      {/* Balance Sheet */}
-      <View className="bg-gray-50 p-4 rounded-lg">
-        <Text className="text-xl font-bold text-primary-navy-dark mb-4">Balance Sheet</Text>
-        <View className="space-y-2">
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Total Assets</Text>
-            <Text className="text-green-600 font-semibold">
-              ${financialReports.balanceSheet.total_assets.toLocaleString()}
-            </Text>
-          </View>
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Total Liabilities</Text>
-            <Text className="text-red-600 font-semibold">
-              ${financialReports.balanceSheet.total_liabilities.toLocaleString()}
-            </Text>
-          </View>
-          <View className="flex-row justify-between border-t border-gray-300 pt-2">
-            <Text className="text-primary-navy-dark font-semibold">Total Equity</Text>
-            <Text className="text-primary-orange-400 font-bold">
-              ${financialReports.balanceSheet.total_equity.toLocaleString()}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Income Statement */}
-      <View className="bg-gray-50 p-4 rounded-lg">
-        <Text className="text-xl font-bold text-primary-navy-dark mb-4">Income Statement</Text>
-        <View className="space-y-2">
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Revenue</Text>
-            <Text className="text-green-600">${financialReports.incomeStatement.revenue.toLocaleString()}</Text>
-          </View>
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Cost of Goods Sold</Text>
-            <Text className="text-red-600">${financialReports.incomeStatement.cogs.toLocaleString()}</Text>
-          </View>
-          <View className="flex-row justify-between border-t border-gray-300 pt-2">
-            <Text className="text-primary-navy-dark font-semibold">Gross Profit</Text>
-            <Text className="text-green-600 font-semibold">
-              ${financialReports.incomeStatement.gross_profit.toLocaleString()}
-            </Text>
-          </View>
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Operating Expenses</Text>
-            <Text className="text-red-600">${financialReports.incomeStatement.operating_expenses.toLocaleString()}</Text>
-          </View>
-          <View className="flex-row justify-between border-t border-gray-300 pt-2">
-            <Text className="text-primary-navy-dark font-bold">Net Income</Text>
-            <Text className="text-primary-orange-400 font-bold">
-              ${financialReports.incomeStatement.net_income.toLocaleString()}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Cash Flow */}
-      <View className="bg-gray-50 p-4 rounded-lg">
-        <Text className="text-xl font-bold text-primary-navy-dark mb-4">Cash Flow Statement</Text>
-        <View className="space-y-2">
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Operating Activities</Text>
-            <Text className="text-green-600">${financialReports.cashFlow.operating.toLocaleString()}</Text>
-          </View>
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Investing Activities</Text>
-            <Text className="text-red-600">${financialReports.cashFlow.investing.toLocaleString()}</Text>
-          </View>
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Financing Activities</Text>
-            <Text className="text-red-600">${financialReports.cashFlow.financing.toLocaleString()}</Text>
-          </View>
-          <View className="flex-row justify-between border-t border-gray-300 pt-2">
-            <Text className="text-primary-navy-dark font-bold">Net Cash Flow</Text>
-            <Text className="text-primary-orange-400 font-bold">
-              ${financialReports.cashFlow.net_cash_flow.toLocaleString()}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderSalesAnalytics = () => (
-    <View className="space-y-6">
-      {/* Sales Trend Chart */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">Sales Trend</Text>
-        <LineChart
-          data={salesChartData}
-          width={screenWidth - 40}
-          height={220}
-          chartConfig={chartConfig}
-          bezier
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-          }}
-        />
-      </View>
-
-      {/* Product Performance */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">Top Products</Text>
-        <BarChart
-          data={{
-            labels: productPerformance.map(p => p.name.substring(0, 8)),
-            datasets: [{
-              data: productPerformance.map(p => p.revenue),
-            }],
-          }}
-          width={screenWidth - 40}
-          height={220}
-          chartConfig={chartConfig}
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-          }}
-        />
-      </View>
-
-      {/* Revenue Distribution */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">Revenue Distribution</Text>
-        <PieChart
-          data={pieChartData}
-          width={screenWidth - 40}
-          height={200}
-          chartConfig={chartConfig}
-          accessor="population"
-          backgroundColor="transparent"
-          paddingLeft="15"
-        />
-      </View>
-    </View>
-  );
-
-  const renderInventoryReports = () => (
-    <View className="space-y-4">
-      {/* Stock Levels */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">Stock Levels</Text>
-        {products.slice(0, 10).map(product => (
-          <View key={product.id} className="flex-row justify-between py-2 border-b border-gray-100">
-            <Text className="text-primary-navy-dark flex-1">{product.name}</Text>
-            <View className="flex-row space-x-4">
-              <Text className="text-gray-600">Stock: {product.stock}</Text>
-              <Text className={
-                product.stock < 10 ? 'text-red-600 font-semibold' : 'text-green-600'
-              }>
-                {product.stock < 10 ? 'Low' : 'Adequate'}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
-
-      {/* Inventory Valuation */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">
-          Inventory Valuation
+  const StatCard = ({ title, value, description, isPositive = true, isCurrency = false }) => (
+    <View className="bg-card rounded-lg p-4 shadow-sm mb-4">
+      <Text className="text-sm font-medium text-muted-foreground mb-1">
+        {title}
+      </Text>
+      <Text className={`text-xl font-bold ${
+        typeof value === 'number' && value < 0 ? 'text-destructive' : 
+        isPositive ? 'text-accent' : 'text-foreground'
+      }`}>
+        {isCurrency && typeof value === 'number' ? `$${value.toFixed(2)}` : 
+         typeof value === 'number' ? `${value.toFixed(2)}${title.includes('Ratio') || title.includes('Margin') ? '%' : ''}` : value}
+      </Text>
+      {description && (
+        <Text className="text-xs text-muted-foreground mt-1">
+          {description}
         </Text>
-        <View className="space-y-2">
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Total Inventory Value</Text>
-            <Text className="text-primary-orange-400 font-semibold">
-              ${products.reduce((sum, p) => sum + (p.price * p.stock), 0).toLocaleString()}
-            </Text>
-          </View>
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Slow Moving Items</Text>
-            <Text className="text-red-600 font-semibold">
-              {products.filter(p => p.stock > 50).length}
-            </Text>
-          </View>
-        </View>
-      </View>
+      )}
     </View>
   );
 
-  const renderTaxReports = () => (
-    <View className="space-y-4">
-      {/* Tax Summary */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">Tax Summary</Text>
-        <View className="space-y-3">
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">VAT Collected (16%)</Text>
-            <Text className="text-green-600">
-              ${(sales.reduce((sum, s) => sum + s.total, 0) * 0.16).toLocaleString()}
-            </Text>
-          </View>
-          <View className="flex-row justify-between">
-            <Text className="text-primary-navy-dark">Estimated Corporate Tax (30%)</Text>
-            <Text className="text-red-600">
-              ${(financialReports.incomeStatement.net_income * 0.3).toLocaleString()}
-            </Text>
-          </View>
-          <View className="flex-row justify-between border-t border-gray-300 pt-2">
-            <Text className="text-primary-navy-dark font-bold">Total Tax Liability</Text>
-            <Text className="text-primary-orange-400 font-bold">
-              ${(sales.reduce((sum, s) => sum + s.total, 0) * 0.16 + 
-                 financialReports.incomeStatement.net_income * 0.3).toLocaleString()}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Tax Compliance */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">
-          Compliance Status
+  const MetricItem = ({ label, value, isPositive = true, isCurrency = false }) => (
+    <View className="bg-secondary rounded-lg p-3 mb-2">
+      <View className="flex-row justify-between items-center">
+        <Text className="font-medium text-foreground text-sm flex-1">
+          {label}
         </Text>
-        <View className="space-y-2">
-          <View className="flex-row justify-between items-center">
-            <Text className="text-primary-navy-dark">VAT Filing</Text>
-            <Text className="text-green-600 bg-green-100 px-3 py-1 rounded-full text-xs">
-              Up to Date
-            </Text>
+        <Text className={`font-bold text-base ${
+          typeof value === 'number' && value < 0 ? 'text-destructive' : 
+          isPositive ? 'text-accent' : 'text-foreground'
+        }`}>
+          {isCurrency && typeof value === 'number' ? `$${value.toFixed(2)}` : 
+           typeof value === 'number' ? `${value.toFixed(2)}${label.includes('Ratio') || label.includes('Margin') || label.includes('Rate') ? '%' : ''}` : value}
+        </Text>
+      </View>
+    </View>
+  );
+
+  const SectionHeader = ({ title, subtitle, icon }) => (
+    <View className="flex-row items-center mb-4">
+      <Ionicons name={icon} size={24} className="text-accent mr-3" />
+      <View>
+        <Text className="text-xl font-bold text-foreground">{title}</Text>
+        <Text className="text-muted-foreground">{subtitle}</Text>
+      </View>
+    </View>
+  );
+
+  const renderIncomeStatement = () => (
+    <View>
+      <SectionHeader 
+        title="Income Statement" 
+        subtitle="Revenue, costs, and profitability"
+        icon="trending-up"
+      />
+      <View className="flex-row flex-wrap justify-between">
+        <View className="w-[48%]">
+          <StatCard
+            title="Total Revenue"
+            value={totalRevenue}
+            description="From all sales"
+            isPositive={true}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Cost of Goods"
+            value={totalCost}
+            description="Purchase costs"
+            isPositive={false}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Operating Expenses"
+            value={totalExpenses}
+            description="Business costs"
+            isPositive={false}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Gross Profit"
+            value={grossProfit}
+            description="Revenue - COGS"
+            isPositive={true}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Net Profit"
+            value={netProfit}
+            description="After all expenses"
+            isPositive={netProfit >= 0}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Profit Margin"
+            value={profitMargin}
+            description="Net profit percentage"
+            isPositive={profitMargin >= 0}
+            isCurrency={false}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Operating Margin"
+            value={operatingMargin}
+            description="Operating income %"
+            isPositive={operatingMargin >= 0}
+            isCurrency={false}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="COGS Ratio"
+            value={costOfGoodsSoldRatio}
+            description="Cost vs revenue"
+            isPositive={false}
+            isCurrency={false}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Expense Ratio"
+            value={expenseRatio}
+            description="Expenses vs revenue"
+            isPositive={false}
+            isCurrency={false}
+          />
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderBalanceSheet = () => (
+    <View>
+      <SectionHeader 
+        title="Balance Sheet" 
+        subtitle="Assets, liabilities, and equity"
+        icon="wallet"
+      />
+      <View className="flex-row flex-wrap justify-between">
+        <View className="w-[48%]">
+          <StatCard
+            title="Total Assets Value"
+            value={totalAssetsValue}
+            description="Current asset worth"
+            isPositive={true}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Inventory Value"
+            value={totalInventoryValue}
+            description="Stock on hand"
+            isPositive={true}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Asset Depreciation"
+            value={assetDepreciation}
+            description="Value loss"
+            isPositive={false}
+            isCurrency={true}
+          />
+        </View>
+        <View className="w-[48%]">
+          <StatCard
+            title="Current Ratio"
+            value={currentRatio}
+            description="Liquidity measure"
+            isPositive={currentRatio >= 1}
+            isCurrency={false}
+          />
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderPerformanceMetrics = () => (
+    <View>
+      <SectionHeader 
+        title="Performance Metrics" 
+        subtitle="Key business indicators"
+        icon="analytics"
+      />
+      <View className="flex-row flex-wrap justify-between">
+        <View className="w-[48%] mb-4">
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <Text className="text-lg font-bold text-foreground mb-3">Summary</Text>
+            <MetricItem
+              label="Total Transactions"
+              value={sales.length}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Total Purchase Orders"
+              value={purchases.length}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Total Expense Records"
+              value={expenses.length}
+              isPositive={true}
+            />
           </View>
-          <View className="flex-row justify-between items-center">
-            <Text className="text-primary-navy-dark">Income Tax</Text>
-            <Text className="text-green-600 bg-green-100 px-3 py-1 rounded-full text-xs">
-              Up to Date
-            </Text>
+        </View>
+        
+        <View className="w-[48%] mb-4">
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <Text className="text-lg font-bold text-foreground mb-3">Performance</Text>
+            <MetricItem
+              label="Avg Transaction Value"
+              value={averageTransactionValue}
+              isPositive={true}
+              isCurrency={true}
+            />
+            <MetricItem
+              label="Return on Assets (ROA)"
+              value={returnOnAssets}
+              isPositive={returnOnAssets >= 0}
+            />
+            <MetricItem
+              label="Inventory Turnover"
+              value={inventoryTurnover}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Gross Profit Margin"
+              value={grossProfitMargin}
+              isPositive={true}
+            />
           </View>
-          <View className="flex-row justify-between items-center">
-            <Text className="text-primary-navy-dark">Audit Ready</Text>
-            <Text className="text-green-600 bg-green-100 px-3 py-1 rounded-full text-xs">
-              Yes
-            </Text>
+        </View>
+
+        <View className="w-[48%]">
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <Text className="text-lg font-bold text-foreground mb-3">Asset Overview</Text>
+            <MetricItem
+              label="Number of Assets"
+              value={assets.length}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Number of Products"
+              value={products.length}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Total Current Assets"
+              value={currentAssets}
+              isPositive={true}
+              isCurrency={true}
+            />
+            <MetricItem
+              label="Asset Depreciation Rate"
+              value={assetDepreciationRate}
+              isPositive={false}
+            />
           </View>
         </View>
       </View>
     </View>
   );
+
+  const renderFinancialRatios = () => (
+    <View>
+      <SectionHeader 
+        title="Financial Ratios" 
+        subtitle="Business health indicators"
+        icon="calculator"
+      />
+      <View className="flex-row flex-wrap justify-between">
+        <View className="w-[48%] mb-4">
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <Text className="text-lg font-bold text-foreground mb-3">Profitability</Text>
+            <MetricItem
+              label="Net Profit Margin"
+              value={profitMargin}
+              isPositive={profitMargin >= 0}
+            />
+            <MetricItem
+              label="Operating Margin"
+              value={operatingMargin}
+              isPositive={operatingMargin >= 0}
+            />
+            <MetricItem
+              label="Gross Margin"
+              value={grossProfitMargin}
+              isPositive={true}
+            />
+          </View>
+        </View>
+        
+        <View className="w-[48%] mb-4">
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <Text className="text-lg font-bold text-foreground mb-3">Efficiency</Text>
+            <MetricItem
+              label="Inventory Turnover"
+              value={inventoryTurnover}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Asset Turnover"
+              value={totalRevenue > 0 ? totalRevenue / totalAssetsValue : 0}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Expense Ratio"
+              value={expenseRatio}
+              isPositive={false}
+            />
+          </View>
+        </View>
+
+        <View className="w-[48%]">
+          <View className="bg-card rounded-lg p-4 shadow-sm">
+            <Text className="text-lg font-bold text-foreground mb-3">Liquidity</Text>
+            <MetricItem
+              label="Current Ratio"
+              value={currentRatio}
+              isPositive={currentRatio >= 1}
+            />
+            <MetricItem
+              label="Quick Ratio"
+              value={currentLiabilities > 0 ? (currentAssets - totalInventoryValue) / currentLiabilities : 0}
+              isPositive={true}
+            />
+            <MetricItem
+              label="Working Capital"
+              value={currentAssets - currentLiabilities}
+              isPositive={true}
+              isCurrency={true}
+            />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-background justify-center items-center">
+        <ActivityIndicator size="large" color="#FB923C" />
+        <Text className="text-muted-foreground mt-4">Loading reports...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View className="flex-1 bg-primary-white">
-      {/* Report Type Selector */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="bg-gray-100">
-        <View className="flex-row p-2 space-x-2">
-          {['financial', 'sales', 'inventory', 'tax'].map((type) => (
+    <View className="flex-1 bg-background">
+      {/* Header */}
+      <View className="bg-card p-4 border-b border-border">
+        <Text className="text-2xl font-bold text-foreground">Reports</Text>
+        <Text className="text-muted-foreground">Financial reports and analytics</Text>
+      </View>
+
+      {/* Section Navigation */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        className="border-b border-border bg-card"
+      >
+        <View className="flex-row px-4 py-2">
+          {[
+            { key: 'income', label: 'Income', icon: 'trending-up' },
+            { key: 'balance', label: 'Balance Sheet', icon: 'wallet' },
+            { key: 'performance', label: 'Performance', icon: 'analytics' },
+            { key: 'ratios', label: 'Ratios', icon: 'calculator' },
+          ].map((section) => (
             <TouchableOpacity
-              key={type}
-              className={`px-4 py-2 rounded-full ${
-                selectedReport === type 
-                  ? 'bg-primary-orange-400' 
-                  : 'bg-primary-white'
+              key={section.key}
+              className={`px-4 py-2 rounded-full mx-1 flex-row items-center ${
+                activeSection === section.key ? 'bg-accent' : 'bg-transparent'
               }`}
-              onPress={() => setSelectedReport(type)}
+              onPress={() => setActiveSection(section.key)}
             >
+              <Ionicons 
+                name={section.icon} 
+                size={16} 
+                className={
+                  activeSection === section.key ? 'text-accent-foreground mr-2' : 'text-muted-foreground mr-2'
+                } 
+              />
               <Text className={
-                selectedReport === type 
-                  ? 'text-primary-white font-semibold' 
-                  : 'text-primary-navy-dark'
+                activeSection === section.key 
+                  ? 'text-accent-foreground font-semibold' 
+                  : 'text-muted-foreground'
               }>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {section.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
 
-      {/* Report Content */}
+      {/* Content */}
       <ScrollView className="flex-1 p-4">
-        {selectedReport === 'financial' && renderFinancialReports()}
-        {selectedReport === 'sales' && renderSalesAnalytics()}
-        {selectedReport === 'inventory' && renderInventoryReports()}
-        {selectedReport === 'tax' && renderTaxReports()}
+        <View className="space-y-6">
+          {activeSection === 'income' && renderIncomeStatement()}
+          {activeSection === 'balance' && renderBalanceSheet()}
+          {activeSection === 'performance' && renderPerformanceMetrics()}
+          {activeSection === 'ratios' && renderFinancialRatios()}
+        </View>
 
-        {/* Export Options */}
-        <View className="bg-primary-navy-dark p-4 rounded-lg mt-6">
-          <Text className="text-primary-white text-lg font-semibold mb-4">
-            Export Reports
+        {/* Quick Stats Footer */}
+        <View className="bg-primary rounded-lg p-4 mt-6">
+          <Text className="text-lg font-semibold text-primary-foreground mb-3">
+            Quick Financial Overview
           </Text>
-          <View className="flex-row justify-between">
-            <TouchableOpacity className="bg-primary-orange-400 px-4 py-2 rounded-lg">
-              <Text className="text-primary-white font-semibold">PDF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-primary-orange-400 px-4 py-2 rounded-lg">
-              <Text className="text-primary-white font-semibold">Excel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-primary-orange-400 px-4 py-2 rounded-lg">
-              <Text className="text-primary-white font-semibold">Print</Text>
-            </TouchableOpacity>
+          <View className="flex-row flex-wrap justify-between">
+            <View className="mb-3 w-[48%]">
+              <Text className="text-accent text-sm">Monthly Revenue</Text>
+              <Text className="text-primary-foreground text-lg font-bold">
+                ${(totalRevenue / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </Text>
+            </View>
+            <View className="mb-3 w-[48%]">
+              <Text className="text-accent text-sm">Monthly Profit</Text>
+              <Text className="text-primary-foreground text-lg font-bold">
+                ${(netProfit / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </Text>
+            </View>
+            <View className="mb-3 w-[48%]">
+              <Text className="text-accent text-sm">Active Products</Text>
+              <Text className="text-primary-foreground text-lg font-bold">
+                {products.length}
+              </Text>
+            </View>
+            <View className="mb-3 w-[48%]">
+              <Text className="text-accent text-sm">Business Health</Text>
+              <Text className={`text-lg font-bold ${
+                profitMargin > 20 ? 'text-green-400' : 
+                profitMargin > 10 ? 'text-yellow-400' : 'text-red-400'
+              }`}>
+                {profitMargin > 20 ? 'Excellent' : profitMargin > 10 ? 'Good' : 'Needs Attention'}
+              </Text>
+            </View>
           </View>
         </View>
       </ScrollView>
     </View>
   );
-}
+};
+
+export default AdminReports;
