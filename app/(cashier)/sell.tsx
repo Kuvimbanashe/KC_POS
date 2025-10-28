@@ -319,6 +319,30 @@ const CashierSell = () => {
             </Text>
           </View>
         </View>
+        <View className="flex flex-row w-full justify-between gap-4 mt-4 items-center">
+          
+         <TouchableOpacity
+          onPress={handleCheckout}
+          className={`rounded-lg py-2 px-6 items-center ${
+            cart.length === 0 ? 'bg-gray-400' : 'bg-accent'
+          }`}
+          disabled={cart.length === 0}
+        >
+          <Text className="text-accent-foreground text-lg font-bold">
+            Complete Sale
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity className="border-2 border-dashed border-input rounded-lg py-2 px-6 items-center"
+              onPress={() => setIsProductModalOpen(true)}
+            >
+              
+              <Text className="text-lg font-medium text-foreground">Search Product</Text>
+          
+            </TouchableOpacity>
+        
+        
+        </View>
       </View>
 
       {/* Main Content */}
@@ -326,14 +350,7 @@ const CashierSell = () => {
         <View className="p-4 space-y-4">
           {/* Add Product Section */}
           <View className="bg-card rounded-lg p-4 space-y-3">
-            <TouchableOpacity
-              className="border-2 border-dashed border-input rounded-lg p-4 items-center"
-              onPress={() => setIsProductModalOpen(true)}
-            >
-              <Ionicons name="search" size={24} className="text-muted-foreground mb-2" />
-              <Text className="text-lg font-medium text-foreground">Search Product</Text>
-              <Text className="text-muted-foreground text-sm">Tap to browse products</Text>
-            </TouchableOpacity>
+            
 
             <View className="flex-row space-x-3">
               <View className="flex-1">
@@ -425,22 +442,7 @@ const CashierSell = () => {
         </View>
       </ScrollView>
 
-      {/* Fixed Bottom Section */}
-      <View className="border-t bg-card p-4 ">
-        
-        
-        <TouchableOpacity
-          onPress={handleCheckout}
-          className={`rounded-lg py-4 items-center ${
-            cart.length === 0 ? 'bg-gray-400' : 'bg-accent'
-          }`}
-          disabled={cart.length === 0}
-        >
-          <Text className="text-accent-foreground text-lg font-bold">
-            Complete Sale
-          </Text>
-        </TouchableOpacity>
-      </View>
+
 
       {/* Product Search Modal */}
       <Modal
