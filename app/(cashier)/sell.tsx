@@ -304,9 +304,21 @@ const CashierSell = () => {
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-card p-4 border-b border-border">
-        <Text className="text-xl font-bold text-foreground">Point of Sale</Text>
-        <Text className="text-muted-foreground">Welcome, {user?.name}</Text>
+      <View className="bg-card p-4 border- border-border">
+        <View className="flex-row justify-between items-center">
+          <View>
+            <Text className="text-xs text-muted-foreground">Total Items</Text>
+            <Text className="text-lg font-bold text-foreground">{totalItems}</Text>
+          </View>
+          
+          <View className="items-end">
+            <Text className="text-xs text-muted-foreground">Total Amount</Text>
+            <Text className="text-2xl font-bold text-accent flex-row items-center">
+              <Ionicons name="dollar" size={24} className="text-accent mr-1" />
+              {total.toFixed(2)}
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Main Content */}
@@ -414,21 +426,8 @@ const CashierSell = () => {
       </ScrollView>
 
       {/* Fixed Bottom Section */}
-      <View className="border-t bg-card p-4 space-y-3">
-        <View className="flex-row justify-between items-center">
-          <View>
-            <Text className="text-xs text-muted-foreground">Total Items</Text>
-            <Text className="text-lg font-bold text-foreground">{totalItems}</Text>
-          </View>
-          
-          <View className="items-end">
-            <Text className="text-xs text-muted-foreground">Total Amount</Text>
-            <Text className="text-2xl font-bold text-accent flex-row items-center">
-              <Ionicons name="dollar" size={24} className="text-accent mr-1" />
-              {total.toFixed(2)}
-            </Text>
-          </View>
-        </View>
+      <View className="border-t bg-card p-4 ">
+        
         
         <TouchableOpacity
           onPress={handleCheckout}
