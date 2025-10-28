@@ -306,16 +306,16 @@ const CashierSell = () => {
       {/* Header */}
       <View className="bg-card p-4 border- border-border">
         <View className="flex-row justify-between items-center">
-          <View>
-            <Text className="text-xs text-muted-foreground">Total Items</Text>
-            <Text className="text-lg font-bold text-foreground">{totalItems}</Text>
+          <View className="text-center w-[45%] p-4 bg-green-600 rounded-md">
+            <Text className="text-xs text-muted text-center">Total Items</Text>
+            <Text className="text-lg font-bold text-center text-muted">{totalItems}</Text>
           </View>
           
-          <View className="items-end">
-            <Text className="text-xs text-muted-foreground">Total Amount</Text>
-            <Text className="text-2xl font-bold text-accent flex-row items-center">
-              <Ionicons name="dollar" size={24} className="text-accent mr-1" />
-              {total.toFixed(2)}
+          <View className="w-[45%] p-4 bg-accent rounded-md">
+            <Text className="text-xs text-muted text-center">Total Amount</Text>
+            <Text className="text-2xl font-bold text-muted w-full flex-row text-center items-center">
+              <Ionicons name="dollar" size={24} className="text-muted hidden mr-1" />
+             {"$ "} {total.toFixed(2)}
             </Text>
           </View>
         </View>
