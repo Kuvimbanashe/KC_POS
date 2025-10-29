@@ -22,7 +22,7 @@ const CashierSell = () => {
   const [cart, setCart] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isUnitTypeModalOpen, setIsUnitTypeModalOpen] = useState(false);
+  const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState('1');
   const [selectedUnitType, setSelectedUnitType] = useState('single');
@@ -30,6 +30,7 @@ const CashierSell = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastSale, setLastSale] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingCartItem, setEditingCartItem] = useState(null);
 
   useEffect(() => {
     // Filter products with stock > 0
@@ -39,77 +40,100 @@ const CashierSell = () => {
 
   const handleProductSelect = (product) => {
     setSelectedProduct(product);
-    if (product.unitType === 'both') {
-      setIsUnitTypeModalOpen(true);
-    } else {
-      setSelectedUnitType(product.unitType === 'pack' ? 'pack' : 'single');
-      addToCart(product, product.unitType === 'pack' ? 'pack' : 'single');
-    }
+    setQuantity('1');
+    setSelectedUnitType('single');
+    setEditingCartItem(null);
+    setIsQuantityModalOpen(true);
+    setIsProductModalOpen(false);
   };
 
-  const handleUnitTypeConfirm = () => {
-    if (selectedProduct) {
-      addToCart(selectedProduct, selectedUnitType);
-      setIsUnitTypeModalOpen(false);
-      setSelectedProduct(null);
-    }
-  };
+  const handleQuantityConfirm = () => {
+    if (!selectedProduct) return;
 
-  const addToCart = (product, unitType) => {
     if (!quantity || parseInt(quantity) <= 0) {
       Alert.alert('Error', 'Please enter valid quantity');
       return;
     }
 
     const qty = parseInt(quantity);
-    let price = product.price;
+    let price = selectedProduct.price;
     let requiredStock = qty;
 
     // Adjust for pack sales
-    if (unitType === 'pack') {
-      price = product.price; // Pack price (assuming pack price is stored in product.price)
-      requiredStock = qty * (product.packSize || 1);
+    if (selectedUnitType === 'pack') {
+      requiredStock = qty * (selectedProduct.packSize || 1);
     }
 
-    if (requiredStock > product.stock) {
-      Alert.alert('Error', `Only ${product.stock} units available in stock`);
+    if (requiredStock > selectedProduct.stock) {
+      Alert.alert('Error', `Only ${selectedProduct.stock} units available in stock`);
       return;
     }
 
-    const cartKey = `${product.id}_${unitType}`;
-    const existingItem = cart.find(item => item.productId === cartKey);
-    
-    if (existingItem) {
-      const newQuantity = existingItem.quantity + qty;
-      const newRequiredStock = unitType === 'pack' ? newQuantity * (product.packSize || 1) : newQuantity;
-      
-      if (newRequiredStock > product.stock) {
-        Alert.alert('Error', `Cannot add more. Only ${product.stock} units available`);
-        return;
-      }
-      
-      setCart(cart.map(item =>
-        item.productId === cartKey
-          ? { ...item, quantity: newQuantity, subtotal: price * newQuantity }
+    if (editingCartItem) {
+      // Update existing cart item
+      setCart(cart.map(item => 
+        item.productId === editingCartItem.productId
+          ? {
+              ...item,
+              quantity: qty,
+              unitType: selectedUnitType,
+              productName: `${selectedProduct.name}${selectedUnitType === 'pack' && selectedProduct.packSize ? ` (Pack of ${selectedProduct.packSize})` : ''}`,
+              subtotal: price * qty,
+              packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1
+            }
           : item
       ));
     } else {
-      const packInfo = unitType === 'pack' && product.packSize ? ` (Pack of ${product.packSize})` : '';
-      const newItem = {
-        productId: cartKey,
-        productName: `${product.name}${packInfo}`,
-        quantity: qty,
-        price,
-        subtotal: price * qty,
-        unitType: unitType,
-        originalProductId: product.id,
-        packSize: unitType === 'pack' ? product.packSize : 1
-      };
-      setCart([...cart, newItem]);
+      // Add new item to cart
+      const cartKey = `${selectedProduct.id}_${selectedUnitType}`;
+      const existingItem = cart.find(item => item.productId === cartKey);
+      
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + qty;
+        const newRequiredStock = selectedUnitType === 'pack' ? newQuantity * (selectedProduct.packSize || 1) : newQuantity;
+        
+        if (newRequiredStock > selectedProduct.stock) {
+          Alert.alert('Error', `Cannot add more. Only ${selectedProduct.stock} units available`);
+          return;
+        }
+        
+        setCart(cart.map(item =>
+          item.productId === cartKey
+            ? { ...item, quantity: newQuantity, subtotal: price * newQuantity }
+            : item
+        ));
+      } else {
+        const packInfo = selectedUnitType === 'pack' && selectedProduct.packSize ? ` (Pack of ${selectedProduct.packSize})` : '';
+        const newItem = {
+          productId: cartKey,
+          productName: `${selectedProduct.name}${packInfo}`,
+          quantity: qty,
+          price,
+          subtotal: price * qty,
+          unitType: selectedUnitType,
+          originalProductId: selectedProduct.id,
+          packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1
+        };
+        setCart([...cart, newItem]);
+      }
     }
 
     setQuantity('1');
-    setIsProductModalOpen(false);
+    setSelectedUnitType('single');
+    setSelectedProduct(null);
+    setEditingCartItem(null);
+    setIsQuantityModalOpen(false);
+  };
+
+  const handleCartItemPress = (item) => {
+    const product = products.find(p => p.id === item.originalProductId);
+    if (product) {
+      setSelectedProduct(product);
+      setQuantity(item.quantity.toString());
+      setSelectedUnitType(item.unitType);
+      setEditingCartItem(item);
+      setIsQuantityModalOpen(true);
+    }
   };
 
   const updateQuantity = (cartKey, change) => {
@@ -245,17 +269,14 @@ const CashierSell = () => {
           Stock: {item.stock}
         </Text>
       </View>
-      
-      {item.unitType === 'both' && (
-        <Text className="text-xs text-muted-foreground mt-1">
-          Available as single or pack of {item.packSize}
-        </Text>
-      )}
     </TouchableOpacity>
   );
 
   const renderCartItem = ({ item }) => (
-    <View className="bg-secondary rounded-lg p-3 mb-2">
+    <TouchableOpacity 
+      className="bg-secondary rounded-lg p-3 mb-2"
+      onPress={() => handleCartItemPress(item)}
+    >
       <View className="flex-row justify-between items-start mb-2">
         <View className="flex-1">
           <Text className="font-semibold text-foreground text-sm">{item.productName}</Text>
@@ -274,7 +295,10 @@ const CashierSell = () => {
       <View className="flex-row justify-between items-center">
         <View className="flex-row items-center space-x-3">
           <TouchableOpacity
-            onPress={() => updateQuantity(item.productId, -1)}
+            onPress={(e) => {
+              e.stopPropagation();
+              updateQuantity(item.productId, -1);
+            }}
             className="w-8 h-8 bg-border rounded-full items-center justify-center"
           >
             <Ionicons name="remove" size={16} className="text-foreground" />
@@ -285,7 +309,10 @@ const CashierSell = () => {
           </Text>
           
           <TouchableOpacity
-            onPress={() => updateQuantity(item.productId, 1)}
+            onPress={(e) => {
+              e.stopPropagation();
+              updateQuantity(item.productId, 1);
+            }}
             className="w-8 h-8 bg-border rounded-full items-center justify-center"
           >
             <Ionicons name="add" size={16} className="text-foreground" />
@@ -298,24 +325,23 @@ const CashierSell = () => {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-card p-4 border- border-border">
+      <View className="bg-card p-4 border-b border-border">
         <View className="flex-row justify-between items-center">
           <View className="text-center w-[45%] p-4 bg-accent rounded-md">
-            <Text className="text-xs text-muted text-center">Total Items</Text>
-            <Text className="text-2xl font-bold text-center text-muted">{totalItems}</Text>
+            <Text className="text-xs text-accent-foreground text-center">Total Items</Text>
+            <Text className="text-2xl font-bold text-center text-accent-foreground">{totalItems}</Text>
           </View>
           
           <View className="w-[45%] p-4 bg-primary rounded-md">
-            <Text className="text-xs text-muted text-center">Total Amount</Text>
-            <Text className="text-2xl font-bold text-muted w-full flex-row text-center items-center">
-              <Ionicons name="dollar" size={24} className="text-muted hidden mr-1" />
-             {"$ "} {total.toFixed(2)}
+            <Text className="text-xs text-primary-foreground text-center">Total Amount</Text>
+            <Text className="text-2xl font-bold text-primary-foreground w-full flex-row text-center items-center">
+              {"$ "}{total.toFixed(2)}
             </Text>
           </View>
         </View>
@@ -328,75 +354,54 @@ const CashierSell = () => {
           }`}
           disabled={cart.length === 0}
         >
-          <Text className="text-accent-foreground text-lg font-bold">
+          <Text className="text-white text-lg font-bold">
             Check Out
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity className="border-2 border-dashed border-input rounded-lg py-2 px-6 items-center w-[48%]"
-              onPress={() => setIsProductModalOpen(true)}
-            >
-              
-              <Text className="text-lg font-medium text-foreground">{"+ "}Add Item </Text>
-          
-            </TouchableOpacity>
-        
-        
+        <TouchableOpacity 
+          className="border-2 border-dashed border-input rounded-lg py-2 px-6 items-center w-[48%]"
+          onPress={() => setIsProductModalOpen(true)}
+        >
+          <Text className="text-lg font-medium text-foreground">{"+ "}Add Item</Text>
+        </TouchableOpacity>
         </View>
       </View>
 
       {/* Main Content */}
       <ScrollView className="flex-1">
         <View className="p-4 space-y-4">
-          {/* Add Product Section */}
-          <View className="bg-card rounded-lg p-4 space-y-3">
-            
-
-            <View className="flex-row space-x-3">
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground mb-1">Quantity</Text>
-                <TextInput
-                  value={quantity}
-                  onChangeText={setQuantity}
-                  placeholder="1"
-                  keyboardType="numeric"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground text-center text-lg font-bold"
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-              
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground mb-1">Payment</Text>
-                <View className="border border-input rounded-lg bg-background">
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View className="flex-row px-2 py-1">
-                      {[
-                        { value: 'cash', label: '💵 Cash', icon: 'cash' },
-                        { value: 'card', label: '💳 Card', icon: 'card' },
-                        { value: 'mobile', label: '📱 Mobile', icon: 'phone-portrait' },
-                      ].map((method) => (
-                        <TouchableOpacity
-                          key={method.value}
-                          className={`px-3 py-2 rounded mx-1 flex-row items-center ${
-                            paymentMethod === method.value 
-                              ? 'bg-accent' 
-                              : 'bg-transparent'
-                          }`}
-                          onPress={() => setPaymentMethod(method.value)}
-                        >
-                          <Text className={
-                            paymentMethod === method.value 
-                              ? 'text-accent-foreground text-xs font-medium'
-                              : 'text-muted-foreground text-xs'
-                          }>
-                            {method.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
+          {/* Payment Method Section */}
+          <View className="bg-card rounded-lg p-4">
+            <Text className="text-sm font-medium text-foreground mb-2">Payment Method</Text>
+            <View className="border border-input rounded-lg bg-background">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View className="flex-row px-2 py-1">
+                  {[
+                    { value: 'cash', label: '💵 Cash', icon: 'cash' },
+                    { value: 'card', label: '💳 Card', icon: 'card' },
+                    { value: 'mobile', label: '📱 Mobile', icon: 'phone-portrait' },
+                  ].map((method) => (
+                    <TouchableOpacity
+                      key={method.value}
+                      className={`px-3 py-2 rounded mx-1 flex-row items-center ${
+                        paymentMethod === method.value 
+                          ? 'bg-accent' 
+                          : 'bg-transparent'
+                      }`}
+                      onPress={() => setPaymentMethod(method.value)}
+                    >
+                      <Text className={
+                        paymentMethod === method.value 
+                          ? 'text-accent-foreground text-xs font-medium'
+                          : 'text-muted-foreground text-xs'
+                      }>
+                        {method.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </View>
+              </ScrollView>
             </View>
           </View>
 
@@ -441,8 +446,6 @@ const CashierSell = () => {
           </View>
         </View>
       </ScrollView>
-
-
 
       {/* Product Search Modal */}
       <Modal
@@ -497,80 +500,128 @@ const CashierSell = () => {
         </View>
       </Modal>
 
-      {/* Unit Type Modal */}
+      {/* Quantity & Unit Type Modal */}
       <Modal
-        visible={isUnitTypeModalOpen}
+        visible={isQuantityModalOpen}
         animationType="slide"
         presentationStyle="formSheet"
-        onRequestClose={() => setIsUnitTypeModalOpen(false)}
+        onRequestClose={() => setIsQuantityModalOpen(false)}
       >
         <View className="flex-1 bg-background pt-4">
           <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">Select Unit Type</Text>
-            <TouchableOpacity onPress={() => setIsUnitTypeModalOpen(false)}>
+            <Text className="text-xl font-bold text-foreground">
+              {editingCartItem ? 'Edit Item' : 'Add to Cart'}
+            </Text>
+            <TouchableOpacity onPress={() => setIsQuantityModalOpen(false)}>
               <Ionicons name="close" size={24} className="text-foreground" />
             </TouchableOpacity>
           </View>
 
           <View className="p-4">
             <Text className="text-lg text-foreground mb-2 text-center">
-              How do you want to sell {selectedProduct?.name}?
+              {selectedProduct?.name}
+            </Text>
+            <Text className="text-muted-foreground text-center mb-6">
+              ${selectedProduct?.price?.toFixed(2)} each
             </Text>
 
-            <View className="space-y-3 mt-6">
+            {/* Unit Type Selection */}
+            <Text className="text-sm font-medium text-foreground mb-3">Unit Type</Text>
+            <View className="flex-row space-x-3 mb-6">
               <TouchableOpacity
-                className={`border-2 rounded-lg p-6 items-center ${
+                className={`flex-1 border-2 rounded-lg p-4 items-center ${
                   selectedUnitType === 'single' 
                     ? 'border-accent bg-accent/10' 
                     : 'border-input'
                 }`}
                 onPress={() => setSelectedUnitType('single')}
               >
-                <Text className={`text-xl font-bold mb-1 ${
+                <Text className={`font-bold mb-1 ${
                   selectedUnitType === 'single' ? 'text-accent' : 'text-foreground'
                 }`}>
                   Single Unit
                 </Text>
-                <Text className="text-muted-foreground">
+                <Text className="text-muted-foreground text-xs text-center">
                   ${selectedProduct?.price?.toFixed(2)} each
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`border-2 rounded-lg p-6 items-center ${
+                className={`flex-1 border-2 rounded-lg p-4 items-center ${
                   selectedUnitType === 'pack' 
                     ? 'border-accent bg-accent/10' 
                     : 'border-input'
                 }`}
                 onPress={() => setSelectedUnitType('pack')}
               >
-                <Text className={`text-xl font-bold mb-1 ${
+                <Text className={`font-bold mb-1 ${
                   selectedUnitType === 'pack' ? 'text-accent' : 'text-foreground'
                 }`}>
                   Pack
                 </Text>
-                <Text className="text-muted-foreground text-center">
-                  {selectedProduct?.packSize} units per pack
-                </Text>
-                <Text className="text-muted-foreground">
-                  ${selectedProduct?.price?.toFixed(2)} per pack
+                <Text className="text-muted-foreground text-xs text-center">
+                  {selectedProduct?.packSize} units • ${selectedProduct?.price?.toFixed(2)}
                 </Text>
               </TouchableOpacity>
             </View>
 
+            {/* Quantity Input */}
+            <Text className="text-sm font-medium text-foreground mb-3">Quantity</Text>
+            <View className="flex-row items-center justify-center space-x-4 mb-6">
+              <TouchableOpacity
+                onPress={() => setQuantity(Math.max(1, parseInt(quantity || 1) - 1).toString())}
+                className="w-12 h-12 bg-border rounded-full items-center justify-center"
+              >
+                <Ionicons name="remove" size={20} className="text-foreground" />
+              </TouchableOpacity>
+              
+              <TextInput
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+                className="bg-background border border-input rounded-lg px-4 py-3 text-foreground text-center text-xl font-bold w-20"
+                placeholderTextColor="#6B7280"
+              />
+              
+              <TouchableOpacity
+                onPress={() => setQuantity((parseInt(quantity || 1) + 1).toString())}
+                className="w-12 h-12 bg-border rounded-full items-center justify-center"
+              >
+                <Ionicons name="add" size={20} className="text-foreground" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Summary */}
+            <View className="bg-secondary rounded-lg p-4 mb-6">
+              <View className="flex-row justify-between items-center mb-2">
+                <Text className="text-foreground">Unit Price:</Text>
+                <Text className="text-foreground">${selectedProduct?.price?.toFixed(2)}</Text>
+              </View>
+              <View className="flex-row justify-between items-center mb-2">
+                <Text className="text-foreground">Quantity:</Text>
+                <Text className="text-foreground">{quantity} {selectedUnitType === 'pack' ? 'packs' : 'units'}</Text>
+              </View>
+              <View className="flex-row justify-between items-center border-t border-border pt-2">
+                <Text className="text-foreground font-bold">Subtotal:</Text>
+                <Text className="text-foreground font-bold">
+                  ${(selectedProduct?.price * parseInt(quantity || 1)).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+
             <TouchableOpacity
-              className="bg-accent rounded-lg py-4 mt-8"
-              onPress={handleUnitTypeConfirm}
+              className="bg-accent rounded-lg py-4"
+              onPress={handleQuantityConfirm}
             >
               <Text className="text-accent-foreground text-center font-bold text-lg">
-                Add to Cart
+                {editingCartItem ? 'Update Cart' : 'Add to Cart'}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Receipt Modal */}
+      {/* Checkout Receipt Modal */}
       <Modal
         visible={showReceipt}
         animationType="slide"
@@ -580,61 +631,88 @@ const CashierSell = () => {
         {lastSale && (
           <View className="flex-1 bg-background pt-4">
             <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-              <Text className="text-xl font-bold text-foreground">Sale Completed</Text>
+              <Text className="text-xl font-bold text-foreground">Checkout Receipt</Text>
               <TouchableOpacity onPress={() => setShowReceipt(false)}>
                 <Ionicons name="close" size={24} className="text-foreground" />
               </TouchableOpacity>
             </View>
 
             <ScrollView className="flex-1 p-4">
-              <View className="bg-card rounded-lg p-4 mb-4">
-                <Text className="text-lg font-bold text-foreground text-center mb-2">
-                  RECEIPT #{lastSale.receiptNumber}
+              {/* Business Header */}
+              <View className="items-center mb-6">
+                <Text className="text-2xl font-bold text-foreground mb-1">KC Investments</Text>
+                <Text className="text-muted-foreground text-center mb-1">
+                  123 Business Street, City
                 </Text>
                 <Text className="text-muted-foreground text-center">
-                  {lastSale.date.toLocaleDateString()} • {lastSale.date.toLocaleTimeString()}
+                  Contact: +1 (555) 123-4567
                 </Text>
               </View>
 
-              <View className="space-y-2 mb-4">
+              {/* Receipt Info */}
+              <View className="bg-card rounded-lg p-4 mb-4">
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-muted-foreground">Receipt #:</Text>
+                  <Text className="font-bold text-foreground">{lastSale.receiptNumber}</Text>
+                </View>
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-muted-foreground">Cashier:</Text>
+                  <Text className="font-bold text-foreground">{lastSale.cashier}</Text>
+                </View>
+                <View className="flex-row justify-between">
+                  <Text className="text-muted-foreground">Date & Time:</Text>
+                  <Text className="font-bold text-foreground text-right">
+                    {lastSale.date.toLocaleDateString()}\n{lastSale.date.toLocaleTimeString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Items List */}
+              <View className="mb-4">
+                <View className="flex-row justify-between items-center pb-2 border-b border-border mb-2">
+                  <Text className="font-bold text-foreground flex-2">Item</Text>
+                  <Text className="font-bold text-foreground text-center flex-1">Qty/Type</Text>
+                  <Text className="font-bold text-foreground text-right flex-1">Amount</Text>
+                </View>
+                
                 {lastSale.items.map((item, index) => (
-                  <View key={index} className="flex-row justify-between items-center py-2 border-b border-border">
-                    <View className="flex-1">
-                      <Text className="font-medium text-foreground">{item.productName}</Text>
+                  <View key={index} className="flex-row justify-between items-center py-2 border-b border-border/50">
+                    <View className="flex-2">
+                      <Text className="font-medium text-foreground text-sm">{item.productName}</Text>
+                    </View>
+                    <View className="flex-1 items-center">
                       <Text className="text-muted-foreground text-sm">
-                        {item.quantity} × ${item.price.toFixed(2)} ({item.unitType})
+                        {item.quantity} {item.unitType}
                       </Text>
                     </View>
-                    <Text className="font-bold text-foreground">
+                    <Text className="font-bold text-foreground text-right flex-1">
                       ${item.subtotal.toFixed(2)}
                     </Text>
                   </View>
                 ))}
               </View>
 
-              <View className="bg-primary rounded-lg p-4">
-                <View className="flex-row justify-between mb-2">
-                  <Text className="text-primary-foreground">Subtotal</Text>
-                  <Text className="text-primary-foreground">${lastSale.total.toFixed(2)}</Text>
-                </View>
-                <View className="flex-row justify-between mb-2">
-                  <Text className="text-primary-foreground">Payment Method</Text>
-                  <Text className="text-primary-foreground capitalize">{lastSale.paymentMethod}</Text>
-                </View>
-                <View className="flex-row justify-between border-t border-primary-foreground/20 pt-2">
-                  <Text className="text-primary-foreground font-bold text-lg">Total</Text>
-                  <Text className="text-primary-foreground font-bold text-lg">
+              {/* Total Section */}
+              <View className="bg-primary rounded-lg p-4 mb-6">
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-primary-foreground text-lg font-bold">Total Amount:</Text>
+                  <Text className="text-primary-foreground text-lg font-bold">
                     ${lastSale.total.toFixed(2)}
                   </Text>
                 </View>
+                <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-primary-foreground/20">
+                  <Text className="text-primary-foreground">Payment Method:</Text>
+                  <Text className="text-primary-foreground capitalize">{lastSale.paymentMethod}</Text>
+                </View>
               </View>
 
-              <View className="items-center mt-6">
-                <Text className="text-muted-foreground text-center">
+              {/* Thank You Message */}
+              <View className="items-center mt-4">
+                <Text className="text-muted-foreground text-center text-lg font-medium mb-2">
                   Thank you for your purchase!
                 </Text>
-                <Text className="text-muted-foreground text-center text-sm mt-1">
-                  Served by: {lastSale.cashier}
+                <Text className="text-muted-foreground text-center text-sm">
+                  We appreciate your business and look forward to serving you again.
                 </Text>
               </View>
 
