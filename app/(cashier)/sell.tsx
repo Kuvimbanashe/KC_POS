@@ -306,12 +306,12 @@ const CashierSell = () => {
       {/* Header */}
       <View className="bg-card p-4 border- border-border">
         <View className="flex-row justify-between items-center">
-          <View className="text-center w-[45%] p-4 bg-green-600 rounded-md">
+          <View className="text-center w-[45%] p-4 bg-accent rounded-md">
             <Text className="text-xs text-muted text-center">Total Items</Text>
-            <Text className="text-lg font-bold text-center text-muted">{totalItems}</Text>
+            <Text className="text-2xl font-bold text-center text-muted">{totalItems}</Text>
           </View>
           
-          <View className="w-[45%] p-4 bg-accent rounded-md">
+          <View className="w-[45%] p-4 bg-primary rounded-md">
             <Text className="text-xs text-muted text-center">Total Amount</Text>
             <Text className="text-2xl font-bold text-muted w-full flex-row text-center items-center">
               <Ionicons name="dollar" size={24} className="text-muted hidden mr-1" />
@@ -323,21 +323,21 @@ const CashierSell = () => {
           
          <TouchableOpacity
           onPress={handleCheckout}
-          className={`rounded-lg py-2 px-6 items-center ${
-            cart.length === 0 ? 'bg-gray-400' : 'bg-accent'
+          className={`rounded-lg py-2 px-6 items-center w-[48%] ${
+            cart.length === 0 ? 'bg-gray-400' : 'bg-green-600'
           }`}
           disabled={cart.length === 0}
         >
           <Text className="text-accent-foreground text-lg font-bold">
-            Complete Sale
+            Check Out
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity className="border-2 border-dashed border-input rounded-lg py-2 px-6 items-center"
+        <TouchableOpacity className="border-2 border-dashed border-input rounded-lg py-2 px-6 items-center w-[48%]"
               onPress={() => setIsProductModalOpen(true)}
             >
               
-              <Text className="text-lg font-medium text-foreground">Search Product</Text>
+              <Text className="text-lg font-medium text-foreground">{"+ "}Add Item </Text>
           
             </TouchableOpacity>
         
