@@ -61,32 +61,26 @@ export default function CashierProfileScreen() {
 
   return (
     <ScrollView className="flex-1 bg-primary-white p-4">
-      <Text className="text-2xl font-bold text-primary-navy-dark mb-6">
-        My Profile
-      </Text>
+
 
       {/* Profile Header */}
-      <View className="bg-primary-orange-400 p-6 rounded-lg mb-6">
+      <View className="bg-primary  p-6 rounded-lg mb-6">
         <View className="items-center">
-          <View className="w-20 h-20 bg-primary-white rounded-full justify-center items-center mb-3">
-            <Text className="text-primary-orange-400 text-2xl font-bold">
-              {user?.name?.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <Text className="text-primary-white text-xl font-semibold">
+ 
+          <Text className="text-muted text-3xl font-semibold">
             {user?.name}
           </Text>
-          <Text className="text-primary-white opacity-90">
+          <Text className="text-muted opacity-90 text-xl">
             {user?.email}
           </Text>
-          <Text className="text-primary-white opacity-90 mt-1">
+          <Text className="text-accent opacity-90 text-lg mt-1">
             Cashier
           </Text>
         </View>
       </View>
 
       {/* Personal Information */}
-      <View className="bg-white p-4 rounded-lg shadow-sm mb-6">
+      <View className="bg-white p-4 rounded-lg  mb-6">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-lg font-semibold text-primary-navy-dark">
             Personal Information
@@ -156,7 +150,7 @@ export default function CashierProfileScreen() {
       </View>
 
       {/* Change Password */}
-      <View className="bg-white p-4 rounded-lg shadow-sm">
+      <View className="bg-white p-4 rounded-lg ">
         <Text className="text-lg font-semibold text-primary-navy-dark mb-4">
           Change Password
         </Text>
@@ -187,10 +181,10 @@ export default function CashierProfileScreen() {
           />
 
           <TouchableOpacity
-            className="bg-primary-orange-400 py-3 rounded-lg"
+            className="bg-primary py-3 rounded-lg"
             onPress={handleChangePassword}
           >
-            <Text className="text-primary-white text-center font-semibold">
+            <Text className="text-muted text-center font-semibold">
               Change Password
             </Text>
           </TouchableOpacity>
