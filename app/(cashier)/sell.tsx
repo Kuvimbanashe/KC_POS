@@ -366,17 +366,13 @@ const CashierSell = () => {
           <Text className="text-lg font-medium text-foreground">{"+ "}Add Item</Text>
         </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Main Content */}
-      <ScrollView className="flex-1">
-        <View className="p-4 space-y-4">
-          {/* Payment Method Section */}
-          <View className="bg-card rounded-lg p-4">
+        
+                  {/* Payment Method Section */}
+          <View className="bg-card rounded-lg mt-4 mx-4">
             <Text className="text-sm font-medium text-foreground mb-2">Payment Method</Text>
             <View className="border border-input rounded-lg bg-background">
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row px-2 py-1">
+                <View className="flex-row px-2 py-1 gap-5 justify-between items-center">
                   {[
                     { value: 'cash', label: '💵 Cash', icon: 'cash' },
                     { value: 'card', label: '💳 Card', icon: 'card' },
@@ -404,6 +400,13 @@ const CashierSell = () => {
               </ScrollView>
             </View>
           </View>
+          
+      </View>
+
+      {/* Main Content */}
+      <ScrollView className="flex-1">
+        <View className="p-4 space-y-4">
+
 
           {/* Cart Items */}
           <View className="bg-card rounded-lg p-4">
