@@ -106,15 +106,11 @@ const AdminSales = () => {
     return (
       <View className="flex-1 bg-background">
         <ScrollView className="flex-1 p-4 md:p-6 space-y-6">
-          {/* Header Skeleton */}
-          <View>
-            <View className="h-8 w-32 bg-muted rounded mb-2 animate-pulse" />
-            <View className="h-4 w-48 bg-muted rounded animate-pulse" />
-          </View>
+
 
           {/* Stats Grid Skeleton */}
-          <View className="flex-row flex-wrap justify-between gap-4">
-            {[1, 2, 3].map((i) => (
+          <View className="flex flex-row  justify-between gap-4">
+            {[1, 2].map((i) => (
               <View key={i} className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
                 <View className="h-4 w-20 bg-muted rounded mb-2 animate-pulse" />
                 <View className="h-6 w-16 bg-muted rounded animate-pulse" />
@@ -147,35 +143,27 @@ const AdminSales = () => {
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1">
         <View className="p-4 md:p-6 space-y-6">
-          {/* Header */}
-          <View>
-            <Text className="text-2xl md:text-3xl font-bold text-foreground">
-              Sales
-            </Text>
-            <Text className="text-sm md:text-base text-muted-foreground">
-              View all sales transactions
-            </Text>
-          </View>
+       
 
           {/* Stats Cards */}
-          <View className="flex-row flex-wrap justify-between gap-4">
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+          <View className="w-full grid grid-cols-2 gap-4">
+            <View className="bg-primary rounded-lg p-4 shadow-sm w-full">
+              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
                 Total Sales
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl text-center font-bold text-primary-foreground">
                 {sales.length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+            <View className="bg-primary rounded-lg p-4 shadow-sm w-full">
+              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
                 Total Revenue
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-accent text-center">
                 ${totalRevenue.toFixed(2)}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px] hidden">
               <Text className="text-sm font-medium text-muted-foreground mb-1">
                 Average Sale
               </Text>
