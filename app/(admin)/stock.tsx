@@ -282,59 +282,39 @@ const AdminStock = () => {
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1">
         <View className="p-4 md:p-6 space-y-6">
-          {/* Header */}
-          <View className="flex-row justify-between items-center">
-            <View>
-              <Text className="text-2xl md:text-3xl font-bold text-foreground">
-                Stock Management
-              </Text>
-              <Text className="text-sm md:text-base text-muted-foreground">
-                Monitor and manage inventory levels
-              </Text>
-            </View>
-            <TouchableOpacity
-              className="bg-accent rounded-lg px-4 py-2 flex-row items-center"
-              onPress={() => {
-                resetForm();
-                setIsDialogOpen(true);
-              }}
-            >
-              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
-              <Text className="text-accent-foreground font-semibold">Add Product</Text>
-            </TouchableOpacity>
-          </View>
+
 
           {/* Stats Cards */}
-          <View className="flex-row flex-wrap justify-between gap-4">
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+          <View className="grid grid-cols-2  gap-4">
+            <View className="bg-primary rounded-lg p-4 w-full">
+              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
                 Total Products
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl text-center font-bold text-accent">
                 {products.length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+            <View className=" rounded-lg p-4 bg-primary w-full">
+              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
                 Low Stock
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-accent">
+              <Text className="text-xl md:text-2xl text-center font-bold text-accent">
                 {lowStockProducts.length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+            <View className="bg-primary  rounded-lg p-4 text-center w-full ">
+              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
                 Out of Stock
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-destructive">
+              <Text className="text-xl md:text-2xl text-center font-bold text-destructive">
                 {outOfStockProducts.length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+            <View className="bg-primary rounded-lg p-4 w-full">
+              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
                 Total Value
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-accent text-center">
                 ${totalValue.toFixed(2)}
               </Text>
             </View>
@@ -407,7 +387,7 @@ const AdminStock = () => {
                 data={filteredProducts}
                 renderItem={renderProductItem}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 className="max-h-96"
               />
             )}

@@ -141,7 +141,7 @@ const AdminSales = () => {
 
   return (
     <View className="flex-1 bg-background">
-      <ScrollView className="flex-1">
+      <View className="flex-1">
         <View className="p-4 md:p-6 space-y-6">
        
 
@@ -231,7 +231,7 @@ const AdminSales = () => {
           </View>
 
           {/* Sales List */}
-          <View className="bg-card rounded-lg shadow-sm overflow-hidden">
+          <ScrollView className="bg-card rounded-lg shadow-sm overflow-hidden">
             {filteredSales.length === 0 ? (
               <View className="p-8 items-center">
                 <Ionicons name="receipt-outline" size={48} className="text-muted-foreground mb-4" />
@@ -263,13 +263,13 @@ const AdminSales = () => {
                 data={filteredSales}
                 renderItem={renderSaleItem}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
-                className="max-h-96"
+                scrollEnabled={true}
+                className="max-h-72"
               />
             )}
-          </View>
+          </ScrollView>
         </View>
-      </ScrollView>
+      </View>
 
       {/* Sale Detail Modal */}
       <Modal
