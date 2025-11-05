@@ -62,7 +62,7 @@ const AdminHome = () => {
       value: stats.totalProducts.toString(),
       description: 'Items in inventory',
       icon: 'cube-outline',
-      color: 'text-primary',
+      color: 'text-accent',
     },
     {
       title: 'Low Stock Alert',
@@ -154,13 +154,14 @@ const AdminHome = () => {
         </View>
 
         {/* Quick Actions and Recent Activity */}
-        <View className="flex-row flex-wrap justify-between gap-4">
+        <View className="flex-row flex-wrap justify-between gap-4 w-full">
           {/* Quick Actions */}
-          <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
+          <View className="bg-card rounded-lg p-4 w-full">
             <Text className="text-lg font-bold text-foreground">Quick Actions</Text>
             <Text className="text-sm text-muted-foreground mb-4">
               Common tasks for shop management
             </Text>
+            
             <View className="space-y-2">
               <View className="p-3 bg-secondary rounded-lg">
                 <Text className="font-medium text-foreground">View Sales Report</Text>
@@ -178,7 +179,7 @@ const AdminHome = () => {
           </View>
 
           {/* Recent Activity */}
-          <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
+          <View className="bg-card rounded-lg p-4 w-full">
             <Text className="text-lg font-bold text-foreground">Recent Activity</Text>
             <Text className="text-sm text-muted-foreground mb-4">
               Latest transactions and updates
