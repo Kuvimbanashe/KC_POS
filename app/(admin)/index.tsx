@@ -129,24 +129,24 @@ const AdminHome = () => {
     <ScrollView className="flex-1 bg-background">
       <View className="space-y-4 md:space-y-6 p-4 md:p-6">
         {/* Header */}
-        <View>
-          <Text className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</Text>
-          <Text className="text-sm md:text-base text-muted-foreground">
+        <View className="w-full">
+          
+          <Text className="text-lg md:text-center text-muted-foreground">
             Welcome to your shop management system
           </Text>
         </View>
 
         {/* Stats Cards */}
-        <View className="flex-row flex-wrap justify-between gap-4">
+        <View className="grid  grid-cols-2 gap-4 w-full">
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
-              <View key={stat.title} className="bg-card rounded-lg p-4 w-[48%] min-w-[160px]">
+              <View key={stat.title} className="bg-primary rounded-lg p-4 w-full  ">
                 <View className="flex-row justify-between items-center mb-2">
-                  <Text className="text-sm font-medium text-foreground">{stat.title}</Text>
+                  <Text className="text-sm font-medium text-muted">{stat.title}</Text>
                   <Ionicons name={stat.icon} size={16} className={stat.color} />
                 </View>
-                <Text className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</Text>
+                <Text className="text-xl md:text-2xl font-bold text-primary-foreground">{stat.value}</Text>
                 <Text className="text-xs text-muted-foreground">{stat.description}</Text>
               </View>
             );

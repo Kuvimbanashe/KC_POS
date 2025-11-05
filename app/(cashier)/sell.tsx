@@ -277,46 +277,14 @@ const CashierSell = () => {
       className="bg-secondary rounded-lg p-3 mb-2"
       onPress={() => handleCartItemPress(item)}
     >
-      <View className="flex-row justify-between items-start mb-2">
+      <View className="flex-row justify-between items-center mb-2">
         <View className="flex-1">
           <Text className="font-semibold text-foreground text-sm">{item.productName}</Text>
           <Text className="text-muted-foreground text-xs">
-            ${item.price.toFixed(2)} each • {item.unitType}
-          </Text>
-        </View>
-        <TouchableOpacity 
-          onPress={() => removeFromCart(item.productId)}
-          className="p-1"
-        >
-          <Ionicons name="trash-outline" size={20} className="text-destructive" />
-        </TouchableOpacity>
-      </View>
-      
-      <View className="flex-row justify-between items-center">
-        <View className="flex-row items-center space-x-3">
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              updateQuantity(item.productId, -1);
-            }}
-            className="w-8 h-8 bg-border rounded-full items-center justify-center"
-          >
-            <Ionicons name="remove" size={16} className="text-foreground" />
-          </TouchableOpacity>
-          
-          <Text className="font-bold text-foreground text-lg w-12 text-center">
+            ${item.price.toFixed(2)} each • {item.unitType}{" × "}
             {item.quantity}
+        
           </Text>
-          
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              updateQuantity(item.productId, 1);
-            }}
-            className="w-8 h-8 bg-border rounded-full items-center justify-center"
-          >
-            <Ionicons name="add" size={16} className="text-foreground" />
-          </TouchableOpacity>
         </View>
         
         <View className="bg-accent rounded-lg px-3 py-1">
@@ -324,7 +292,19 @@ const CashierSell = () => {
             ${item.subtotal.toFixed(2)}
           </Text>
         </View>
+       <View>
+         
+          <TouchableOpacity 
+          onPress={() => removeFromCart(item.productId)}
+          className="p-1"
+        >
+          <Ionicons name="trash-outline" size={20} className="text-destructive" />
+        </TouchableOpacity>
+         
+       </View>
       </View>
+      
+
     </TouchableOpacity>
   );
 
