@@ -151,7 +151,7 @@ const AdminSales = () => {
               <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
                 Total Sales
               </Text>
-              <Text className="text-xl md:text-2xl text-center font-bold text-primary-foreground">
+              <Text className="text-xl md:text-2xl text-center font-bold text-accent">
                 {sales.length}
               </Text>
             </View>
@@ -182,7 +182,7 @@ const AdminSales = () => {
               Complete sales history
             </Text>
             
-            <View className="flex-row gap-4">
+            <View className="flex-ro gap-4">
               {/* Search Input */}
               <View className="flex-1">
                 <View className="relative">
