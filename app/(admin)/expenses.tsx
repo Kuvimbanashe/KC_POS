@@ -126,25 +126,13 @@ const AdminExpenses = () => {
       <View className="flex-row justify-between items-start mb-2">
         <View className="flex-1">
           <Text className="font-semibold text-foreground text-base">{item.description}</Text>
-          <View className="flex-row items-center space-x-2 mt-1">
-            <View className={`px-2 py-1 rounded-full ${getCategoryColor(item.category)}`}>
-              <Text className="text-xs font-medium">{item.category}</Text>
-            </View>
-          </View>
+       
         </View>
         <Text className="font-bold text-destructive text-lg">
           ${item.amount.toFixed(2)}
         </Text>
       </View>
       
-      <View className="flex-row justify-between items-center">
-        <Text className="text-xs text-muted-foreground">
-          ID: {item.id}
-        </Text>
-        <Text className="text-xs text-muted-foreground">
-          {new Date(item.date).toLocaleDateString()}
-        </Text>
-      </View>
     </TouchableOpacity>
   );
 
@@ -220,7 +208,7 @@ const AdminExpenses = () => {
           </View>
           <View className="w-full">
             <TouchableOpacity
-              className="bg-accent rounded-lg px-4 py-2 flex flex-row w-full items-center justify-center"
+              className="bg-accent rounded-lg px-4 py-3 flex flex-row w-full items-center justify-center"
               onPress={() => setIsDialogOpen(true)}
             >
               <Ionicons name="add" size={20} className="text-accent-foreground mr-2 " />
@@ -296,7 +284,7 @@ const AdminExpenses = () => {
           </View>
 
           {/* Expenses List */}
-          <View className="bg-card rounded-lg overflow-hidden">
+          <View className="bg-card rounded-lg overflow-hidden border border-border">
             {filteredExpenses.length === 0 ? (
               <View className="p-8 items-center">
                 <Ionicons name="receipt-outline" size={48} className="text-muted-foreground mb-4" />

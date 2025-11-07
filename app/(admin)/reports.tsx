@@ -423,12 +423,11 @@ const AdminReports = () => {
       </View>
 
       {/* Section Navigation */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        className="border-b border-border bg-card"
-      >
-        <View className="flex-row px-4 py-2">
+    <View>
+      
+        <ScrollView 
+      horizontal showsHorizontalScrollIndicator={false}
+        className=" border-b border-border bg-card h-fit flex flex-row px-4 py-2 ">
           {[
             { key: 'income', label: 'Income', icon: 'trending-up' },
             { key: 'balance', label: 'Balance Sheet', icon: 'wallet' },
@@ -437,7 +436,7 @@ const AdminReports = () => {
           ].map((section) => (
             <TouchableOpacity
               key={section.key}
-              className={`px-4 py-2 rounded-full mx-1 flex-row items-center ${
+              className={`px-4 py-2 rounded-full h-fit w-fit flex-row items-center ${
                 activeSection === section.key ? 'bg-accent' : 'bg-transparent'
               }`}
               onPress={() => setActiveSection(section.key)}
@@ -458,8 +457,10 @@ const AdminReports = () => {
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        
       </ScrollView>
+      
+    </View>
 
       {/* Content */}
       <ScrollView className="flex-1 p-4">
