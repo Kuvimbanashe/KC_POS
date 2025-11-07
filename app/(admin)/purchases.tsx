@@ -205,7 +205,7 @@ const AdminPurchases = () => {
           </View>
 
           {/* Stats Grid Skeleton */}
-          <View className="flex-row flex-wrap justify-between gap-4">
+          <View className="grid grid-cols-2 gap-4">
             {[1, 2, 3].map((i) => (
               <View key={i} className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
                 <View className="h-4 w-20 bg-muted rounded mb-2 animate-pulse" />
@@ -236,44 +236,27 @@ const AdminPurchases = () => {
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1">
         <View className="p-4 md:p-6 space-y-6">
-          {/* Header */}
-          <View className="flex-row justify-between items-center">
-            <View>
-              <Text className="text-2xl md:text-3xl font-bold text-foreground">
-                Purchases
-              </Text>
-              <Text className="text-sm md:text-base text-muted-foreground">
-                Track inventory purchases and restocking
-              </Text>
-            </View>
-            <TouchableOpacity
-              className="bg-accent rounded-lg px-4 py-2 flex-row items-center"
-              onPress={() => setIsProductModalOpen(true)}
-            >
-              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
-              <Text className="text-accent-foreground font-semibold">New Purchase</Text>
-            </TouchableOpacity>
-          </View>
+
 
           {/* Stats Cards */}
-          <View className="flex-row flex-wrap justify-between gap-4">
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+          <View className="grid grid-cols-2 gap-4">
+            <View className="bg-primary rounded-lg p-4 w-full">
+              <Text className="text-sm font-medium text-primary-foreground mb-1 text-center">
                 Total Purchases
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-accent text-center">
                 {purchases.length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+            <View className="bg-primary rounded-lg p-4 w-full ">
+              <Text className="text-sm font-medium text-primary-foreground mb-1 text-center">
                 Total Investment
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-accent text-center">
                 ${totalCost.toFixed(2)}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+            <View className="bg-card rounded-lg hidden p-4 shadow-sm w-[48%] min-w-[160px]">
               <Text className="text-sm font-medium text-muted-foreground mb-1">
                 Total Units
               </Text>
@@ -282,9 +265,22 @@ const AdminPurchases = () => {
               </Text>
             </View>
           </View>
+          
+          <View className="w-full">
+            
+          <TouchableOpacity
+              className="bg-accent rounded-lg px-4 py-3 flex-row items-center justify-center w-full"
+              onPress={() => setIsProductModalOpen(true)}
+            >
+              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
+              <Text className="text-accent-foreground font-semibold text-center">New Purchase</Text>
+            </TouchableOpacity>
+            
+            
+          </View>
 
           {/* Search */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+          <View className="bg-card rounded-lg p-4 border border-muted">
             <Text className="text-lg font-bold text-foreground mb-1">
               Purchase History
             </Text>
@@ -309,7 +305,7 @@ const AdminPurchases = () => {
           </View>
 
           {/* Purchases List */}
-          <View className="bg-card rounded-lg shadow-sm overflow-hidden">
+          <View className="bg-card rounded-lg border-[1.5px] border-muted overflow-hidden">
             {filteredPurchases.length === 0 ? (
               <View className="p-8 items-center">
                 <Ionicons name="cart-outline" size={48} className="text-muted-foreground mb-4" />
@@ -338,7 +334,7 @@ const AdminPurchases = () => {
                 data={filteredPurchases}
                 renderItem={renderPurchaseItem}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 className="max-h-96"
               />
             )}
