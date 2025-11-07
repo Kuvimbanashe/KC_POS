@@ -141,31 +141,24 @@ const AdminAssets = () => {
       className="border-b border-border py-3 px-4 bg-card active:bg-muted"
       onPress={() => setSelectedAsset(item)}
     >
-      <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-1">
+      <View className="flex-row justify-between items-start ">
+        <View className="">
           <Text className="font-semibold text-foreground text-base">{item.name}</Text>
-          <Text className="text-muted-foreground text-sm">{item.category}</Text>
+
         </View>
+        
+        <View>
+          {getConditionBadge(item.condition)}
+          
+        </View>
+
+        <View>
         <Text className="font-bold text-accent text-lg">
           ${item.currentValue.toFixed(2)}
         </Text>
-      </View>
-      
-      <View className="flex-row justify-between items-center">
-        <View className="flex-row items-center space-x-3">
-          <Text className="text-xs text-muted-foreground">
-            Purchase: ${item.purchaseValue.toFixed(2)}
-          </Text>
-          {getConditionBadge(item.condition)}
         </View>
-        <Text className="text-xs text-muted-foreground">
-          {new Date(item.purchaseDate).toLocaleDateString()}
-        </Text>
       </View>
       
-      <Text className="text-xs text-muted-foreground mt-1">
-        Location: {item.location}
-      </Text>
     </TouchableOpacity>
   );
 

@@ -205,52 +205,20 @@ const AdminUsers = () => {
   const renderUserItem = ({ item }) => (
     <View className="border-b border-border py-3 px-4 bg-card">
       <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-1">
+        <View className="min-[40%]">
           <Text className="font-semibold text-foreground text-base">{item.name}</Text>
+          
+        </View>
+        <View>
           <Text className="text-muted-foreground text-sm">{item.email}</Text>
+          
         </View>
         <View className="items-end">
           {getStatusBadge(item.status)}
-          {getRoleBadge(item.type)}
+         
         </View>
       </View>
-      
-      <View className="flex-row justify-between items-center">
-        <Text className="text-xs text-muted-foreground">
-          {item.phone}
-        </Text>
-        <Text className="text-xs text-muted-foreground">
-          Joined: {new Date(item.joinDate).toLocaleDateString()}
-        </Text>
-      </View>
 
-      {/* Action Buttons */}
-      <View className="flex-row justify-end space-x-2 mt-3">
-        <TouchableOpacity 
-          className={`px-3 py-1 rounded ${
-            item.status === 'active' ? 'bg-red-500' : 'bg-green-500'
-          }`}
-          onPress={() => handleToggleStatus(item.id, item.name, item.status)}
-        >
-          <Text className="text-primary-white text-sm">
-            {item.status === 'active' ? 'Deactivate' : 'Activate'}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          className="bg-accent px-3 py-1 rounded"
-          onPress={() => openEditDialog(item)}
-        >
-          <Text className="text-accent-foreground text-sm">Edit</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          className="bg-destructive px-3 py-1 rounded"
-          onPress={() => handleDelete(item.id, item.name)}
-        >
-          <Text className="text-destructive-foreground text-sm">Delete</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 
@@ -409,8 +377,8 @@ const AdminUsers = () => {
                       >
                         <Text className={
                           roleFilter === option.value 
-                            ? 'text-accent-foreground text-xs font-medium'
-                            : 'text-muted-foreground text-xs'
+                            ? 'text-accent-foreground text-xs font-medium text-center'
+                            : 'text-muted-foreground text-xs text-center'
                         }>
                           {option.label}
                         </Text>
