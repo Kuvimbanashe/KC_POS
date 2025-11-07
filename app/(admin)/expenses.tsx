@@ -433,7 +433,7 @@ const AdminExpenses = () => {
           <View className="flex-1 bg-background pt-4">
             <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
               <Text className="text-xl font-bold text-foreground">
-                Expense Details - {selectedExpense.id}
+                Expense # {selectedExpense.id}
               </Text>
               <TouchableOpacity onPress={() => setSelectedExpense(null)}>
                 <Ionicons name="close" size={24} className="text-foreground" />
@@ -443,36 +443,42 @@ const AdminExpenses = () => {
             <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
               <View className="space-y-6">
                 <View className="flex-row flex-wrap justify-between gap-4">
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Category</Text>
-                    <View className={`px-3 py-2 rounded-full ${getCategoryColor(selectedExpense.category)}`}>
+                  
+                  <View className="bg-primary relative rounded-lg h-48 w-full flex flex-col items-center justify-center ">
+                    
+                   <View className={`px-4 py-2 absolute top-3 right-3 rounded-full ${getCategoryColor(selectedExpense.category)}`}>
                       <Text className="font-medium text-sm">{selectedExpense.category}</Text>
                     </View>
-                  </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Amount</Text>
-                    <Text className="font-bold text-destructive text-lg">
+                    
+                    <Text className="text-5xl text-destructive">
+                      
                       ${selectedExpense.amount.toFixed(2)}
+                      
                     </Text>
+                    
                   </View>
-                  <View className="w-full">
+                  
+                  <View className="w-full flex flex-row items-center justify-between px-2">
+                    <Text className="font-medium text-foreground text-base"> {"ID #"}
+                      {selectedExpense.id}
+                    </Text>
+                    
+                    <Text className="font-medium text-foreground text-base">
+                      {new Date(selectedExpense.date).toLocaleDateString()}
+                    </Text>
+                    
+                    
+                  </View>
+                
+
+                  <View className="w-full px-2">
                     <Text className="text-sm text-muted-foreground mb-1">Description</Text>
                     <Text className="font-medium text-foreground text-base leading-6">
                       {selectedExpense.description}
                     </Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Date</Text>
-                    <Text className="font-medium text-foreground text-base">
-                      {new Date(selectedExpense.date).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">ID</Text>
-                    <Text className="font-medium text-foreground text-base">
-                      {selectedExpense.id}
-                    </Text>
-                  </View>
+                  
+                 
                 </View>
 
                 {/* Category Statistics */}
