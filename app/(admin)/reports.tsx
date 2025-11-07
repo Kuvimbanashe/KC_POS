@@ -256,9 +256,9 @@ const AdminReports = () => {
         subtitle="Key business indicators"
         icon="analytics"
       />
-      <View className="flex-row flex-wrap justify-between">
-        <View className="w-[48%] mb-4">
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+      <View className="flex-col w-full">
+        <View className="w-full mb-4">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-3">Summary</Text>
             <MetricItem
               label="Total Transactions"
@@ -278,8 +278,8 @@ const AdminReports = () => {
           </View>
         </View>
         
-        <View className="w-[48%] mb-4">
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+        <View className="w-full mb-4">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-3">Performance</Text>
             <MetricItem
               label="Avg Transaction Value"
@@ -305,8 +305,8 @@ const AdminReports = () => {
           </View>
         </View>
 
-        <View className="w-[48%]">
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+        <View className="w-full">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-3">Asset Overview</Text>
             <MetricItem
               label="Number of Assets"
@@ -342,9 +342,9 @@ const AdminReports = () => {
         subtitle="Business health indicators"
         icon="calculator"
       />
-      <View className="flex-row flex-wrap justify-between">
-        <View className="w-[48%] mb-4">
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+      <View className="flex-col w-full ">
+        <View className="w-full mb-4">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-3">Profitability</Text>
             <MetricItem
               label="Net Profit Margin"
@@ -364,8 +364,8 @@ const AdminReports = () => {
           </View>
         </View>
         
-        <View className="w-[48%] mb-4">
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+        <View className="w-full mb-4">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-3">Efficiency</Text>
             <MetricItem
               label="Inventory Turnover"
@@ -385,8 +385,8 @@ const AdminReports = () => {
           </View>
         </View>
 
-        <View className="w-[48%]">
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+        <View className="w-full">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <Text className="text-lg font-bold text-foreground mb-3">Liquidity</Text>
             <MetricItem
               label="Current Ratio"
