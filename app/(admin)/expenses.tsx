@@ -1,4 +1,4 @@
-// app/(admin)/expenses.js
+// app/(admin)/expenses.tsx
 import { useEffect, useState } from 'react';
 import { 
   View, 
@@ -196,54 +196,36 @@ const AdminExpenses = () => {
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="p-4 space-y-6">
-          {/* Header */}
-          <View className="flex-row justify-between items-center">
-            <View>
-              <Text className="text-2xl font-bold text-foreground">
-                Expenses
-              </Text>
-              <Text className="text-sm text-muted-foreground">
-                Track business expenses and costs
-              </Text>
-            </View>
-            <TouchableOpacity
-              className="bg-accent rounded-lg px-4 py-2 flex-row items-center"
-              onPress={() => setIsDialogOpen(true)}
-            >
-              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
-              <Text className="text-accent-foreground font-semibold">Add</Text>
-            </TouchableOpacity>
-          </View>
+         
 
           {/* Stats Cards */}
-          <View className="flex-row justify-between gap-4">
-            <View className="bg-card rounded-lg p-4 flex-1">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+          <View className="w-full grid grid-cols-2 gap-4">
+            <View className="bg-primary rounded-lg p-4 flex-1 items-center justify-center">
+              <Text className="text-sm font-medium text-primary-foreground mb-1">
                 Total Expenses
               </Text>
-              <Text className="text-xl font-bold text-foreground">
+              <Text className="text-xl font-bold text-accent">
                 ${totalExpenses.toFixed(2)}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 flex-1">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+            <View className="bg-primary rounded-lg p-4 flex-1 items-center justify-center">
+              <Text className="text-sm font-medium text-primary-foreground mb-1">
                 Number of Expenses
               </Text>
-              <Text className="text-xl font-bold text-foreground">
+              <Text className="text-xl font-bold text-accent">
                 {expenses.length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 flex-1">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
-                Top Category
-              </Text>
-              <Text className="text-xl font-bold text-foreground" numberOfLines={1}>
-                {topCategory?.[0] || 'N/A'}
-              </Text>
-              <Text className="text-xs text-muted-foreground">
-                ${topCategory?.[1]?.toFixed(2) || '0.00'}
-              </Text>
-            </View>
+            
+          </View>
+          <View className="w-full">
+            <TouchableOpacity
+              className="bg-accent rounded-lg px-4 py-2 flex flex-row w-full items-center justify-center"
+              onPress={() => setIsDialogOpen(true)}
+            >
+              <Ionicons name="add" size={20} className="text-accent-foreground mr-2 " />
+              <Text className="text-accent-foreground font-semibold">Add New Expense</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Search and Filter */}
@@ -346,7 +328,7 @@ const AdminExpenses = () => {
                 data={filteredExpenses}
                 renderItem={renderExpenseItem}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 className="max-h-96"
               />
             )}
