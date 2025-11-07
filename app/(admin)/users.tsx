@@ -357,14 +357,24 @@ const AdminUsers = () => {
 
           {/* Search and Filter */}
           <View className="bg-card rounded-lg p-4 border border-border">
-            <View className="flex-row items-center mb-4">
-              <Ionicons name="people" size={20} className="text-foreground mr-2" />
+            <View className="flex-row items-center justify-between mb-6">
+              <View className="flex-row items-center">
+              <Ionicons name="people" size={20} className="text-purple-500 mr-2" />
               <Text className="text-lg font-bold text-foreground">
                 All Users ({filteredUsers.length})
               </Text>
+              </View>
+              
+              <TouchableOpacity
+              className="bg-accent rounded-lg px-4 py-2 flex-row items-center"
+              onPress={() => setIsDialogOpen(true)}
+            >
+              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
+              <Text className="text-accent-foreground font-semibold">Add User</Text>
+            </TouchableOpacity>
             </View>
             
-            <View className="flex-row gap-4">
+            <View className="flex-col gap-4">
               {/* Search Input */}
               <View className="flex-1">
                 <View className="relative">
@@ -385,15 +395,15 @@ const AdminUsers = () => {
 
               {/* Role Filter */}
               <View className="border border-input rounded-lg bg-background min-w-[140px]">
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View className="flex-row px-2 py-1">
+               
+                  <View className="flex-row px-2 py-2 w-full justify-center">
                     {roleOptions.map((option) => (
                       <TouchableOpacity
                         key={option.value}
-                        className={`px-3 py-2 rounded mx-1 ${
+                        className={`px-3 py-2 w-[30%] rounded mx-2 ${
                           roleFilter === option.value 
                             ? 'bg-accent' 
-                            : 'bg-transparent'
+                            : 'bg-muted'
                         }`}
                         onPress={() => setRoleFilter(option.value)}
                       >
@@ -407,13 +417,13 @@ const AdminUsers = () => {
                       </TouchableOpacity>
                     ))}
                   </View>
-                </ScrollView>
+                
               </View>
             </View>
           </View>
 
           {/* Users List */}
-          <View className="bg-card rounded-lg shadow-sm overflow-hidden">
+          <View className="bg-card rounded-lg border border-border overflow-hidden">
             {filteredUsers.length === 0 ? (
               <View className="p-8 items-center">
                 <Ionicons name="people-outline" size={48} className="text-muted-foreground mb-4" />
@@ -445,7 +455,7 @@ const AdminUsers = () => {
                 data={filteredUsers}
                 renderItem={renderUserItem}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 className="max-h-96"
               />
             )}
