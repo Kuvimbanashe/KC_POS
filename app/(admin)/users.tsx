@@ -306,75 +306,57 @@ const AdminUsers = () => {
     <View className="flex-1 bg-background">
       <ScrollView className="flex-1">
         <View className="p-4 md:p-6 space-y-6">
-          {/* Header */}
-          <View className="flex-row justify-between items-center">
-            <View>
-              <Text className="text-2xl md:text-3xl font-bold text-foreground">
-                User Management
-              </Text>
-              <Text className="text-sm md:text-base text-muted-foreground">
-                Manage system users and permissions
-              </Text>
-            </View>
-            <TouchableOpacity
-              className="bg-accent rounded-lg px-4 py-2 flex-row items-center"
-              onPress={() => setIsDialogOpen(true)}
-            >
-              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
-              <Text className="text-accent-foreground font-semibold">Add User</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Stats */}
-          <View className="flex-row flex-wrap justify-between gap-4">
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+          <View className="grid grid-cols-2 gap-4">
+            <View className="bg-primary rounded-lg p-4 w-full flex-1 items-center justify-center">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="people" size={20} className="text-accent mr-2" />
-                <Text className="text-sm font-medium text-muted-foreground">
+                <Text className="text-sm font-medium text-primary-foreground">
                   All Users
                 </Text>
               </View>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-primary-foreground">
                 {users.length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+            <View className="bg-primary rounded-lg p-4 w-full flex-1 items-center justify-center">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="shield" size={20} className="text-purple-500 mr-2" />
-                <Text className="text-sm font-medium text-muted-foreground">
+                <Text className="text-sm font-medium text-primary-foreground">
                   Admins
                 </Text>
               </View>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-primary-foreground">
                 {users.filter(u => u.type === 'admin').length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+            <View className="bg-primary rounded-lg p-4 w-full flex-1 items-center justify-center">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="person" size={20} className="text-blue-500 mr-2" />
-                <Text className="text-sm font-medium text-muted-foreground">
+                <Text className="text-sm font-medium text-primary-foreground">
                   Cashiers
                 </Text>
               </View>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-primary-foreground">
                 {users.filter(u => u.type === 'cashier').length}
               </Text>
             </View>
-            <View className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
+            <View className="bg-primary rounded-lg p-4 w-full flex-1 items-center justify-center">
               <View className="flex-row items-center mb-2">
                 <Ionicons name="checkmark-circle" size={20} className="text-green-500 mr-2" />
-                <Text className="text-sm font-medium text-muted-foreground">
+                <Text className="text-sm font-medium text-primary-foreground">
                   Active
                 </Text>
               </View>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text className="text-xl md:text-2xl font-bold text-muted primary-foreground">
                 {users.filter(u => u.status === 'active').length}
               </Text>
             </View>
           </View>
 
           {/* Search and Filter */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+          <View className="bg-card rounded-lg p-4 border border-border">
             <View className="flex-row items-center mb-4">
               <Ionicons name="people" size={20} className="text-foreground mr-2" />
               <Text className="text-lg font-bold text-foreground">
