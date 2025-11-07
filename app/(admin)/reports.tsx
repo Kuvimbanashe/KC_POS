@@ -57,10 +57,19 @@ const AdminReports = () => {
   const assetDepreciationRate = totalAssetsPurchaseValue > 0 ? (assetDepreciation / totalAssetsPurchaseValue) * 100 : 0;
 
   const StatCard = ({ title, value, description, isPositive = true, isCurrency = false }) => (
-    <View className="bg-card rounded-lg p-4 shadow-sm mb-4">
-      <Text className="text-sm font-medium text-muted-foreground mb-1">
-        {title}
-      </Text>
+    <View className="bg-muted rounded-lg p-4 shadow-none mb-4 flex flex-row items-center justify-between">
+      <View>
+          <Text className="text-sm font-medium text-muted-foreground mb-1">
+          {title}
+        </Text>
+        
+              {description && (
+        <Text className="text-xs text-muted-foreground mt-1">
+          {description}
+        </Text>
+      )}
+      </View>
+      
       <Text className={`text-xl font-bold ${
         typeof value === 'number' && value < 0 ? 'text-destructive' : 
         isPositive ? 'text-accent' : 'text-foreground'
@@ -68,11 +77,7 @@ const AdminReports = () => {
         {isCurrency && typeof value === 'number' ? `$${value.toFixed(2)}` : 
          typeof value === 'number' ? `${value.toFixed(2)}${title.includes('Ratio') || title.includes('Margin') ? '%' : ''}` : value}
       </Text>
-      {description && (
-        <Text className="text-xs text-muted-foreground mt-1">
-          {description}
-        </Text>
-      )}
+
     </View>
   );
 
@@ -110,8 +115,8 @@ const AdminReports = () => {
         subtitle="Revenue, costs, and profitability"
         icon="trending-up"
       />
-      <View className="flex-row flex-wrap justify-between">
-        <View className="w-[48%]">
+      <View className="w-fullv">
+        <View className="w-full">
           <StatCard
             title="Total Revenue"
             value={totalRevenue}
@@ -120,7 +125,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Cost of Goods"
             value={totalCost}
@@ -129,7 +134,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Operating Expenses"
             value={totalExpenses}
@@ -138,7 +143,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Gross Profit"
             value={grossProfit}
@@ -147,7 +152,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Net Profit"
             value={netProfit}
@@ -156,7 +161,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Profit Margin"
             value={profitMargin}
@@ -165,7 +170,7 @@ const AdminReports = () => {
             isCurrency={false}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Operating Margin"
             value={operatingMargin}
@@ -174,7 +179,7 @@ const AdminReports = () => {
             isCurrency={false}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="COGS Ratio"
             value={costOfGoodsSoldRatio}
@@ -183,7 +188,7 @@ const AdminReports = () => {
             isCurrency={false}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Expense Ratio"
             value={expenseRatio}
