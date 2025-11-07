@@ -344,7 +344,7 @@ const AdminExpenses = () => {
       >
         <View className="flex-1 bg-background pt-4">
           <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">Add New Expense</Text>
+            <Text className="text-xl font-bold text-foreground">New Expense</Text>
             <TouchableOpacity onPress={() => setIsDialogOpen(false)}>
               <Ionicons name="close" size={24} className="text-foreground" />
             </TouchableOpacity>
@@ -355,12 +355,11 @@ const AdminExpenses = () => {
               {/* Category */}
               <View>
                 <Text className="text-sm font-medium text-foreground mb-3">Category</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View className="flex-row space-x-2">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex flex-row gap-4  rounded-lg border-border w-full bg-muted py-2 px-2 ">
                     {categoryOptions.map((category) => (
                       <TouchableOpacity
                         key={category}
-                        className={`px-4 py-3 rounded-lg border ${
+                        className={`px-4 py-3 mr-3 rounded-lg border ${
                           formData.category === category
                             ? 'bg-accent border-accent'
                             : 'bg-background border-input'
@@ -376,7 +375,7 @@ const AdminExpenses = () => {
                         </Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
+                  
                 </ScrollView>
               </View>
 
@@ -411,7 +410,7 @@ const AdminExpenses = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              className="bg-accent rounded-lg py-4 mt-6"
+              className="bg-accent rounded-lg py-2 mt-6"
               onPress={handleSubmit}
             >
               <Text className="text-accent-foreground text-center font-semibold text-lg">
