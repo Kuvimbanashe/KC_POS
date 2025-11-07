@@ -249,15 +249,27 @@ const AdminAssets = () => {
           </View>
 
           {/* Search and Filter */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+          <View className="bg-card rounded-lg p-4 border border-border">
+            <View className="w-full flex flex-row gap-2 items-center justify-between mb-6">
+            <View>
             <Text className="text-lg font-bold text-foreground mb-1">
               Asset Inventory
             </Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+            <Text className="text-xs  text-muted-foreground ">
               All business assets and their values
             </Text>
             
-            <View className="flex-row gap-4">
+            </View>
+             <TouchableOpacity
+              className="bg-accent rounded-lg px-2 h-fit w-fit py-2 flex-row items-center"
+              onPress={() => setIsDialogOpen(true)}
+            >
+              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
+              <Text className="text-accent-foreground font-semibold">Add Asset</Text>
+            </TouchableOpacity>
+            </View>
+            
+            <View className="flex-col gap-4">
               {/* Search Input */}
               <View className="flex-1">
                 <View className="relative">
@@ -306,7 +318,7 @@ const AdminAssets = () => {
           </View>
 
           {/* Assets List */}
-          <View className="bg-card rounded-lg shadow-sm overflow-hidden">
+          <View className="bg-card rounded-lg bordee border-border overflow-hidden">
             {filteredAssets.length === 0 ? (
               <View className="p-8 items-center">
                 <Ionicons name="cube-outline" size={48} className="text-muted-foreground mb-4" />
@@ -338,7 +350,7 @@ const AdminAssets = () => {
                 data={filteredAssets}
                 renderItem={renderAssetItem}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 className="max-h-96"
               />
             )}
