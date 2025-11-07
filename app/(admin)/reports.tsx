@@ -208,8 +208,8 @@ const AdminReports = () => {
         subtitle="Assets, liabilities, and equity"
         icon="wallet"
       />
-      <View className="flex-row flex-wrap justify-between">
-        <View className="w-[48%]">
+      <View className="flex-col w-full  ">
+        <View className="w-full">
           <StatCard
             title="Total Assets Value"
             value={totalAssetsValue}
@@ -218,7 +218,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Inventory Value"
             value={totalInventoryValue}
@@ -227,7 +227,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Asset Depreciation"
             value={assetDepreciation}
@@ -236,7 +236,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="w-full">
           <StatCard
             title="Current Ratio"
             value={currentRatio}
