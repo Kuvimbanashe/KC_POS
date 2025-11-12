@@ -2,32 +2,43 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 import Feather from '@expo/vector-icons/Feather';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import type { UserProfile } from '../../store/types';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const router = useRouter();
-  const users = useSelector(state => state.userManagement.users);
+  const users = useAppSelector((state) => state.userManagement.users);
 
   const handleSignIn = () => {
-    const user = users.find(u => u.email === email && u.password === password);
+    const user = users.find((u) => u.email === email && u.password === password);
     
     if (user) {
-      dispatch(setCredentials({
-        user: { 
-          id: user.id, 
-          email: user.email, 
-          name: user.name,
-          phone: user.phone,
-          address: user.address
-        },
-        token: 'mock-jwt-token',
-        userType: user.type
-      }));
+      const authUser: UserProfile = {
+        id: user.id,
+        email: user.email,
+        password: user.password,
+        name: user.name,
+        phone: user.phone,
+        address: user.address,
+        type: user.type,
+        permissions: user.permissions,
+        status: user.status,
+        lastLogin: user.lastLogin,
+        joinDate: user.joinDate,
+      };
+
+      dispatch(
+        setCredentials({
+          user: authUser,
+          token: 'mock-jwt-token',
+          userType: user.type,
+        }),
+      );
       router.replace(user.type === 'admin' ? '/(admin)' : '/(cashier)');
     } else {
       Alert.alert('Error', 'Invalid email or password');
