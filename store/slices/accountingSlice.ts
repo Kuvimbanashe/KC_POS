@@ -1,8 +1,14 @@
-// store/slices/accountingSlice.js
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type {
+  AccountingState,
+  ChartOfAccount,
+  JournalEntry,
+  FinancialReports,
+  JournalEntryType,
+} from '../types';
 
 // Enhanced mock data with accounting records
-const mockChartOfAccounts = [
+const mockChartOfAccounts: ChartOfAccount[] = [
   { id: 1, code: '1000', name: 'Cash', type: 'asset', category: 'current_asset' },
   { id: 2, code: '1100', name: 'Accounts Receivable', type: 'asset', category: 'current_asset' },
   { id: 3, code: '1200', name: 'Inventory', type: 'asset', category: 'current_asset' },
@@ -14,10 +20,11 @@ const mockChartOfAccounts = [
   { id: 9, code: '7000', name: 'Other Income', type: 'revenue', category: 'other_income' },
 ];
 
-const mockJournalEntries = Array.from({ length: 50 }, (_, i) => {
+const entryTypes: JournalEntryType[] = ['sale', 'purchase', 'expense', 'adjustment'];
+
+const mockJournalEntries: JournalEntry[] = Array.from({ length: 50 }, (_, i) => {
   const date = new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000);
-  const types = ['sale', 'purchase', 'expense', 'adjustment'];
-  const type = types[i % 4];
+  const type = entryTypes[i % entryTypes.length];
   
   return {
     id: i + 1,
@@ -41,7 +48,7 @@ const mockJournalEntries = Array.from({ length: 50 }, (_, i) => {
   };
 });
 
-const mockFinancialReports = {
+const mockFinancialReports: FinancialReports = {
   balanceSheet: {
     assets: {
       current_assets: 150000,
@@ -74,7 +81,7 @@ const mockFinancialReports = {
   },
 };
 
-const initialState = {
+const initialState: AccountingState = {
   chartOfAccounts: mockChartOfAccounts,
   journalEntries: mockJournalEntries,
   financialReports: mockFinancialReports,
@@ -92,13 +99,13 @@ const accountingSlice = createSlice({
   name: 'accounting',
   initialState,
   reducers: {
-    addJournalEntry: (state, action) => {
+    addJournalEntry: (state, action: PayloadAction<JournalEntry>) => {
       state.journalEntries.unshift(action.payload);
     },
-    updateFinancialReports: (state, action) => {
+    updateFinancialReports: (state, action: PayloadAction<FinancialReports>) => {
       state.financialReports = action.payload;
     },
-    addAccount: (state, action) => {
+    addAccount: (state, action: PayloadAction<ChartOfAccount>) => {
       state.chartOfAccounts.push(action.payload);
     },
   },
