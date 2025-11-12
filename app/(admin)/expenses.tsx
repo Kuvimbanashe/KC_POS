@@ -10,22 +10,46 @@ import {
   Modal,
   FlatList
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { addExpense } from '../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import type { ExpenseRecord } from '../../store/types';
+import type { ListRenderItem } from 'react-native';
+
+const EXPENSE_CATEGORY_OPTIONS = [
+  'Rent',
+  'Utilities',
+  'Salaries',
+  'Marketing',
+  'Maintenance',
+  'Supplies',
+  'Transportation',
+  'Insurance',
+  'Professional Services',
+  'Miscellaneous',
+] as const;
+
+type ExpenseCategory = typeof EXPENSE_CATEGORY_OPTIONS[number];
+type CategoryFilter = 'all' | ExpenseCategory;
+
+interface ExpenseFormData {
+  category: ExpenseCategory | '';
+  description: string;
+  amount: string;
+}
 
 const AdminExpenses = () => {
-  const { expenses } = useSelector(state => state.user);
-  const dispatch = useDispatch();
+  const { expenses } = useAppSelector((state) => state.user);
+  const dispatch = useAppDispatch();
   
-  const [filteredExpenses, setFilteredExpenses] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState<ExpenseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [selectedExpense, setSelectedExpense] = useState<ExpenseRecord | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ExpenseFormData>({
     category: '',
     description: '',
     amount: '',
@@ -38,20 +62,22 @@ const AdminExpenses = () => {
       setFilteredExpenses(expenses);
     }, 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [expenses]);
 
   useEffect(() => {
-    let filtered = expenses;
+    let filtered: ExpenseRecord[] = expenses;
 
     if (searchQuery) {
-      filtered = filtered.filter(expense =>
-        expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        expense.id.toString().includes(searchQuery)
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (expense) =>
+          expense.description.toLowerCase().includes(query) ||
+          expense.id.toString().includes(query),
       );
     }
 
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(expense => expense.category === categoryFilter);
+      filtered = filtered.filter((expense) => expense.category === categoryFilter);
     }
 
     setFilteredExpenses(filtered);
@@ -64,12 +90,13 @@ const AdminExpenses = () => {
     }
 
     try {
-      dispatch(addExpense({
-        category: formData.category,
-        description: formData.description,
-        amount: parseFloat(formData.amount),
-        date: new Date().toISOString(),
-      }));
+      dispatch(
+        addExpense({
+          category: formData.category,
+          description: formData.description,
+          amount: parseFloat(formData.amount),
+        }),
+      );
 
       Alert.alert('Success', 'Expense added successfully');
       setIsDialogOpen(false);
@@ -81,44 +108,32 @@ const AdminExpenses = () => {
   };
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const categoryTotals = expenses.reduce((acc, expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+  const categoryTotals = expenses.reduce<Record<string, number>>((acc, expense) => {
+    const key = expense.category;
+    acc[key] = (acc[key] ?? 0) + expense.amount;
     return acc;
   }, {});
 
   const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
 
-  const getCategoryColor = (category) => {
-    const colorMap = {
-      'Rent': 'bg-blue-100 text-blue-800',
-      'Utilities': 'bg-green-100 text-green-800',
-      'Salaries': 'bg-purple-100 text-purple-800',
-      'Marketing': 'bg-pink-100 text-pink-800',
-      'Maintenance': 'bg-yellow-100 text-yellow-800',
-      'Supplies': 'bg-indigo-100 text-indigo-800',
-      'Transportation': 'bg-orange-100 text-orange-800',
-      'Insurance': 'bg-red-100 text-red-800',
+  const getCategoryColor = (category: string) => {
+    const colorMap: Record<ExpenseCategory, string> = {
+      Rent: 'bg-blue-100 text-blue-800',
+      Utilities: 'bg-green-100 text-green-800',
+      Salaries: 'bg-purple-100 text-purple-800',
+      Marketing: 'bg-pink-100 text-pink-800',
+      Maintenance: 'bg-yellow-100 text-yellow-800',
+      Supplies: 'bg-indigo-100 text-indigo-800',
+      Transportation: 'bg-orange-100 text-orange-800',
+      Insurance: 'bg-red-100 text-red-800',
       'Professional Services': 'bg-teal-100 text-teal-800',
-      'Miscellaneous': 'bg-gray-100 text-gray-800',
+      Miscellaneous: 'bg-gray-100 text-gray-800',
     };
     
-    return colorMap[category] || 'bg-gray-100 text-gray-800';
+    return colorMap[category as ExpenseCategory] ?? 'bg-gray-100 text-gray-800';
   };
 
-  const categoryOptions = [
-    'Rent',
-    'Utilities',
-    'Salaries',
-    'Marketing',
-    'Maintenance',
-    'Supplies',
-    'Transportation',
-    'Insurance',
-    'Professional Services',
-    'Miscellaneous'
-  ];
-
-  const renderExpenseItem = ({ item }) => (
+  const renderExpenseItem: ListRenderItem<ExpenseRecord> = ({ item }) => (
     <TouchableOpacity 
       className="border-b border-border py-4 px-4 bg-card active:bg-muted"
       onPress={() => setSelectedExpense(item)}
@@ -344,7 +359,8 @@ const AdminExpenses = () => {
               <View>
                 <Text className="text-sm font-medium text-foreground mb-3">Category</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex flex-row gap-4  rounded-lg border-border w-full bg-muted py-2 px-2 ">
-                    {categoryOptions.map((category) => (
+                    {EXPENSE_CATEGORY_OPTIONS.map((category) => (
+                    {EXPENSE_CATEGORY_OPTIONS.map((category) => (
                       <TouchableOpacity
                         key={category}
                         className={`px-4 py-3 mr-3 rounded-lg border ${
