@@ -1,8 +1,8 @@
-// store/slices/userManagementSlice.js
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { Permission, UserManagementState, UserProfile, UserStatus } from '../types';
 
 // Enhanced mock users with more details
-const mockUsers = [
+const mockUsers: UserProfile[] = [
   {
     id: 1,
     email: 'admin@shop.com',
@@ -58,7 +58,7 @@ const mockUsers = [
 ];
 
 // Add more users to reach 20+
-const additionalUsers = Array.from({ length: 16 }, (_, i) => ({
+const additionalUsers: UserProfile[] = Array.from({ length: 16 }, (_, i) => ({
   id: i + 5,
   email: `user${i + 1}@shop.com`,
   password: 'password123',
@@ -72,9 +72,9 @@ const additionalUsers = Array.from({ length: 16 }, (_, i) => ({
   lastLogin: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
 }));
 
-const allUsers = [...mockUsers, ...additionalUsers];
+const allUsers: UserProfile[] = [...mockUsers, ...additionalUsers];
 
-const initialState = {
+const initialState: UserManagementState = {
   users: allUsers,
   roles: [
     { id: 1, name: 'Super Admin', permissions: ['all'] },
@@ -95,44 +95,68 @@ const initialState = {
   ],
 };
 
+type AddUserPayload = {
+  email: string;
+  password: string;
+  name: string;
+  type: UserProfile['type'];
+  phone?: string;
+  address?: string;
+  permissions?: Permission[];
+  status?: UserStatus;
+  joinDate?: string;
+};
+
+type UpdateUserPayload = { id: number } & Partial<UserProfile>;
+
+type UpdateUserPermissionsPayload = {
+  userId: number;
+  permissions: Permission[];
+};
+
 const userManagementSlice = createSlice({
   name: 'userManagement',
   initialState,
   reducers: {
-    addUser: (state, action) => {
+    addUser: (state, action: PayloadAction<AddUserPayload>) => {
       state.users.push({
         ...action.payload,
-        id: Math.max(...state.users.map(u => u.id)) + 1,
-        joinDate: new Date().toISOString().split('T')[0],
+        id: state.users.length > 0 ? Math.max(...state.users.map((u) => u.id)) + 1 : 1,
+        joinDate: action.payload.joinDate ?? new Date().toISOString().split('T')[0],
         lastLogin: null,
-        status: 'active',
+        status: action.payload.status ?? 'active',
       });
     },
-    updateUser: (state, action) => {
-  const { id, ...updates } = action.payload;
-  const userIndex = state.users.findIndex(user => user.id === id);
-  if (userIndex !== -1) {
-    state.users[userIndex] = { ...state.users[userIndex], ...updates };
-  }
-},
-    deleteUser: (state, action) => {
-      state.users = state.users.filter(user => user.id !== action.payload);
+
+    updateUser: (state, action: PayloadAction<UpdateUserPayload>) => {
+      const { id, ...updates } = action.payload;
+      const userIndex = state.users.findIndex((user) => user.id === id);
+      if (userIndex !== -1) {
+        state.users[userIndex] = { ...state.users[userIndex], ...updates };
+      }
     },
-    toggleUserStatus: (state, action) => {
-      const user = state.users.find(user => user.id === action.payload);
+
+    deleteUser: (state, action: PayloadAction<number>) => {
+      state.users = state.users.filter((user) => user.id !== action.payload);
+    },
+
+    toggleUserStatus: (state, action: PayloadAction<number>) => {
+      const user = state.users.find((user) => user.id === action.payload);
       if (user) {
         user.status = user.status === 'active' ? 'inactive' : 'active';
       }
     },
-    updateUserPermissions: (state, action) => {
+
+    updateUserPermissions: (state, action: PayloadAction<UpdateUserPermissionsPayload>) => {
       const { userId, permissions } = action.payload;
-      const user = state.users.find(user => user.id === userId);
+      const user = state.users.find((user) => user.id === userId);
       if (user) {
         user.permissions = permissions;
       }
     },
-    updateLastLogin: (state, action) => {
-      const user = state.users.find(user => user.id === action.payload);
+
+    updateLastLogin: (state, action: PayloadAction<number>) => {
+      const user = state.users.find((user) => user.id === action.payload);
       if (user) {
         user.lastLogin = new Date().toISOString();
       }
