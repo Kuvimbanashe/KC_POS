@@ -1,11 +1,12 @@
 // app/(cashier)/index.js
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppSelector } from '../../store/hooks';
+import type { SaleRecord } from '../../store/types';
 
 const CashierHome = () => {
-  const { user } = useSelector(state => state.auth);
-  const { sales, products } = useSelector(state => state.user);
+  const { user } = useAppSelector((state) => state.auth);
+  const { sales, products } = useAppSelector((state) => state.user);
 
   // Filter today's sales for current cashier
   const today = new Date().toDateString();
@@ -56,46 +57,54 @@ const CashierHome = () => {
     </View>
   );
 
-  const renderSaleItem = (sale) => (
-    <View key={sale.id} className="p-4 border-t border-border">
-      <View className="flex-row justify-between items-center ">
+  const renderSaleItem = (sale: SaleRecord) => {
+    const primaryItem = sale.items?.[0];
+    const itemQuantity = sale.quantity ?? primaryItem?.quantity ?? 0;
+    const itemName = sale.productName ?? primaryItem?.productName ?? 'Item';
+    const itemPrice = sale.price ?? primaryItem?.price ?? 0;
+    const itemSubtotal = primaryItem?.subtotal ?? itemQuantity * itemPrice;
+
+    return (
+      <View key={sale.id} className="p-4 border-t border-border">
+        <View className="flex-row justify-between items-center ">
+          <View>
+            <Text className="font-semibold text-foreground text-base">
+              Receipt  #{sale.id}
+            </Text>
+            <Text className="text-muted-foreground text-sm">
+              {new Date(sale.date).toLocaleTimeString()}
+            </Text>
+          </View>
+          <View className="bg-blue-100 px-2 py-1 rounded-full">
+            <Text className="text-blue-800 text-xs font-medium capitalize">
+              {sale.paymentMethod}
+            </Text>
+          </View>
+      
         <View>
-          <Text className="font-semibold text-foreground text-base">
-            Receipt  #{sale.id}
-          </Text>
-          <Text className="text-muted-foreground text-sm">
-            {new Date(sale.date).toLocaleTimeString()}
-          </Text>
+           <Text className="text-primary text-xl font-bold">${sale.total.toFixed(2)}</Text>
         </View>
-        <View className="bg-blue-100 px-2 py-1 rounded-full">
-          <Text className="text-blue-800 text-xs font-medium capitalize">
-            {sale.paymentMethod}
-          </Text>
         </View>
       
-      <View>
-         <Text className="text-primary text-xl font-bold">${sale.total.toFixed(2)}</Text>
-      </View>
-      </View>
+        {/* Product details */}
+        <View className="mb-2 hidden">
+          <View className="flex-row justify-between">
+            <Text className="text-muted-foreground text-sm">
+              {itemQuantity}x {itemName}
+            </Text>
+            <Text className="text-foreground text-sm">
+              ${itemSubtotal.toFixed(2)}
+            </Text>
+          </View>
+        </View>
       
-      {/* Product details */}
-      <View className="mb-2 hidden">
-        <View className="flex-row justify-between">
-          <Text className="text-muted-foreground text-sm">
-            {sale.quantity}x {sale.productName}
-          </Text>
-          <Text className="text-foreground text-sm">
-            ${(sale.quantity * sale.price).toFixed(2)}
-          </Text>
+        <View className="hidden fle-row justify-between font-semibold pt-2 border-t border-border">
+          <Text className="text-foreground">Total</Text>
+          <Text className="text-accent text-lg">${sale.total.toFixed(2)}</Text>
         </View>
       </View>
-      
-      <View className="hidden fle-row justify-between font-semibold pt-2 border-t border-border">
-        <Text className="text-foreground">Total</Text>
-        <Text className="text-accent text-lg">${sale.total.toFixed(2)}</Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View className="flex-1 bg-background">
