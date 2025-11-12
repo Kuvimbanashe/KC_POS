@@ -1,5 +1,4 @@
-// app/(admin)/stock.js
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -10,22 +9,39 @@ import {
   FlatList,
   Alert
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { addProduct, updateProduct } from '../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import type { Product, UnitType } from '../../store/types';
+import type { ListRenderItem } from 'react-native';
+
+interface ProductFormData {
+  name: string;
+  category: string;
+  price: string;
+  stock: string;
+  sku: string;
+  supplier: string;
+  unitType: UnitType;
+  packSize: string;
+  packPrice: string;
+  singlePrice: string;
+  minStockLevel: string;
+  description?: string;
+}
 
 const AdminStock = () => {
-  const { products } = useSelector(state => state.user);
-  const dispatch = useDispatch();
+  const { products } = useAppSelector((state) => state.user);
+  const dispatch = useAppDispatch();
   
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     category: '',
     price: '',
