@@ -2,12 +2,23 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 import { addUser } from '../../store/slices/userManagementSlice';
+import { useAppDispatch } from '../../store/hooks';
+import type { UserProfile, UserRole } from '../../store/types';
+
+interface SignUpFormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  password: string;
+  confirmPassword: string;
+  userType: UserRole;
+}
 
 export default function SignUpScreen() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SignUpFormData>({
     name: '',
     email: '',
     phone: '',
@@ -17,7 +28,7 @@ export default function SignUpScreen() {
     userType: 'cashier',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const router = useRouter();
 
   const handleSignUp = async () => {
@@ -55,17 +66,27 @@ export default function SignUpScreen() {
       dispatch(addUser(newUser));
 
       // Auto-login the new user
-      dispatch(setCredentials({
-        user: { 
-          id: Date.now(), 
-          name: formData.name, 
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-        },
-        token: 'mock-jwt-token',
-        userType: formData.userType
-      }));
+      const authUser: UserProfile = {
+        id: Date.now(),
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        address: formData.address,
+        type: formData.userType,
+        status: 'active',
+        permissions: formData.userType === 'admin' ? ['all'] : ['sales'],
+        lastLogin: new Date().toISOString(),
+        joinDate: new Date().toISOString().split('T')[0],
+      };
+
+      dispatch(
+        setCredentials({
+          user: authUser,
+          token: 'mock-jwt-token',
+          userType: formData.userType,
+        }),
+      );
 
       Alert.alert('Success', 'Account created successfully!');
       router.replace(formData.userType === 'admin' ? '/(admin)' : '/(cashier)');
@@ -120,7 +141,7 @@ export default function SignUpScreen() {
         <View className="border border-gray-300 rounded-lg p-3">
           <Text className="text-gray-600 mb-2">Account Type</Text>
           <View className="flex-row space-x-4">
-            {['cashier', 'admin'].map((type) => (
+            {(['cashier', 'admin'] as UserRole[]).map((type) => (
               <TouchableOpacity
                 key={type}
                 className={`flex-1 py-2 rounded-lg ${
