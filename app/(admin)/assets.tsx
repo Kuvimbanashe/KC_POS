@@ -10,24 +10,38 @@ import {
   Modal,
   FlatList
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { addAsset, deleteAsset } from '../../store/slices/assetsSlice';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import type { ListRenderItem } from 'react-native';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import type { AssetRecord } from '../../store/types';
+
+type ConditionFilter = 'all' | AssetRecord['condition'];
+
+interface AssetFormData {
+  name: string;
+  category: string;
+  purchaseValue: string;
+  currentValue: string;
+  purchaseDate: Date;
+  condition: AssetRecord['condition'];
+  location: string;
+}
 
 const AdminAssets = () => {
-  const { assets } = useSelector(state => state.assets);
-  const dispatch = useDispatch();
+  const { assets } = useAppSelector((state) => state.assets);
+  const dispatch = useAppDispatch();
   
-  const [filteredAssets, setFilteredAssets] = useState([]);
+  const [filteredAssets, setFilteredAssets] = useState<AssetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [conditionFilter, setConditionFilter] = useState('all');
-  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [conditionFilter, setConditionFilter] = useState<ConditionFilter>('all');
+  const [selectedAsset, setSelectedAsset] = useState<AssetRecord | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AssetFormData>({
     name: '',
     category: '',
     purchaseValue: '',
@@ -44,21 +58,23 @@ const AdminAssets = () => {
       setFilteredAssets(assets);
     }, 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [assets]);
 
   useEffect(() => {
-    let filtered = assets;
+    let filtered: AssetRecord[] = assets;
 
     if (searchQuery) {
-      filtered = filtered.filter(asset =>
-        asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        asset.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        asset.location.toLowerCase().includes(searchQuery.toLowerCase())
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (asset) =>
+          asset.name.toLowerCase().includes(query) ||
+          asset.category.toLowerCase().includes(query) ||
+          asset.location.toLowerCase().includes(query),
       );
     }
 
     if (conditionFilter !== 'all') {
-      filtered = filtered.filter(asset => asset.condition === conditionFilter);
+      filtered = filtered.filter((asset) => asset.condition === conditionFilter);
     }
 
     setFilteredAssets(filtered);
@@ -102,8 +118,8 @@ const AdminAssets = () => {
   const totalPurchaseValue = assets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
   const depreciation = totalPurchaseValue - totalValue;
 
-  const getConditionBadge = (condition) => {
-    const colorMap = {
+  const getConditionBadge = (condition: AssetRecord['condition']) => {
+    const colorMap: Record<AssetRecord['condition'], string> = {
       excellent: 'bg-green-100 text-green-800',
       good: 'bg-blue-100 text-blue-800',
       fair: 'bg-yellow-100 text-yellow-800',
@@ -119,12 +135,12 @@ const AdminAssets = () => {
     );
   };
 
-  const conditionOptions = [
+  const conditionOptions: Array<{ value: ConditionFilter; label: string }> = [
     { value: 'all', label: 'All Conditions' },
-    { value: 'excellent', label: 'Excellent' },
-    { value: 'good', label: 'Good' },
-    { value: 'fair', label: 'Fair' },
-    { value: 'poor', label: 'Poor' },
+    { value: 'excellent' as const, label: 'Excellent' },
+    { value: 'good' as const, label: 'Good' },
+    { value: 'fair' as const, label: 'Fair' },
+    { value: 'poor' as const, label: 'Poor' },
   ];
 
   const categoryOptions = [
@@ -136,7 +152,7 @@ const AdminAssets = () => {
     'Other'
   ];
 
-  const renderAssetItem = ({ item }) => (
+  const renderAssetItem: ListRenderItem<AssetRecord> = ({ item }) => (
     <TouchableOpacity 
       className="border-b border-border py-3 px-4 bg-card active:bg-muted"
       onPress={() => setSelectedAsset(item)}
@@ -464,7 +480,7 @@ const AdminAssets = () => {
                 <Text className="text-sm font-medium text-foreground mb-2">Condition</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View className="flex-row space-x-2">
-                    {['excellent', 'good', 'fair', 'poor'].map((condition) => (
+                    {(['excellent', 'good', 'fair', 'poor'] as AssetRecord['condition'][]).map((condition) => (
                       <TouchableOpacity
                         key={condition}
                         className={`px-4 py-2 rounded-lg border ${
