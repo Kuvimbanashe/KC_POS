@@ -1,20 +1,31 @@
 // app/(cashier)/profile.js
 import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile } from '../../store/slices/authSlice';
 import { updateUser } from '../../store/slices/userManagementSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import type { UserProfile } from '../../store/types';
+
+interface ProfileFormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
 
 export default function CashierProfileScreen() {
-  const { user } = useSelector(state => state.auth);
-  const dispatch = useDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
   
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    address: user?.address || '',
+  const [formData, setFormData] = useState<ProfileFormData>({
+    name: user?.name ?? '',
+    email: user?.email ?? '',
+    phone: user?.phone ?? '',
+    address: user?.address ?? '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -26,7 +37,12 @@ export default function CashierProfileScreen() {
       return;
     }
 
-    const updatedData = {
+    if (!user) {
+      Alert.alert('Error', 'Unable to update profile at this time.');
+      return;
+    }
+
+    const updatedData: Partial<UserProfile> = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
