@@ -1,7 +1,17 @@
-const { getDefaultConfig } = require("expo/metro-config");
+const os = require('os');
+
+if (typeof os.availableParallelism !== 'function') {
+  os.availableParallelism = () => {
+    const cpus = os.cpus?.();
+    const length = Array.isArray(cpus) ? cpus.length : 1;
+    return Math.max(1, length - 1);
+  };
+}
+
+const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
- 
-const config = getDefaultConfig(__dirname)
+
+const config = getDefaultConfig(__dirname);
  
 module.exports = withNativeWind(config, { input: './global.css' })
 
