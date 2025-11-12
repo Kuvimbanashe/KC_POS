@@ -9,15 +9,15 @@ import {
   Alert,
   Modal
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { updateProfile } from '../../store/slices/authSlice';
 import { updateUser } from '../../store/slices/userManagementSlice';
 
 const AdminProfile = () => {
-  const { user } = useSelector(state => state.auth);
-  const { users } = useSelector(state => state.userManagement);
-  const dispatch = useDispatch();
+  const { user } = useAppSelector(state => state.auth);
+  const { users } = useAppSelector(state => state.userManagement);
+  const dispatch = useAppDispatch();
   
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
@@ -192,7 +192,7 @@ const AdminProfile = () => {
                       className="flex-row items-center gap-3 p-3 bg-secondary rounded-lg"
                     >
                       <Ionicons 
-                        name={item.icon} 
+                        name={item.icon as keyof typeof Ionicons.glyphMap} 
                         size={20} 
                         className={item.color}
                       />

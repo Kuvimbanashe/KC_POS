@@ -275,7 +275,7 @@ const AdminExpenses = () => {
                     All Categories
                   </Text>
                 </TouchableOpacity>
-                {categoryOptions.map((category) => (
+                {EXPENSE_CATEGORY_OPTIONS.map((category) => (
                   <TouchableOpacity
                     key={category}
                     className={`px-4 py-2 rounded-lg border ${
@@ -359,7 +359,6 @@ const AdminExpenses = () => {
               <View>
                 <Text className="text-sm font-medium text-foreground mb-3">Category</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex flex-row gap-4  rounded-lg border-border w-full bg-muted py-2 px-2 ">
-                    {EXPENSE_CATEGORY_OPTIONS.map((category) => (
                     {EXPENSE_CATEGORY_OPTIONS.map((category) => (
                       <TouchableOpacity
                         key={category}

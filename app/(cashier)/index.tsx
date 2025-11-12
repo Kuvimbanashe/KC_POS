@@ -40,20 +40,14 @@ const CashierHome = () => {
 
   ];
 
-  const StatCard = ({ title, value, description, icon, color = 'text-muted' }) => (
+  const StatCard = ({ title, value, description, icon, color = 'text-muted' }: { title: string, value: string, description: string, icon: string, color: string }) => (
     <View className={`rounded-lg p-4  ${color}`}>
       <View className="flex-row justify-between items-center mb-2">
-        <Text className="text-sm font-medium text-muted -foreground">
-          {title}
-        </Text>
-        <Ionicons name={icon} size={20} className={color} />
+        <Text className="text-sm font-medium text-muted-foreground">{title}</Text>
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} className={color} />
       </View>
-      <Text className="text-2xl font-bold text-muted mb-1">
-        {value}
-      </Text>
-      <Text className="text-xs text-muted">
-        {description}
-      </Text>
+      <Text className="text-2xl font-bold text-muted-foreground mb-1">{value}</Text>
+      <Text className="text-xs text-muted">{description}</Text>
     </View>
   );
 
@@ -125,7 +119,7 @@ const CashierHome = () => {
             <View className="w-[48%]">
               <StatCard
                 title="Receipts Today"
-                value={todayReceiptsCount}
+                value={todayReceiptsCount.toString()}
                 description="Total transactions"
                 icon="receipt"
                 color="text-muted bg-accent"
@@ -155,14 +149,14 @@ const CashierHome = () => {
                 >
                   <View className="items-start">
                     <Ionicons 
-                      name={action.icon} 
+                      name={action.icon as keyof typeof Ionicons.glyphMap} 
                       size={32} 
                       className="text-secondary-foreground mb-2 hidden" 
                     />
                     <Text className="text-secondary-foreground font-semibold text-start text-sm">
                       {action.title}
                     </Text>
-                    <Text className="text-secondary-foreground text-xs text-start mt-1">
+                    <Text className="text-muted-foreground text-xs text-start mt-1">
                       {action.description}
                     </Text>
                   </View>

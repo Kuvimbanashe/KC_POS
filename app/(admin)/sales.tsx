@@ -9,17 +9,19 @@ import {
   Modal,
   FlatList
 } from 'react-native';
-import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppSelector } from '../../store/hooks';
+import type { SaleRecord } from '../../store/types';
+import type { PaymentMethod } from '../../store/types';
 
 const AdminSales = () => {
-  const { sales } = useSelector(state => state.user);
+  const { sales } = useAppSelector((state) => state.user);
   
-  const [filteredSales, setFilteredSales] = useState([]);
+  const [filteredSales, setFilteredSales] = useState<SaleRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('all');
-  const [selectedSale, setSelectedSale] = useState(null);
+  const [selectedSale, setSelectedSale] = useState<SaleRecord | null>(null);
 
   useEffect(() => {
     // Simulate loading
@@ -50,7 +52,7 @@ const AdminSales = () => {
   const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
   const averageSale = sales.length > 0 ? totalRevenue / sales.length : 0;
 
-  const getPaymentBadge = (method) => {
+  const getPaymentBadge = (method: PaymentMethod) => {
     const colorMap = {
       'Cash': 'bg-blue-100 text-blue-800',
       'Card': 'bg-green-100 text-green-800',
@@ -73,7 +75,7 @@ const AdminSales = () => {
     { value: 'Mobile Payment', label: 'Mobile' },
   ];
 
-  const renderSaleItem = ({ item }) => (
+  const renderSaleItem = ({ item }: { item: SaleRecord }) => (
     <TouchableOpacity 
       className="border-b border-border py-3 px-4 bg-card active:bg-muted"
       onPress={() => setSelectedSale(item)}
@@ -333,10 +335,10 @@ const AdminSales = () => {
                     </View>
                     <View className="flex-row justify-between">
                       <Text className="text-muted-foreground text-sm">
-                        Qty: {selectedSale.quantity} × ${selectedSale.price.toFixed(2)}
+                        Qty: {selectedSale.quantity} × ${selectedSale.price?.toFixed(2) ?? '0.00'}
                       </Text>
                       <Text className="text-muted-foreground text-sm">
-                        Subtotal: ${(selectedSale.quantity * selectedSale.price).toFixed(2)}
+                        Subtotal: ${(selectedSale.quantity ?? 0) * (selectedSale.price ?? 0)}
                       </Text>
                     </View>
                   </View>

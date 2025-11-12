@@ -1,10 +1,11 @@
 // app/(cashier)/profile.js
 import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { updateProfile } from '../../store/slices/authSlice';
+import { updateProfile, logout } from '../../store/slices/authSlice';
 import { updateUser } from '../../store/slices/userManagementSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { UserProfile } from '../../store/types';
+import { useRouter } from 'expo-router';
 
 interface ProfileFormData {
   name: string;
@@ -19,6 +20,7 @@ interface ProfileFormData {
 export default function CashierProfileScreen() {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+  const router = useRouter();
   
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -73,6 +75,20 @@ export default function CashierProfileScreen() {
 
     Alert.alert('Success', 'Password changed successfully');
     setFormData({ ...formData, currentPassword: '', newPassword: '', confirmPassword: '' });
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: () => {
+          dispatch(logout());
+          router.replace('/(auth)');
+        },
+      },
+    ]);
   };
 
   return (
@@ -205,6 +221,21 @@ export default function CashierProfileScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Logout */}
+      <View className="bg-white p-4 rounded-lg ">
+        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">
+          Session
+        </Text>
+        <TouchableOpacity
+          className="bg-destructive py-3 rounded-lg"
+          onPress={handleLogout}
+        >
+          <Text className="text-destructive-foreground text-center font-semibold">
+            Logout
+          </Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

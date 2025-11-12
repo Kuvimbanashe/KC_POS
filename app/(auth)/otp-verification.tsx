@@ -9,15 +9,15 @@ export default function OTPVerificationScreen() {
   const inputs = useRef([]);
   const router = useRouter();
 
-  const focusNext = (index, value) => {
+  const focusNext = (index: number, value: string) => {
     if (value && index < 5) {
-      inputs.current[index + 1].focus();
+      (inputs.current[index + 1] as TextInput).focus();
     }
   };
 
-  const focusPrevious = (index, key) => {
+  const focusPrevious = (index: number, key: string) => {
     if (key === 'Backspace' && index > 0) {
-      inputs.current[index - 1].focus();
+      (inputs.current[index - 1] as TextInput).focus();
     }
   };
 
@@ -59,8 +59,12 @@ export default function OTPVerificationScreen() {
         {otp.map((digit, index) => (
           <TextInput
             key={index}
-            ref={ref => inputs.current[index] = ref}
-            className="w-12 h-12 border-2  rounded-lg text-center text-lg font-bold text-primary"
+            ref={(ref: TextInput | null) => {
+              if (ref) {
+                (inputs.current[index] as TextInput) = ref;
+              }
+            }}
+            className="w-12 h-12 border-2 rounded-lg text-center text-lg font-bold text-primary"
             value={digit}
             onChangeText={(value) => {
               const newOtp = [...otp];

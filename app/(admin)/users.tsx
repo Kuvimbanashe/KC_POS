@@ -1,16 +1,16 @@
 // app/(admin)/users.js
 import { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
   TextInput,
   Modal,
   FlatList,
-  Alert
+  Alert,
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { 
   addUser, 
@@ -18,26 +18,41 @@ import {
   deleteUser, 
   toggleUserStatus 
 } from '../../store/slices/userManagementSlice';
+import type { Permission, UserProfile, UserRole, UserStatus } from '../../store/types';
+
+type RoleFilter = 'all' | UserRole;
+
+interface UserFormData {
+  id?: number;
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  address: string;
+  type: UserRole;
+  permissions: Permission[];
+}
 
 const AdminUsers = () => {
-  const { users } = useSelector(state => state.userManagement);
-  const dispatch = useDispatch();
+  const { users } = useAppSelector((state) => state.userManagement);
+  const dispatch = useAppDispatch();
   
-  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   
-  const [formData, setFormData] = useState({
-    name: '',
+  const [formData, setFormData] = useState<UserFormData>({
+    id: undefined,
     email: '',
     password: '',
+    name: '',
     phone: '',
     address: '',
     type: 'cashier',
-    permissions: ['sales'],
+    permissions: [],
   });
 
   useEffect(() => {
@@ -47,20 +62,22 @@ const AdminUsers = () => {
       setFilteredUsers(users);
     }, 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [users]);
 
   useEffect(() => {
     let filtered = users;
 
     if (searchQuery) {
-      filtered = filtered.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query),
       );
     }
 
     if (roleFilter !== 'all') {
-      filtered = filtered.filter(user => user.type === roleFilter);
+      filtered = filtered.filter((user) => user.type === roleFilter);
     }
 
     setFilteredUsers(filtered);
@@ -73,6 +90,8 @@ const AdminUsers = () => {
     }
 
     try {
+      const permissions = formData.permissions.length > 0 ? formData.permissions : ['sales'];
+
       if (editingUser) {
         dispatch(updateUser({
           id: editingUser.id,
@@ -81,18 +100,18 @@ const AdminUsers = () => {
           phone: formData.phone,
           address: formData.address,
           type: formData.type,
-          permissions: formData.permissions,
+          permissions: permissions as Permission[],
         }));
         Alert.alert('Success', 'User updated successfully');
       } else {
         dispatch(addUser({
           name: formData.name,
           email: formData.email,
-          password: formData.password,
+          password: formData.password ?? '',
           phone: formData.phone,
           address: formData.address,
-          type: formData.type,
-          permissions: formData.permissions,
+          type: formData.type ?? 'cashier',
+          permissions: permissions as Permission[],
         }));
         Alert.alert('Success', 'User created successfully');
       }
@@ -104,7 +123,7 @@ const AdminUsers = () => {
     }
   };
 
-  const handleDelete = (userId, userName) => {
+  const handleDelete = (userId: number, userName: string) => {
     Alert.alert(
       'Delete User',
       `Are you sure you want to delete ${userName}?`,
@@ -122,7 +141,7 @@ const AdminUsers = () => {
     );
   };
 
-  const handleToggleStatus = (userId, userName, currentStatus) => {
+  const handleToggleStatus = (userId: number, userName: string, currentStatus: UserStatus) => {
     dispatch(toggleUserStatus(userId));
     Alert.alert(
       'Success', 
@@ -130,16 +149,17 @@ const AdminUsers = () => {
     );
   };
 
-  const openEditDialog = (user) => {
+  const openEditDialog = (user: UserProfile) => {
     setEditingUser(user);
     setFormData({
+      id: user.id,
       name: user.name,
       email: user.email,
       password: '',
       phone: user.phone || '',
       address: user.address || '',
       type: user.type,
-      permissions: user.permissions || ['sales'],
+      permissions: user.permissions ?? ['sales'],
     });
     setIsDialogOpen(true);
   };
@@ -147,6 +167,7 @@ const AdminUsers = () => {
   const resetForm = () => {
     setEditingUser(null);
     setFormData({
+      id: undefined,
       name: '',
       email: '',
       password: '',
@@ -157,7 +178,7 @@ const AdminUsers = () => {
     });
   };
 
-  const getRoleBadge = (type) => {
+  const getRoleBadge = (type: UserRole) => {
     const colorMap = {
       'admin': 'bg-purple-100 text-purple-800',
       'cashier': 'bg-blue-100 text-blue-800',
@@ -172,7 +193,7 @@ const AdminUsers = () => {
     );
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: UserStatus) => {
     const colorMap = {
       'active': 'bg-green-100 text-green-800',
       'inactive': 'bg-red-100 text-red-800',
@@ -187,22 +208,25 @@ const AdminUsers = () => {
     );
   };
 
-  const roleOptions = [
+  const roleOptions: Array<{ value: RoleFilter; label: string }> = [
     { value: 'all', label: 'All Roles' },
     { value: 'admin', label: 'Admin' },
     { value: 'cashier', label: 'Cashier' },
   ];
 
-  const permissionOptions = [
+  const permissionOptions: Permission[] = [
     'sales',
     'inventory_view',
     'inventory_manage',
     'reports_view',
+    'reports_export',
     'users_view',
-    'settings'
+    'users_manage',
+    'settings',
+    'returns',
   ];
 
-  const renderUserItem = ({ item }) => (
+  const renderUserItem = ({ item }: { item: UserProfile }) => (
     <View className="border-b border-border py-3 px-4 bg-card">
       <View className="flex-row justify-between items-start mb-2">
         <View className="min-[40%]">
@@ -214,7 +238,7 @@ const AdminUsers = () => {
           
         </View>
         <View className="items-end">
-          {getStatusBadge(item.status)}
+          {getStatusBadge(item.status as UserStatus)}
          
         </View>
       </View>
@@ -523,7 +547,7 @@ const AdminUsers = () => {
               <View>
                 <Text className="text-sm font-medium text-foreground mb-2">Role</Text>
                 <View className="flex-row space-x-2">
-                  {['cashier', 'admin'].map((role) => (
+                  {(['cashier', 'admin'] as UserRole[]).map((role) => (
                     <TouchableOpacity
                       key={role}
                       className={`flex-1 px-4 py-3 rounded-lg border ${
@@ -591,7 +615,7 @@ const AdminUsers = () => {
                 {editingUser ? 'Update User' : 'Create User'}
               </Text>
             </TouchableOpacity>
-          </ScrollView>0
+          </ScrollView>
         </View>
       </Modal>
     </View>

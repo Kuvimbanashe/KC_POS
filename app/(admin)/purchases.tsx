@@ -10,21 +10,22 @@ import {
   Modal,
   FlatList
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { addPurchase, updateProduct } from '../../store/slices/userSlice';
-
+import type { PurchaseRecord } from '../../store/types';
+import type { Product } from '../../store/types';
 const AdminPurchases = () => {
-  const { purchases, products } = useSelector(state => state.user);
-  const dispatch = useDispatch();
+  const { purchases, products } = useAppSelector(state => state.user);
+  const dispatch = useAppDispatch();
   
-  const [filteredPurchases, setFilteredPurchases] = useState([]);
+  const [filteredPurchases, setFilteredPurchases] = useState<PurchaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPurchase, setSelectedPurchase] = useState(null);
+  const [selectedPurchase, setSelectedPurchase] = useState<PurchaseRecord | null>(null);
   
   const [formData, setFormData] = useState({
     quantity: '',
@@ -52,17 +53,17 @@ const AdminPurchases = () => {
     setFilteredPurchases(filtered);
   }, [searchQuery, purchases]);
 
-  const handleProductSelect = (product) => {
+  const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setIsProductModalOpen(false);
     setIsDialogOpen(true);
     // Pre-fill supplier if available
     if (product.supplier) {
-      setFormData(prev => ({ ...prev, supplier: product.supplier }));
+      setFormData(prev => ({ ...prev, supplier: product.supplier as string }));
     }
   };
 
-  const calculateSellingPrice = (unitCost, margin) => {
+  const calculateSellingPrice = (unitCost: number, margin: number) => {
     return unitCost * (1 + margin / 100);
   };
 
@@ -90,7 +91,7 @@ const AdminPurchases = () => {
         productName: selectedProduct.name,
         quantity: actualQuantity,
         unitCost,
-        totalCost,
+        total: totalCost,
         supplier: formData.supplier,
       }));
 
@@ -133,7 +134,7 @@ const AdminPurchases = () => {
   const totalFormCost = formData.quantity && formData.unitCost ? 
     parseFloat(formData.quantity) * parseFloat(formData.unitCost) : 0;
 
-  const renderPurchaseItem = ({ item }) => (
+  const renderPurchaseItem = ({ item }: { item: PurchaseRecord }) => (
     <TouchableOpacity 
       className="border-b border-border py-3 px-4 bg-card active:bg-muted"
       onPress={() => setSelectedPurchase(item)}
@@ -164,7 +165,7 @@ const AdminPurchases = () => {
     </TouchableOpacity>
   );
 
-  const renderProductItem = ({ item }) => (
+  const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
       className="border-b border-border py-3 px-4 bg-card active:bg-muted"
       onPress={() => handleProductSelect(item)}

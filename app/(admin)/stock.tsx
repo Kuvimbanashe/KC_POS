@@ -151,7 +151,7 @@ const AdminStock = () => {
     setIsEditMode(false);
   };
 
-  const handleEditProduct = (product) => {
+  const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
     setIsEditMode(true);
     setFormData({
@@ -174,7 +174,7 @@ const AdminStock = () => {
   const outOfStockProducts = products.filter(p => p.stock === 0);
   const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
 
-  const getStockBadge = (stock, minStockLevel = 10) => {
+  const getStockBadge = (stock: number, minStockLevel = 10) => {
     if (stock === 0) {
       return (
         <View className="bg-destructive px-2 py-1 rounded-full">
@@ -217,7 +217,7 @@ const AdminStock = () => {
     'Local Wholesaler'
   ];
 
-  const renderProductItem = ({ item }) => (
+  const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
       className="border-b border-border py-3 px-4 bg-card active:bg-muted"
       onPress={() => setSelectedProduct(item)}
@@ -229,25 +229,25 @@ const AdminStock = () => {
           <Text className="text-muted-foreground text-sm">{item.sku}</Text>
         </View>
         <Text className="font-bold text-accent text-lg">
-          ${item.price.toFixed(2)}
+          ${item.price?.toFixed(2) ?? '0.00'}
         </Text>
       </View>
       
       <View className="flex-row justify-between items-center">
         <View className="flex-row items-center space-x-3">
           <Text className="text-xs text-muted-foreground">
-            Stock: {item.stock}
+            Stock: {item.stock ?? 0}
           </Text>
-          {getStockBadge(item.stock, item.minStockLevel)}
+          {getStockBadge(item.stock ?? 0, item.minStockLevel ?? 10)}
         </View>
         <Text className="text-xs text-muted-foreground">
-          {item.category}
+          {item.category ?? ''}
         </Text>
       </View>
       
       {item.supplier && (
         <Text className="text-xs text-muted-foreground mt-1">
-          Supplier: {item.supplier}
+          Supplier: {item.supplier ?? ''}
         </Text>
       )}
     </TouchableOpacity>
@@ -524,7 +524,7 @@ const AdminStock = () => {
                           ? 'bg-accent border-accent'
                           : 'bg-background border-input'
                       }`}
-                      onPress={() => setFormData({ ...formData, unitType })}
+                      onPress={() => setFormData({ ...formData, unitType: unitType as UnitType })}
                     >
                       <Text className={
                         formData.unitType === unitType
@@ -542,7 +542,7 @@ const AdminStock = () => {
               <View className="flex-row flex-wrap justify-between gap-4">
                 <View className="w-[48%]">
                   <Text className="text-sm font-medium text-foreground mb-2">Initial Stock *</Text>
-                  <TextInput
+                  <TextInput  
                     value={formData.stock}
                     onChangeText={(text) => setFormData({ ...formData, stock: text })}
                     placeholder="0"
@@ -645,7 +645,7 @@ const AdminStock = () => {
           <View className="flex-1 bg-background pt-4">
             <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
               <Text className="text-xl font-bold text-foreground">
-                Product Details - {selectedProduct.sku}
+                Product Details - {selectedProduct.sku ?? ''}
               </Text>
               <TouchableOpacity onPress={() => setSelectedProduct(null)}>
                 <Ionicons name="close" size={24} className="text-foreground" />
@@ -657,39 +657,39 @@ const AdminStock = () => {
                 <View className="flex-row flex-wrap justify-between gap-4">
                   <View className="w-[48%]">
                     <Text className="text-sm text-muted-foreground mb-1">Name</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.name}</Text>
+                    <Text className="font-medium text-foreground text-base">{selectedProduct.name ?? ''}</Text>
                   </View>
                   <View className="w-[48%]">
                     <Text className="text-sm text-muted-foreground mb-1">Category</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.category}</Text>
+                    <Text className="font-medium text-foreground text-base">{selectedProduct.category ?? ''}</Text>
                   </View>
                   <View className="w-[48%]">
                     <Text className="text-sm text-muted-foreground mb-1">SKU</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.sku}</Text>
+                    <Text className="font-medium text-foreground text-base">{selectedProduct.sku ?? ''}</Text>
                   </View>
                   <View className="w-[48%]">
                     <Text className="text-sm text-muted-foreground mb-1">Supplier</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.supplier}</Text>
+                    <Text className="font-medium text-foreground text-base">{selectedProduct.supplier ?? ''}</Text>
                   </View>
                   <View className="w-[48%]">
                     <Text className="text-sm text-muted-foreground mb-1">Price</Text>
-                    <Text className="font-bold text-accent text-lg">${selectedProduct.price.toFixed(2)}</Text>
+                    <Text className="font-bold text-accent text-lg">${selectedProduct.price?.toFixed(2) ?? '0.00'}</Text>
                   </View>
                   <View className="w-[48%]">
                     <Text className="text-sm text-muted-foreground mb-1">Stock</Text>
                     <View className="flex-row items-center gap-2">
-                      <Text className="font-bold text-foreground text-lg">{selectedProduct.stock}</Text>
-                      {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel)}
+                      <Text className="font-bold text-foreground text-lg">{selectedProduct.stock ?? 0}</Text>
+                      {getStockBadge(selectedProduct.stock ?? 0, selectedProduct.minStockLevel ?? 10)}
                     </View>
                   </View>
                   <View className="w-[48%]">
                     <Text className="text-sm text-muted-foreground mb-1">Unit Type</Text>
-                    <Text className="font-medium text-foreground text-base capitalize">{selectedProduct.unitType}</Text>
+                    <Text className="font-medium text-foreground text-base capitalize">{selectedProduct.unitType ?? ''}</Text>
                   </View>
                   {selectedProduct.packSize && (
                     <View className="w-[48%]">
                       <Text className="text-sm text-muted-foreground mb-1">Pack Size</Text>
-                      <Text className="font-medium text-foreground text-base">{selectedProduct.packSize} units</Text>
+                      <Text className="font-medium text-foreground text-base">{selectedProduct.packSize ?? 0} units</Text>
                     </View>
                   )}
                   {selectedProduct.packPrice && (

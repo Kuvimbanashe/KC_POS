@@ -1,7 +1,7 @@
 // app/(admin)/index.js
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 
 const AdminHome = () => {
@@ -13,7 +13,7 @@ const AdminHome = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  const { sales, products } = useSelector(state => state.user);
+  const { sales, products } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -144,7 +144,7 @@ const AdminHome = () => {
               <View key={stat.title} className="bg-primary rounded-lg p-4 w-full  ">
                 <View className="flex-row justify-between items-center mb-2">
                   <Text className="text-sm font-medium text-muted">{stat.title}</Text>
-                  <Ionicons name={stat.icon} size={16} className={stat.color} />
+                  <Ionicons name={stat.icon as any} size={16} className={stat.color} />
                 </View>
                 <Text className="text-xl md:text-2xl font-bold text-primary-foreground">{stat.value}</Text>
                 <Text className="text-xs text-muted-foreground">{stat.description}</Text>

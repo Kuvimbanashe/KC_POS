@@ -1,6 +1,7 @@
 // app/_layout.js
 
 import '../global.css';
+import '../polyfills/url-can-parse';
 import { Stack } from 'expo-router';
 import { Provider } from 'react-redux';
 import { store } from '../store';

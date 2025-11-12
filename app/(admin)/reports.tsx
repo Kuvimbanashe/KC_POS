@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   ActivityIndicator
 } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 
 const AdminReports = () => {
-  const { sales, purchases, expenses, products } = useSelector(state => state.user);
-  const { assets } = useSelector(state => state.assets);
-  const { financialReports } = useSelector(state => state.accounting);
+  const { sales, purchases, expenses, products } = useAppSelector(state => state.user);
+  const { assets } = useAppSelector(state => state.assets);
+  const { financialReports } = useAppSelector(state => state.accounting);
   
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('income');
@@ -56,7 +56,7 @@ const AdminReports = () => {
   const grossProfitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
   const assetDepreciationRate = totalAssetsPurchaseValue > 0 ? (assetDepreciation / totalAssetsPurchaseValue) * 100 : 0;
 
-  const StatCard = ({ title, value, description, isPositive = true, isCurrency = false }) => (
+  const StatCard = ({ title, value, description, isPositive = true, isCurrency = false }: { title: string, value: number, description: string, isPositive: boolean, isCurrency: boolean }) => (
     <View className="bg-muted rounded-lg p-4 shadow-none mb-4 flex flex-row items-center justify-between">
       <View>
           <Text className="text-sm font-medium text-muted-foreground mb-1">
@@ -81,7 +81,7 @@ const AdminReports = () => {
     </View>
   );
 
-  const MetricItem = ({ label, value, isPositive = true, isCurrency = false }) => (
+  const MetricItem = ({ label, value, isPositive = true, isCurrency = false }: { label: string, value: number, isPositive: boolean, isCurrency: boolean }) => (
     <View className="bg-secondary rounded-lg p-3 mb-2">
       <View className="flex-row justify-between items-center">
         <Text className="font-medium text-foreground text-sm flex-1">
@@ -98,7 +98,7 @@ const AdminReports = () => {
     </View>
   );
 
-  const SectionHeader = ({ title, subtitle, icon }) => (
+  const SectionHeader = ({ title, subtitle, icon }: { title: string, subtitle: string, icon: keyof typeof Ionicons.glyphMap }) => (
     <View className="flex-row items-center mb-4">
       <Ionicons name={icon} size={24} className="text-accent mr-3" />
       <View>
@@ -264,16 +264,19 @@ const AdminReports = () => {
               label="Total Transactions"
               value={sales.length}
               isPositive={true}
+              isCurrency={false}
             />
             <MetricItem
               label="Total Purchase Orders"
               value={purchases.length}
               isPositive={true}
+              isCurrency={false}
             />
             <MetricItem
               label="Total Expense Records"
               value={expenses.length}
               isPositive={true}
+              isCurrency={false}
             />
           </View>
         </View>
@@ -291,17 +294,21 @@ const AdminReports = () => {
               label="Return on Assets (ROA)"
               value={returnOnAssets}
               isPositive={returnOnAssets >= 0}
+              isCurrency={false}
             />
             <MetricItem
               label="Inventory Turnover"
               value={inventoryTurnover}
               isPositive={true}
+              isCurrency={false}
+            
             />
             <MetricItem
               label="Gross Profit Margin"
               value={grossProfitMargin}
               isPositive={true}
-            />
+              isCurrency={false}
+              />
           </View>
         </View>
 
@@ -312,22 +319,20 @@ const AdminReports = () => {
               label="Number of Assets"
               value={assets.length}
               isPositive={true}
+              isCurrency={false}
             />
             <MetricItem
               label="Number of Products"
               value={products.length}
+              isCurrency={false}
               isPositive={true}
-            />
+              
+              />
             <MetricItem
               label="Total Current Assets"
               value={currentAssets}
-              isPositive={true}
               isCurrency={true}
-            />
-            <MetricItem
-              label="Asset Depreciation Rate"
-              value={assetDepreciationRate}
-              isPositive={false}
+              isPositive={true}
             />
           </View>
         </View>
@@ -350,16 +355,19 @@ const AdminReports = () => {
               label="Net Profit Margin"
               value={profitMargin}
               isPositive={profitMargin >= 0}
+              isCurrency={false}
             />
             <MetricItem
               label="Operating Margin"
               value={operatingMargin}
               isPositive={operatingMargin >= 0}
+              isCurrency={false}
             />
             <MetricItem
               label="Gross Margin"
               value={grossProfitMargin}
               isPositive={true}
+              isCurrency={false}
             />
           </View>
         </View>
@@ -371,17 +379,20 @@ const AdminReports = () => {
               label="Inventory Turnover"
               value={inventoryTurnover}
               isPositive={true}
+              isCurrency={false}
             />
             <MetricItem
               label="Asset Turnover"
               value={totalRevenue > 0 ? totalRevenue / totalAssetsValue : 0}
               isPositive={true}
-            />
+              isCurrency={false}
+              />
             <MetricItem
               label="Expense Ratio"
               value={expenseRatio}
               isPositive={false}
-            />
+              isCurrency={false}
+              />
           </View>
         </View>
 
@@ -392,12 +403,14 @@ const AdminReports = () => {
               label="Current Ratio"
               value={currentRatio}
               isPositive={currentRatio >= 1}
-            />
+              isCurrency={false}
+              />
             <MetricItem
               label="Quick Ratio"
               value={currentLiabilities > 0 ? (currentAssets - totalInventoryValue) / currentLiabilities : 0}
               isPositive={true}
-            />
+              isCurrency={false}
+              />
             <MetricItem
               label="Working Capital"
               value={currentAssets - currentLiabilities}
@@ -447,7 +460,7 @@ const AdminReports = () => {
               onPress={() => setActiveSection(section.key)}
             >
               <Ionicons 
-                name={section.icon} 
+                name={section.icon as keyof typeof Ionicons.glyphMap} 
                 size={16} 
                 className={
                   activeSection === section.key ? 'text-accent-foreground mr-2' : 'text-muted-foreground mr-2'
