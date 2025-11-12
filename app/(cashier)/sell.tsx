@@ -1,5 +1,4 @@
-// app/(cashier)/sell.js
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -10,27 +9,74 @@ import {
   FlatList,
   Alert
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
+import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addSale, updateProductStock } from '../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import type { PaymentMethod, Product, SaleItem, UnitType } from '../../store/types';
+
+type PaymentMethodOption = 'cash' | 'card' | 'mobile';
+
+interface CartItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+  subtotal: number;
+  unitType: UnitType;
+  originalProductId: number;
+  packSize?: number;
+}
+
+interface ReceiptDetails {
+  receiptNumber: string;
+  items: CartItem[];
+  total: number;
+  date: Date;
+  paymentMethod: PaymentMethod;
+  cashier: string;
+}
 
 const CashierSell = () => {
-  const { products, sales } = useSelector(state => state.user);
-  const { user } = useSelector(state => state.auth);
-  const dispatch = useDispatch();
-  
-  const [cart, setCart] = useState([]);
-  const [availableProducts, setAvailableProducts] = useState([]);
+  const dispatch = useAppDispatch();
+  const { products, sales } = useAppSelector((state) => state.user);
+  const { user } = useAppSelector((state) => state.auth);
+
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState('1');
-  const [selectedUnitType, setSelectedUnitType] = useState('single');
-  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [selectedUnitType, setSelectedUnitType] = useState<UnitType>('single');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodOption>('cash');
   const [showReceipt, setShowReceipt] = useState(false);
-  const [lastSale, setLastSale] = useState(null);
+  const [lastSale, setLastSale] = useState<ReceiptDetails | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingCartItem, setEditingCartItem] = useState(null);
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
+
+  const paymentMethodLabels = useMemo<Record<PaymentMethodOption, PaymentMethod>>(
+    () => ({
+      cash: 'Cash',
+      card: 'Card',
+      mobile: 'Mobile Payment',
+    }),
+    [],
+  );
+
+  const availablePaymentMethods = useMemo(
+    () =>
+      [
+        { value: 'cash' as PaymentMethodOption, label: '💵 Cash', icon: 'cash' },
+        { value: 'card' as PaymentMethodOption, label: '💳 Card', icon: 'card' },
+        {
+          value: 'mobile' as PaymentMethodOption,
+          label: '📱 Mobile',
+          icon: 'phone-portrait',
+        },
+      ],
+    [],
+  );
 
   useEffect(() => {
     // Filter products with stock > 0
@@ -38,7 +84,7 @@ const CashierSell = () => {
     setAvailableProducts(inStockProducts);
   }, [products]);
 
-  const handleProductSelect = (product) => {
+  const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setQuantity('1');
     setSelectedUnitType('single');
@@ -50,18 +96,20 @@ const CashierSell = () => {
   const handleQuantityConfirm = () => {
     if (!selectedProduct) return;
 
-    if (!quantity || parseInt(quantity) <= 0) {
+    const parsedQuantity = Number.parseInt(quantity, 10);
+
+    if (!quantity || Number.isNaN(parsedQuantity) || parsedQuantity <= 0) {
       Alert.alert('Error', 'Please enter valid quantity');
       return;
     }
 
-    const qty = parseInt(quantity);
+    const qty = parsedQuantity;
     let price = selectedProduct.price;
     let requiredStock = qty;
 
     // Adjust for pack sales
     if (selectedUnitType === 'pack') {
-      requiredStock = qty * (selectedProduct.packSize || 1);
+      requiredStock = qty * (selectedProduct.packSize ?? 1);
     }
 
     if (requiredStock > selectedProduct.stock) {
@@ -71,39 +119,53 @@ const CashierSell = () => {
 
     if (editingCartItem) {
       // Update existing cart item
-      setCart(cart.map(item => 
-        item.productId === editingCartItem.productId
-          ? {
-              ...item,
-              quantity: qty,
-              unitType: selectedUnitType,
-              productName: `${selectedProduct.name}${selectedUnitType === 'pack' && selectedProduct.packSize ? ` (Pack of ${selectedProduct.packSize})` : ''}`,
-              subtotal: price * qty,
-              packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1
-            }
-          : item
-      ));
+      setCart(
+        cart.map((item) =>
+          item.productId === editingCartItem.productId
+            ? {
+                ...item,
+                quantity: qty,
+                unitType: selectedUnitType,
+                productName: `${selectedProduct.name}${
+                  selectedUnitType === 'pack' && selectedProduct.packSize
+                    ? ` (Pack of ${selectedProduct.packSize})`
+                    : ''
+                }`,
+                subtotal: price * qty,
+                packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1,
+              }
+            : item,
+        ),
+      );
     } else {
       // Add new item to cart
       const cartKey = `${selectedProduct.id}_${selectedUnitType}`;
-      const existingItem = cart.find(item => item.productId === cartKey);
+      const existingItem = cart.find((item) => item.productId === cartKey);
       
       if (existingItem) {
         const newQuantity = existingItem.quantity + qty;
-        const newRequiredStock = selectedUnitType === 'pack' ? newQuantity * (selectedProduct.packSize || 1) : newQuantity;
+        const newRequiredStock =
+          selectedUnitType === 'pack'
+            ? newQuantity * (selectedProduct.packSize ?? 1)
+            : newQuantity;
         
         if (newRequiredStock > selectedProduct.stock) {
           Alert.alert('Error', `Cannot add more. Only ${selectedProduct.stock} units available`);
           return;
         }
         
-        setCart(cart.map(item =>
-          item.productId === cartKey
-            ? { ...item, quantity: newQuantity, subtotal: price * newQuantity }
-            : item
-        ));
+        setCart(
+          cart.map((item) =>
+            item.productId === cartKey
+              ? { ...item, quantity: newQuantity, subtotal: price * newQuantity }
+              : item,
+          ),
+        );
       } else {
-        const packInfo = selectedUnitType === 'pack' && selectedProduct.packSize ? ` (Pack of ${selectedProduct.packSize})` : '';
+        const packInfo =
+          selectedUnitType === 'pack' && selectedProduct.packSize
+            ? ` (Pack of ${selectedProduct.packSize})`
+            : '';
         const newItem = {
           productId: cartKey,
           productName: `${selectedProduct.name}${packInfo}`,
@@ -112,7 +174,7 @@ const CashierSell = () => {
           subtotal: price * qty,
           unitType: selectedUnitType,
           originalProductId: selectedProduct.id,
-          packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1
+          packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1,
         };
         setCart([...cart, newItem]);
       }
@@ -125,8 +187,8 @@ const CashierSell = () => {
     setIsQuantityModalOpen(false);
   };
 
-  const handleCartItemPress = (item) => {
-    const product = products.find(p => p.id === item.originalProductId);
+  const handleCartItemPress = (item: CartItem) => {
+    const product = products.find((p) => p.id === item.originalProductId);
     if (product) {
       setSelectedProduct(product);
       setQuantity(item.quantity.toString());
@@ -136,12 +198,13 @@ const CashierSell = () => {
     }
   };
 
-  const updateQuantity = (cartKey, change) => {
-    const item = cart.find(i => i.productId === cartKey);
+  const updateQuantity = (cartKey: string, change: number) => {
+    const item = cart.find((i) => i.productId === cartKey);
     if (!item) return;
 
-    const [productId, unitType] = cartKey.split('_');
-    const product = products.find(p => p.id === productId);
+    const [rawProductId, unitType] = cartKey.split('_');
+    const numericProductId = Number.parseInt(rawProductId, 10);
+    const product = products.find((p) => p.id === numericProductId);
     if (!product) return;
 
     const newQuantity = item.quantity + change;
@@ -150,26 +213,29 @@ const CashierSell = () => {
       return;
     }
 
-    const requiredStock = unitType === 'pack' ? newQuantity * (product.packSize || 1) : newQuantity;
+    const requiredStock =
+      unitType === 'pack' ? newQuantity * (product.packSize ?? 1) : newQuantity;
     if (requiredStock > product.stock) {
       Alert.alert('Error', `Only ${product.stock} units available`);
       return;
     }
 
-    setCart(cart.map(cartItem => {
-      if (cartItem.productId === cartKey) {
-        return {
-          ...cartItem,
-          quantity: newQuantity,
-          subtotal: cartItem.price * newQuantity,
-        };
-      }
-      return cartItem;
-    }));
+    setCart(
+      cart.map((cartItem) => {
+        if (cartItem.productId === cartKey) {
+          return {
+            ...cartItem,
+            quantity: newQuantity,
+            subtotal: cartItem.price * newQuantity,
+          };
+        }
+        return cartItem;
+      }),
+    );
   };
 
-  const removeFromCart = (productId) => {
-    setCart(cart.filter(item => item.productId !== productId));
+  const removeFromCart = (productId: string) => {
+    setCart(cart.filter((item) => item.productId !== productId));
   };
 
   const clearCart = () => {
@@ -189,54 +255,52 @@ const CashierSell = () => {
 
     try {
       const total = cart.reduce((sum, item) => sum + item.subtotal, 0);
+      const saleItems: SaleItem[] = cart.map((item) => ({
+        productId: item.originalProductId,
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.subtotal,
+        unitType: item.unitType,
+        packSize: item.packSize,
+      }));
+      const formattedPaymentMethod = paymentMethodLabels[paymentMethod];
+      const receiptSuffix = (1000 + sales.length).toString().padStart(4, '0');
+
+      dispatch(
+        addSale({
+          items: saleItems,
+          total,
+          cashier: user.name,
+          paymentMethod: formattedPaymentMethod,
+        }),
+      );
       
-      // Create sale record with all items
-      const saleId = sales.length > 0 ? Math.max(...sales.map(s => s.id)) + 1 : 1;
-      const sale = {
-        id: saleId,
-        items: cart.map(item => ({
-          productId: item.originalProductId,
-          productName: item.productName,
-          quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
-          unitType: item.unitType,
-          packSize: item.packSize
-        })),
-        total: total,
-        date: new Date().toISOString(),
-        cashier: user.name,
-        paymentMethod: paymentMethod,
-      };
+      cart.forEach((item) => {
+        const [rawProductId, unitType] = item.productId.split('_');
+        const numericProductId = Number.parseInt(rawProductId, 10);
+        const packSize = products.find((p) => p.id === numericProductId)?.packSize ?? 1;
+        const stockReduction = unitType === 'pack' ? item.quantity * packSize : item.quantity;
 
-      dispatch(addSale(sale));
-
-      // Update product stock for each item
-      cart.forEach(item => {
-        const [productId, unitType] = item.productId.split('_');
-        const stockReduction = unitType === 'pack' ? 
-          item.quantity * (products.find(p => p.id === productId)?.packSize || 1) : 
-          item.quantity;
-        
-        dispatch(updateProductStock({
-          productId: productId,
-          quantity: stockReduction
-        }));
+        dispatch(
+          updateProductStock({
+            productId: numericProductId,
+            quantity: stockReduction,
+          }),
+        );
       });
 
-      // Show receipt
       setLastSale({
-        receiptNumber: `INV${saleId.toString().padStart(4, '0')}`,
+        receiptNumber: `INV${receiptSuffix}`,
         items: cart,
-        total: total,
+        total,
         date: new Date(),
-        paymentMethod: paymentMethod,
+        paymentMethod: formattedPaymentMethod,
         cashier: user.name,
       });
       setShowReceipt(true);
 
       setCart([]);
-      setAvailableProducts(products.filter(product => product.stock > 0));
     } catch (error) {
       console.error('Error completing sale:', error);
       Alert.alert('Error', 'Failed to complete sale');
@@ -251,7 +315,13 @@ const CashierSell = () => {
     product.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderProductItem = ({ item }) => (
+  const quantityValue = Number.parseInt(quantity, 10) || 1;
+  const selectedProductPrice = selectedProduct ? selectedProduct.price.toFixed(2) : '0.00';
+  const selectedProductSubtotal = selectedProduct
+    ? (selectedProduct.price * quantityValue).toFixed(2)
+    : '0.00';
+
+  const renderProductItem: ListRenderItem<Product> = ({ item }) => (
     <TouchableOpacity 
       className="border-b border-border py-3 px-4 bg-card active:bg-muted"
       onPress={() => handleProductSelect(item)}
@@ -272,7 +342,7 @@ const CashierSell = () => {
     </TouchableOpacity>
   );
 
-  const renderCartItem = ({ item }) => (
+  const renderCartItem: ListRenderItem<CartItem> = ({ item }) => (
     <TouchableOpacity 
       className="bg-secondary rounded-lg p-3 mb-2"
       onPress={() => handleCartItemPress(item)}
@@ -353,11 +423,7 @@ const CashierSell = () => {
             <View className="border border-input rounded-lg bg-background">
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View className="flex-row px-2 py-1 gap-5 justify-between items-center">
-                  {[
-                    { value: 'cash', label: '💵 Cash', icon: 'cash' },
-                    { value: 'card', label: '💳 Card', icon: 'card' },
-                    { value: 'mobile', label: '📱 Mobile', icon: 'phone-portrait' },
-                  ].map((method) => (
+                  {availablePaymentMethods.map((method) => (
                     <TouchableOpacity
                       key={method.value}
                       className={`px-3 py-2 rounded mx-1 flex-row items-center ${
@@ -505,7 +571,7 @@ const CashierSell = () => {
               {selectedProduct?.name}
             </Text>
             <Text className="text-muted-foreground text-center mb-6">
-              ${selectedProduct?.price?.toFixed(2)} each
+              ${selectedProductPrice} each
             </Text>
 
             {/* Unit Type Selection */}
@@ -519,13 +585,15 @@ const CashierSell = () => {
                 }`}
                 onPress={() => setSelectedUnitType('single')}
               >
-                <Text className={`font-bold mb-1 ${
-                  selectedUnitType === 'single' ? 'text-accent' : 'text-foreground'
-                }`}>
+                <Text
+                  className={`font-bold mb-1 ${
+                    selectedUnitType === 'single' ? 'text-accent' : 'text-foreground'
+                  }`}
+                >
                   Single Unit
                 </Text>
                 <Text className="text-muted-foreground text-xs text-center">
-                  ${selectedProduct?.price?.toFixed(2)} each
+                  ${selectedProductPrice} each
                 </Text>
               </TouchableOpacity>
 
@@ -537,13 +605,15 @@ const CashierSell = () => {
                 }`}
                 onPress={() => setSelectedUnitType('pack')}
               >
-                <Text className={`font-bold mb-1 ${
-                  selectedUnitType === 'pack' ? 'text-accent' : 'text-foreground'
-                }`}>
+                <Text
+                  className={`font-bold mb-1 ${
+                    selectedUnitType === 'pack' ? 'text-accent' : 'text-foreground'
+                  }`}
+                >
                   Pack
                 </Text>
                 <Text className="text-muted-foreground text-xs text-center">
-                  {selectedProduct?.packSize} units • ${selectedProduct?.price?.toFixed(2)}
+                  {selectedProduct?.packSize ?? 1} units • ${selectedProductPrice}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -552,7 +622,7 @@ const CashierSell = () => {
             <Text className="text-sm font-medium text-foreground mb-3">Quantity</Text>
             <View className="flex-row items-center justify-center space-x-4 mb-6">
               <TouchableOpacity
-                onPress={() => setQuantity(Math.max(1, parseInt(quantity || 1) - 1).toString())}
+                onPress={() => setQuantity(Math.max(1, Number.parseInt(quantity, 10) - 1).toString())}
                 className="w-12 h-12 bg-border rounded-full items-center justify-center"
               >
                 <Ionicons name="remove" size={20} className="text-foreground" />
@@ -567,7 +637,7 @@ const CashierSell = () => {
               />
               
               <TouchableOpacity
-                onPress={() => setQuantity((parseInt(quantity || 1) + 1).toString())}
+                onPress={() => setQuantity((Number.parseInt(quantity, 10) + 1).toString())}
                 className="w-12 h-12 bg-border rounded-full items-center justify-center"
               >
                 <Ionicons name="add" size={20} className="text-foreground" />
@@ -578,7 +648,7 @@ const CashierSell = () => {
             <View className="bg-secondary rounded-lg p-4 mb-6">
               <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-foreground">Unit Price:</Text>
-                <Text className="text-foreground">${selectedProduct?.price?.toFixed(2)}</Text>
+                <Text className="text-foreground">${selectedProductPrice}</Text>
               </View>
               <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-foreground">Quantity:</Text>
@@ -587,7 +657,7 @@ const CashierSell = () => {
               <View className="flex-row justify-between items-center border-t border-border pt-2">
                 <Text className="text-foreground font-bold">Subtotal:</Text>
                 <Text className="text-foreground font-bold">
-                  ${(selectedProduct?.price * parseInt(quantity || 1)).toFixed(2)}
+                  ${selectedProductSubtotal}
                 </Text>
               </View>
             </View>
