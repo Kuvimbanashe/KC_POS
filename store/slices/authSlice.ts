@@ -1,8 +1,8 @@
-// store/slices/authSlice.js
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { AuthState, UserProfile, UserRole } from '../types';
 
-const initialState = {
+const initialState: AuthState = {
   user: null,
   token: null,
   isAuthenticated: false,
@@ -15,7 +15,14 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action) => {
+    setCredentials: (
+      state,
+      action: PayloadAction<{
+        user: UserProfile;
+        token: string;
+        userType: UserRole;
+      }>,
+    ) => {
       const { user, token, userType } = action.payload;
       state.user = user;
       state.token = token;
@@ -39,10 +46,10 @@ const authSlice = createSlice({
       // Clear AsyncStorage
       AsyncStorage.multiRemove(['userData', 'sessionExpiry']);
     },
-    setLoading: (state, action) => {
+    setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
-    updateProfile: (state, action) => {
+    updateProfile: (state, action: PayloadAction<Partial<UserProfile>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
         AsyncStorage.setItem('userData', JSON.stringify({ 
