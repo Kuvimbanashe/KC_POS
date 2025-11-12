@@ -1,41 +1,50 @@
 // app/_layout.js
 
-import "../global.css"
+import '../global.css';
 import { Stack } from 'expo-router';
 import { Provider } from 'react-redux';
 import { store } from '../store';
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useCallback, useEffect } from 'react';
 import { setCredentials, setLoading } from '../store/slices/authSlice';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import type { UserProfile, UserRole } from '../store/types';
 
 function RootLayoutNav() {
-  const dispatch = useDispatch();
-  const { isAuthenticated, userType, isLoading } = useSelector(state => state.auth);
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, userType, isLoading } = useAppSelector((state) => state.auth);
 
-  useEffect(() => {
-    checkAuthState();
-  }, []);
-
-  const checkAuthState = async () => {
+  const checkAuthState = useCallback(async () => {
     try {
       const userData = await AsyncStorage.getItem('userData');
-      
+
       if (userData) {
-        const { user, userType } = JSON.parse(userData);
-        dispatch(setCredentials({ 
-          user, 
-          token: 'mock-token', 
-          userType 
-        }));
+        const parsed = JSON.parse(userData) as Partial<{
+          user: UserProfile;
+          userType: UserRole;
+        }>;
+
+        if (parsed?.user && parsed?.userType) {
+          dispatch(
+            setCredentials({
+              user: parsed.user,
+              token: 'mock-token',
+              userType: parsed.userType,
+            }),
+          );
+        }
       }
     } catch (error) {
       console.log('Error checking auth state:', error);
     } finally {
       dispatch(setLoading(false));
     }
-  };
+  }, [dispatch]);
+
+  useEffect(() => {
+    checkAuthState();
+  }, [checkAuthState]);
 
   if (isLoading) {
     return (
