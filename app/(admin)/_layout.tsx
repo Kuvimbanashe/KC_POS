@@ -1,14 +1,18 @@
 // app/(admin)/_layout.tsx
 import { Drawer } from 'expo-router/drawer';
 import { Ionicons } from '@expo/vector-icons';
-import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
+import {
+  DrawerContentScrollView,
+  DrawerItemList,
+  type DrawerContentComponentProps,
+} from '@react-navigation/drawer';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useDispatch } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { useRouter } from 'expo-router';
+import { useAppDispatch } from '../../store/hooks';
 
-function CustomDrawerContent(props) {
-  const dispatch = useDispatch();
+function CustomDrawerContent(props: DrawerContentComponentProps) {
+  const dispatch = useAppDispatch();
   const router = useRouter();
 
   const handleLogout = () => {
