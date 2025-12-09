@@ -1,6 +1,7 @@
 // app/(cashier)/profile.js
 import { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { updateProfile, logout } from '../../store/slices/authSlice';
 import { updateUser } from '../../store/slices/userManagementSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -17,6 +18,88 @@ interface ProfileFormData {
   confirmPassword: string;
 }
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  flex: 1,
+  padding: 16
+},
+
+  s_2: {
+  backgroundColor: "#0f172a",
+  padding: 24,
+  borderRadius: 12
+},
+
+  s_3: {
+  alignItems: "center"
+},
+
+  s_4: {},
+
+  s_5: {
+  fontSize: 20
+},
+
+  s_6: {
+  color: "#f97316",
+  fontSize: 18
+},
+
+  s_7: {
+  padding: 16,
+  borderRadius: 12
+},
+
+  s_8: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 16
+},
+
+  s_9: {
+  fontSize: 18
+},
+
+  s_10: {},
+
+  s_11: {},
+
+  s_12: {},
+
+  s_13: {
+  padding: 16,
+  borderRadius: 12
+},
+
+  s_14: {
+  fontSize: 18,
+  marginBottom: 16
+},
+
+  s_15: {
+  borderWidth: 1,
+  borderRadius: 12,
+  padding: 12
+},
+
+  s_16: {
+  backgroundColor: "#0f172a",
+  paddingVertical: 12,
+  borderRadius: 12
+},
+
+  s_17: {},
+
+  s_18: {
+  paddingVertical: 12,
+  borderRadius: 12
+},
+
+  s_19: {}
+});
 export default function CashierProfileScreen() {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
@@ -92,43 +175,43 @@ export default function CashierProfileScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-primary-white p-4">
+    <ScrollView style={styles.s_1}>
 
 
       {/* Profile Header */}
-      <View className="bg-primary  p-6 rounded-lg mb-6">
-        <View className="items-center">
+      <View style={styles.s_2}>
+        <View style={styles.s_3}>
  
-          <Text className="text-muted text-3xl font-semibold">
+          <Text style={styles.s_4}>
             {user?.name}
           </Text>
-          <Text className="text-muted opacity-90 text-xl">
+          <Text style={styles.s_5}>
             {user?.email}
           </Text>
-          <Text className="text-accent opacity-90 text-lg mt-1">
+          <Text style={styles.s_6}>
             Cashier
           </Text>
         </View>
       </View>
 
       {/* Personal Information */}
-      <View className="bg-white p-4 rounded-lg  mb-6">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-semibold text-primary-navy-dark">
+      <View style={styles.s_7}>
+        <View style={styles.s_8}>
+          <Text style={styles.s_9}>
             Personal Information
           </Text>
           <TouchableOpacity
             onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
           >
-            <Text className="text-primary-orange-400 font-semibold">
+            <Text style={styles.s_10}>
               {isEditing ? 'Save' : 'Edit'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View className="space-y-3">
+        <View style={styles.s_11}>
           <View>
-            <Text className="text-gray-600 mb-1">Full Name</Text>
+            <Text style={styles.s_12}>Full Name</Text>
             <TextInput
               className={`border rounded-lg p-3 ${
                 isEditing ? 'border-primary-orange-400 bg-gray-50' : 'border-gray-300 bg-gray-100'
@@ -140,7 +223,7 @@ export default function CashierProfileScreen() {
           </View>
 
           <View>
-            <Text className="text-gray-600 mb-1">Email</Text>
+            <Text style={styles.s_12}>Email</Text>
             <TextInput
               className={`border rounded-lg p-3 ${
                 isEditing ? 'border-primary-orange-400 bg-gray-50' : 'border-gray-300 bg-gray-100'
@@ -154,7 +237,7 @@ export default function CashierProfileScreen() {
           </View>
 
           <View>
-            <Text className="text-gray-600 mb-1">Phone</Text>
+            <Text style={styles.s_12}>Phone</Text>
             <TextInput
               className={`border rounded-lg p-3 ${
                 isEditing ? 'border-primary-orange-400 bg-gray-50' : 'border-gray-300 bg-gray-100'
@@ -167,7 +250,7 @@ export default function CashierProfileScreen() {
           </View>
 
           <View>
-            <Text className="text-gray-600 mb-1">Address</Text>
+            <Text style={styles.s_12}>Address</Text>
             <TextInput
               className={`border rounded-lg p-3 ${
                 isEditing ? 'border-primary-orange-400 bg-gray-50' : 'border-gray-300 bg-gray-100'
@@ -183,13 +266,13 @@ export default function CashierProfileScreen() {
 
       {/* Change Password */}
       <View className="bg-white p-4 rounded-lg ">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">
+        <Text style={styles.s_14}>
           Change Password
         </Text>
 
-        <View className="space-y-3">
+        <View style={styles.s_11}>
           <TextInput
-            className="border border-gray-300 rounded-lg p-3 bg-gray-50"
+            style={styles.s_15}
             placeholder="Current Password"
             value={formData.currentPassword}
             onChangeText={(text) => setFormData({...formData, currentPassword: text})}
@@ -197,7 +280,7 @@ export default function CashierProfileScreen() {
           />
           
           <TextInput
-            className="border border-gray-300 rounded-lg p-3 bg-gray-50"
+            style={styles.s_15}
             placeholder="New Password"
             value={formData.newPassword}
             onChangeText={(text) => setFormData({...formData, newPassword: text})}
@@ -205,7 +288,7 @@ export default function CashierProfileScreen() {
           />
           
           <TextInput
-            className="border border-gray-300 rounded-lg p-3 bg-gray-50"
+            style={styles.s_15}
             placeholder="Confirm New Password"
             value={formData.confirmPassword}
             onChangeText={(text) => setFormData({...formData, confirmPassword: text})}
@@ -213,10 +296,10 @@ export default function CashierProfileScreen() {
           />
 
           <TouchableOpacity
-            className="bg-primary py-3 rounded-lg"
+            style={styles.s_16}
             onPress={handleChangePassword}
           >
-            <Text className="text-muted text-center font-semibold">
+            <Text style={styles.s_17}>
               Change Password
             </Text>
           </TouchableOpacity>
@@ -225,14 +308,14 @@ export default function CashierProfileScreen() {
 
       {/* Logout */}
       <View className="bg-white p-4 rounded-lg ">
-        <Text className="text-lg font-semibold text-primary-navy-dark mb-4">
+        <Text style={styles.s_14}>
           Session
         </Text>
         <TouchableOpacity
-          className="bg-destructive py-3 rounded-lg"
+          style={styles.s_18}
           onPress={handleLogout}
         >
-          <Text className="text-destructive-foreground text-center font-semibold">
+          <Text style={styles.s_19}>
             Logout
           </Text>
         </TouchableOpacity>

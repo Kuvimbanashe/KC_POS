@@ -1,5 +1,6 @@
 // app/(cashier)/index.js
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from '../../store/hooks';
 import type { SaleRecord } from '../../store/types';
@@ -42,12 +43,12 @@ const CashierHome = () => {
 
   const StatCard = ({ title, value, description, icon, color = 'text-muted' }: { title: string, value: string, description: string, icon: string, color: string }) => (
     <View className={`rounded-lg p-4  ${color}`}>
-      <View className="flex-row justify-between items-center mb-2">
-        <Text className="text-sm font-medium text-muted-foreground">{title}</Text>
+      <View style={styles.s_1}>
+        <Text style={styles.s_2}>{title}</Text>
         <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} className={color} />
       </View>
-      <Text className="text-2xl font-bold text-muted-foreground mb-1">{value}</Text>
-      <Text className="text-xs text-muted">{description}</Text>
+      <Text style={styles.s_3}>{value}</Text>
+      <Text style={styles.s_4}>{description}</Text>
     </View>
   );
 
@@ -59,64 +60,64 @@ const CashierHome = () => {
     const itemSubtotal = primaryItem?.subtotal ?? itemQuantity * itemPrice;
 
     return (
-      <View key={sale.id} className="p-4 border-t border-border">
+      <View key={sale.id} style={styles.s_5}>
         <View className="flex-row justify-between items-center ">
           <View>
-            <Text className="font-semibold text-foreground text-base">
+            <Text style={styles.s_7}>
               Receipt  #{sale.id}
             </Text>
-            <Text className="text-muted-foreground text-sm">
+            <Text style={styles.s_8}>
               {new Date(sale.date).toLocaleTimeString()}
             </Text>
           </View>
-          <View className="bg-blue-100 px-2 py-1 rounded-full">
-            <Text className="text-blue-800 text-xs font-medium capitalize">
+          <View style={styles.s_9}>
+            <Text style={styles.s_10}>
               {sale.paymentMethod}
             </Text>
           </View>
       
         <View>
-           <Text className="text-primary text-xl font-bold">${sale.total.toFixed(2)}</Text>
+           <Text style={styles.s_11}>${sale.total.toFixed(2)}</Text>
         </View>
         </View>
       
         {/* Product details */}
-        <View className="mb-2 hidden">
-          <View className="flex-row justify-between">
-            <Text className="text-muted-foreground text-sm">
+        <View style={styles.s_12}>
+          <View style={styles.s_13}>
+            <Text style={styles.s_8}>
               {itemQuantity}x {itemName}
             </Text>
-            <Text className="text-foreground text-sm">
+            <Text style={styles.s_14}>
               ${itemSubtotal.toFixed(2)}
             </Text>
           </View>
         </View>
       
-        <View className="hidden fle-row justify-between font-semibold pt-2 border-t border-border">
-          <Text className="text-foreground">Total</Text>
-          <Text className="text-accent text-lg">${sale.total.toFixed(2)}</Text>
+        <View style={styles.s_15}>
+          <Text style={styles.s_16}>Total</Text>
+          <Text style={styles.s_17}>${sale.total.toFixed(2)}</Text>
         </View>
       </View>
     );
   };
 
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1">
-        <View className="p-4 md:p-6 space-y-6">
+    <View style={styles.s_18}>
+      <ScrollView style={styles.s_19}>
+        <View style={styles.s_20}>
           {/* Header */}
-          <View className="hidden">
-            <Text className="text-2xl md:text-3xl font-bold text-foreground">
+          <View>
+            <Text style={styles.s_21}>
               Welcome, {user?.name}!
             </Text>
-            <Text className="text-sm md:text-base text-muted-foreground">
+            <Text style={styles.s_22}>
               Today's Activity
             </Text>
           </View>
 
           {/* Quick Stats */}
-          <View className="flex-row flex-row justify-between gap-4">
-            <View className="w-[48%]">
+          <View style={styles.s_23}>
+            <View style={styles.s_24}>
               <StatCard
                 title="Receipts Today"
                 value={todayReceiptsCount.toString()}
@@ -125,7 +126,7 @@ const CashierHome = () => {
                 color="text-muted bg-accent"
               />
             </View>
-            <View className="w-[48%]">
+            <View style={styles.s_24}>
               <StatCard
                 title="Sales Amount"
                 value={`$${todaySalesAmount.toFixed(2)}`}
@@ -138,25 +139,25 @@ const CashierHome = () => {
 
           {/* Quick Actions */}
           <View>
-            <Text className="text-lg font-bold text-foreground mb-3">
+            <Text style={styles.s_25}>
               Quick Actions
             </Text>
-            <View className="flex-row flex-wrap justify-between gap-3">
+            <View style={styles.s_26}>
               {quickActions.map((action, index) => (
                 <TouchableOpacity
                   key={index}
                   className={`${action.color} rounded-lg p-4 w-[48%]  active:opacity-80`}
                 >
-                  <View className="items-start">
+                  <View style={styles.s_27}>
                     <Ionicons 
                       name={action.icon as keyof typeof Ionicons.glyphMap} 
                       size={32} 
-                      className="text-secondary-foreground mb-2 hidden" 
+                      style={styles.s_28} 
                     />
-                    <Text className="text-secondary-foreground font-semibold text-start text-sm">
+                    <Text style={styles.s_29}>
                       {action.title}
                     </Text>
-                    <Text className="text-muted-foreground text-xs text-start mt-1">
+                    <Text style={styles.s_30}>
                       {action.description}
                     </Text>
                   </View>
@@ -167,14 +168,14 @@ const CashierHome = () => {
 
           {/* Alerts */}
           {lowStockProducts.length < 10 && (
-            <View className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <View className="flex-row items-center mb-2">
-                <Ionicons name="warning" size={20} className="text-yellow-600 mr-2" />
-                <Text className="text-yellow-800 font-semibold">
+            <View style={styles.s_31}>
+              <View style={styles.s_32}>
+                <Ionicons name="warning" size={20} style={styles.s_33} />
+                <Text style={styles.s_34}>
                   Low Stock Alert
                 </Text>
               </View>
-              <Text className="text-yellow-700 text-sm">
+              <Text style={styles.s_35}>
                 {lowStockProducts.length} product{lowStockProducts.length > 1 ? 's' : ''} running low on stock
               </Text>
             </View>
@@ -187,22 +188,22 @@ const CashierHome = () => {
             </Text>
             
             {todaySales.length === 0 ? (
-              <View className="items-center py-8">
-                <Ionicons name="receipt-outline" size={48} className="text-muted-foreground mb-3" />
-                <Text className="text-muted-foreground text-center mb-2">
+              <View style={styles.s_38}>
+                <Ionicons name="receipt-outline" size={48} style={styles.s_39} />
+                <Text style={styles.s_40}>
                   No sales yet today.
                 </Text>
-                <Text className="text-muted-foreground text-center">
+                <Text style={styles.s_41}>
                   Start selling to see your transactions here!
                 </Text>
-                <TouchableOpacity className="bg-accent rounded-lg px-6 py-3 mt-4">
-                  <Text className="text-accent-foreground font-semibold">
+                <TouchableOpacity style={styles.s_42}>
+                  <Text style={styles.s_43}>
                     Start New Sale
                   </Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              <View className="h-fit">
+              <View style={styles.s_44}>
                 <ScrollView 
                   showsVerticalScrollIndicator={false}
                   className="divide-y divide-border border-0 "
@@ -214,31 +215,31 @@ const CashierHome = () => {
           </View>
 
           {/* Performance Summary */}
-          <View className="bg-primary rounded-lg p-4">
-            <Text className="text-lg font-semibold text-primary-foreground mb-3">
+          <View style={styles.s_46}>
+            <Text style={styles.s_47}>
               Today's Performance
             </Text>
-            <View className="space-y-3">
-              <View className="flex-row justify-between">
-                <Text className="text-primary-foreground">Transactions</Text>
-                <Text className="text-primary-foreground font-bold">
+            <View style={styles.s_48}>
+              <View style={styles.s_13}>
+                <Text style={styles.s_49}>Transactions</Text>
+                <Text style={styles.s_50}>
                   {todayReceiptsCount}
                 </Text>
               </View>
-              <View className="flex-row justify-between">
-                <Text className="text-primary-foreground">Total Revenue</Text>
-                <Text className="text-primary-foreground font-bold">
+              <View style={styles.s_13}>
+                <Text style={styles.s_49}>Total Revenue</Text>
+                <Text style={styles.s_50}>
                   ${todaySalesAmount.toFixed(2)}
                 </Text>
               </View>
-              <View className="flex-row justify-between">
-                <Text className="text-primary-foreground">Average Sale</Text>
-                <Text className="text-primary-foreground font-bold">
+              <View style={styles.s_13}>
+                <Text style={styles.s_49}>Average Sale</Text>
+                <Text style={styles.s_50}>
                   ${todayReceiptsCount > 0 ? (todaySalesAmount / todayReceiptsCount).toFixed(2) : '0.00'}
                 </Text>
               </View>
-              <View className="hidden fle-row justify-between border-t border-primary-foreground/20 pt-2">
-                <Text className="text-primary-foreground font-bold">Performance</Text>
+              <View style={styles.s_51}>
+                <Text style={styles.s_50}>Performance</Text>
                 <Text className={`font-bold text-lg ${
                   todaySalesAmount > 500 ? 'text-green-300' : 
                   todaySalesAmount > 200 ? 'text-yellow-300' : 'text-red-300'
@@ -251,34 +252,34 @@ const CashierHome = () => {
           </View>
 
           {/* Recent Activity */}
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-3">
+          <View style={styles.s_52}>
+            <Text style={styles.s_25}>
               Recent Activity
             </Text>
-            <View className="space-y-3">
+            <View style={styles.s_48}>
               {todaySales.slice(0, 3).map((sale, index) => (
-                <View key={sale.id} className="flex-row items-center p-3 bg-secondary rounded-lg">
-                  <View className="bg-accent rounded-full p-2 mr-3">
-                    <Ionicons name="cart" size={16} className="text-accent-foreground" />
+                <View key={sale.id} style={styles.s_53}>
+                  <View style={styles.s_54}>
+                    <Ionicons name="cart" size={16} style={styles.s_55} />
                   </View>
-                  <View className="flex-1">
-                    <Text className="font-medium text-foreground">
+                  <View style={styles.s_19}>
+                    <Text style={styles.s_56}>
                       Sale #{sale.id}
                     </Text>
-                    <Text className="text-muted-foreground text-xs">
+                    <Text style={styles.s_57}>
                       {new Date(sale.date).toLocaleTimeString()} • {sale.paymentMethod}
                     </Text>
                   </View>
-                  <Text className="font-bold text-accent">
+                  <Text style={styles.s_58}>
                     ${sale.total.toFixed(2)}
                   </Text>
                 </View>
               ))}
               
               {todaySales.length === 0 && (
-                <View className="items-center py-4">
-                  <Ionicons name="time-outline" size={32} className="text-muted-foreground mb-2" />
-                  <Text className="text-muted-foreground text-center">
+                <View style={styles.s_59}>
+                  <Ionicons name="time-outline" size={32} style={styles.s_60} />
+                  <Text style={styles.s_41}>
                     No recent activity
                   </Text>
                 </View>
@@ -291,4 +292,297 @@ const CashierHome = () => {
   );
 };
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 8
+},
+
+  s_2: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#6b7280"
+},
+
+  s_3: {
+  fontSize: 24,
+  fontWeight: "700",
+  color: "#6b7280"
+},
+
+  s_4: {
+  fontSize: 12
+},
+
+  s_5: {
+  padding: 16,
+  borderColor: "#e6edf3"
+},
+
+  s_6: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center"
+},
+
+  s_7: {
+  color: "#0f172a"
+},
+
+  s_8: {
+  color: "#6b7280",
+  fontSize: 14
+},
+
+  s_9: {},
+
+  s_10: {
+  fontSize: 12,
+  fontWeight: "600"
+},
+
+  s_11: {
+  fontSize: 20,
+  fontWeight: "700"
+},
+
+  s_12: {
+  marginBottom: 8
+},
+
+  s_13: {
+  flexDirection: "row",
+  justifyContent: "space-between"
+},
+
+  s_14: {
+  color: "#0f172a",
+  fontSize: 14
+},
+
+  s_15: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  borderColor: "#e6edf3"
+},
+
+  s_16: {
+  color: "#0f172a"
+},
+
+  s_17: {
+  color: "#f97316",
+  fontSize: 18
+},
+
+  s_18: {
+  flex: 1,
+  backgroundColor: "#ffffff"
+},
+
+  s_19: {
+  flex: 1
+},
+
+  s_20: {
+  padding: 16
+},
+
+  s_21: {
+  fontSize: 24,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_22: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_23: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  gap: 16
+},
+
+  s_24: {
+  width: "48%"
+},
+
+  s_25: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a",
+  marginBottom: 12
+},
+
+  s_26: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between"
+},
+
+  s_27: {
+  alignItems: "flex-start"
+},
+
+  s_28: {
+  marginBottom: 8,
+  display: "none"
+},
+
+  s_29: {
+  fontSize: 14
+},
+
+  s_30: {
+  color: "#6b7280",
+  fontSize: 12
+},
+
+  s_31: {
+  borderWidth: 1,
+  borderRadius: 12,
+  padding: 16
+},
+
+  s_32: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 8
+},
+
+  s_33: {},
+
+  s_34: {},
+
+  s_35: {
+  fontSize: 14
+},
+
+  s_36: {
+  backgroundColor: "#ffffff",
+  padding: 16,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "#e6edf3"
+},
+
+  s_37: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a",
+  marginBottom: 16
+},
+
+  s_38: {
+  alignItems: "center"
+},
+
+  s_39: {
+  color: "#6b7280",
+  marginBottom: 12
+},
+
+  s_40: {
+  color: "#6b7280",
+  marginBottom: 8
+},
+
+  s_41: {
+  color: "#6b7280"
+},
+
+  s_42: {
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingVertical: 12,
+  marginTop: 16
+},
+
+  s_43: {},
+
+  s_44: {},
+
+  s_45: {},
+
+  s_46: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  padding: 16
+},
+
+  s_47: {
+  fontSize: 18,
+  color: "#ffffff",
+  marginBottom: 12
+},
+
+  s_48: {},
+
+  s_49: {
+  color: "#ffffff"
+},
+
+  s_50: {
+  color: "#ffffff",
+  fontWeight: "700"
+},
+
+  s_51: {
+  flexDirection: "row",
+  justifyContent: "space-between"
+},
+
+  s_52: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  borderWidth: 1,
+  borderColor: "#e6edf3"
+},
+
+  s_53: {
+  flexDirection: "row",
+  alignItems: "center",
+  padding: 12,
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12
+},
+
+  s_54: {
+  backgroundColor: "#f97316",
+  padding: 8
+},
+
+  s_55: {},
+
+  s_56: {
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_57: {
+  color: "#6b7280",
+  fontSize: 12
+},
+
+  s_58: {
+  fontWeight: "700",
+  color: "#f97316"
+},
+
+  s_59: {
+  alignItems: "center"
+},
+
+  s_60: {
+  color: "#6b7280",
+  marginBottom: 8
+}
+});
 export default CashierHome;

@@ -7,6 +7,7 @@ import {
   type DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { logout } from '../../store/slices/authSlice';
 import { useRouter } from 'expo-router';
 import { useAppDispatch } from '../../store/hooks';
@@ -21,8 +22,8 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0d1938' }}>
-      <View style={{ padding: 16, paddingTop: 50, borderBottomWidth: 1, borderBottomColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1938' }}>
+      <View style={{ padding: 16, paddingTop: 16, borderBottomWidth: 1, borderBottomColor: '#fff' }}>
         <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 'bold' }}>Shop Manager</Text>
         <Text style={{ color: '#FB923C' }}>Admin Panel</Text>
       </View>
@@ -38,7 +39,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
       >
         <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Logout</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 

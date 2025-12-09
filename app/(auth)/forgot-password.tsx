@@ -1,8 +1,46 @@
 // app/(auth)/forgot-password.js
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  flex: 1,
+  padding: 24,
+  justifyContent: "center"
+},
+
+  s_2: {
+  fontWeight: "700",
+  marginBottom: 8
+},
+
+  s_3: {
+  color: "#6b7280"
+},
+
+  s_4: {},
+
+  s_5: {
+  borderWidth: 1,
+  borderRadius: 12,
+  padding: 12
+},
+
+  s_6: {},
+
+  s_7: {
+  paddingVertical: 12,
+  borderWidth: 1
+},
+
+  s_8: {
+  color: "#6b7280"
+}
+});
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,17 +76,17 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View className="flex-1 bg-primary-white p-6 justify-center">
-      <Text className="text-3xl font-bold text-primary mb-2 text-center">
+    <View style={styles.s_1}>
+      <Text style={styles.s_2}>
         Forgot Password
       </Text>
-      <Text className="text-muted-foreground mb-8 text-center">
+      <Text style={styles.s_3}>
         Enter your email to receive reset instructions
       </Text>
 
-      <View className="space-y-4 mb-6">
+      <View style={styles.s_4}>
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-primary-navy-dark"
+          style={styles.s_5}
           placeholder="Email Address"
           value={email}
           onChangeText={setEmail}
@@ -70,10 +108,10 @@ export default function ForgotPasswordScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity 
-        className="py-3 rounded-md border border-muted-foreground text-primary"
+        style={styles.s_7}
         onPress={() => router.back()}
       >
-        <Text className="text-muted-foreground font-semibold text-center">
+        <Text style={styles.s_8}>
           Back to Sign In
         </Text>
       </TouchableOpacity>

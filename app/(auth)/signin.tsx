@@ -1,12 +1,98 @@
 // app/(auth)/signin.js
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
 import Feather from '@expo/vector-icons/Feather';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { UserProfile } from '../../store/types';
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  backgroundColor: "#ffffff",
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  justifyContent: "center",
+  flexDirection: "column",
+  alignItems: "center"
+},
+
+  s_2: {
+  width: "100%"
+},
+
+  s_3: {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+},
+
+  s_4: {},
+
+  s_5: {},
+
+  s_6: {
+  borderWidth: 1,
+  width: "100%"
+},
+
+  s_7: {
+  fontWeight: "700",
+  marginBottom: 8
+},
+
+  s_8: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_9: {
+  width: "100%",
+  marginBottom: 16
+},
+
+  s_10: {
+  marginBottom: 8
+},
+
+  s_11: {
+  marginBottom: 16
+},
+
+  s_12: {
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "flex-end",
+  marginBottom: 16
+},
+
+  s_13: {
+  width: "100%",
+  paddingVertical: 12,
+  backgroundColor: "#0f172a"
+},
+
+  s_14: {},
+
+  s_15: {},
+
+  s_16: {
+  color: "#6b7280"
+},
+
+  s_17: {
+  backgroundColor: "#f3f4f6",
+  width: "100%"
+},
+
+  s_18: {},
+
+  s_19: {}
+});
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,35 +132,35 @@ export default function SignInScreen() {
   };
 
   return (
-    <View className="bg-background w-full h-full p-5 flex justify-center flex-col items-center">
+    <View style={styles.s_1}>
       
       <View className="mb-10 w-full  ">
-        <Link href="/" className="inline- flex items-center justify-center gap-5 w-fit">
+        <Link href="/" style={styles.s_3}>
           <Feather name="arrow-left" size={22} className="text-primary " />
-          <Text className="text-primary text-">
+          <Text style={styles.s_5}>
             Back
           </Text>
         </Link>
       </View>
       
       
- <View className="border rounded-md border-muted-foreground p-5 w-full">
+ <View style={styles.s_6}>
         
-     <Text className="text-3xl text-primary font-bold mb-2">
+     <Text style={styles.s_7}>
               
         Sign In
       </Text>
       
-      <Text className="text-sm text-muted-foreground  mb-6" >
+      <Text style={styles.s_8} >
         Enter your credentials to access your account
       </Text>
 
       <View className="w-full mb-4 " >
         
-        <Text className="text-primary font-semibold mb-2">
+        <Text style={styles.s_10}>
           Email
         </Text>
-        <TextInput className="mb-4"
+        <TextInput style={styles.s_11}
           style={{ 
             borderWidth: 1, 
             borderColor: '#D1D5DB', 
@@ -90,7 +176,7 @@ export default function SignInScreen() {
           keyboardType="email-address"
         />
         
-         <Text className="text-primary font-semibold mb-2">
+         <Text style={styles.s_10}>
           Password
         </Text>
         <TextInput 
@@ -108,7 +194,7 @@ export default function SignInScreen() {
           secureTextEntry
         />
       </View> 
-      <View className="flex items-end justify-end mb-4">
+      <View style={styles.s_12}>
           <Link href="/forgot-password" asChild>
           <TouchableOpacity>
             <Text style={{ color: '#FB923C' }}>Forgot Password?</Text>
@@ -116,10 +202,10 @@ export default function SignInScreen() {
         </Link>
       </View>
       <TouchableOpacity 
-        className="w-full py-3 px-6 bg-primary mb-5 text-muted rounded-md"
+        style={styles.s_13}
         onPress={handleSignIn}
       >
-        <Text className="text-muted text-l text-center" >
+        <Text style={styles.s_14} >
           Sign In
         </Text>
       </TouchableOpacity>
@@ -130,7 +216,7 @@ export default function SignInScreen() {
       }}>
       
         
-        <Link href="/signup"  className="inline-flex gap-2">
+        <Link href="/signup"  style={styles.s_15}>
          
             <Text className="text-muted-foreground ">
               {"Don't have an account? "}

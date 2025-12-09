@@ -1,6 +1,7 @@
 // app/(auth)/signup.js
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
 import { addUser } from '../../store/slices/userManagementSlice';
@@ -17,6 +18,58 @@ interface SignUpFormData {
   userType: UserRole;
 }
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  flex: 1,
+  padding: 24
+},
+
+  s_2: {
+  fontWeight: "700",
+  marginBottom: 8
+},
+
+  s_3: {
+  color: "#6b7280"
+},
+
+  s_4: {},
+
+  s_5: {
+  borderWidth: 1,
+  borderRadius: 12,
+  padding: 12
+},
+
+  s_6: {
+  borderWidth: 1,
+  borderRadius: 12,
+  padding: 12
+},
+
+  s_7: {
+  marginBottom: 8
+},
+
+  s_8: {
+  flexDirection: "row"
+},
+
+  s_9: {},
+
+  s_10: {
+  flexDirection: "row",
+  justifyContent: "center"
+},
+
+  s_11: {
+  color: "#6b7280"
+},
+
+  s_12: {}
+});
 export default function SignUpScreen() {
   const [formData, setFormData] = useState<SignUpFormData>({
     name: '',
@@ -98,24 +151,24 @@ export default function SignUpScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-primary-white p-6">
-      <Text className="text-3xl font-bold text-primary mb-2 text-center">
+    <ScrollView style={styles.s_1}>
+      <Text style={styles.s_2}>
         Create Account
       </Text>
-      <Text className="text-muted-foreground mb-6 text-center">
+      <Text style={styles.s_3}>
         Join our shop management system
       </Text>
 
-      <View className="space-y-4 mb-6">
+      <View style={styles.s_4}>
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-primary-navy-dark"
+          style={styles.s_5}
           placeholder="Full Name *"
           value={formData.name}
           onChangeText={(text) => setFormData({...formData, name: text})}
         />
         
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-primary-navy-dark"
+          style={styles.s_5}
           placeholder="Email Address *"
           value={formData.email}
           onChangeText={(text) => setFormData({...formData, email: text})}
@@ -124,7 +177,7 @@ export default function SignUpScreen() {
         />
         
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-primary-navy-dark"
+          style={styles.s_5}
           placeholder="Phone Number"
           value={formData.phone}
           onChangeText={(text) => setFormData({...formData, phone: text})}
@@ -132,15 +185,15 @@ export default function SignUpScreen() {
         />
         
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-primary-navy-dark"
+          style={styles.s_5}
           placeholder="Address"
           value={formData.address}
           onChangeText={(text) => setFormData({...formData, address: text})}
         />
 
-        <View className="border border-gray-300 rounded-lg p-3">
-          <Text className="text-gray-600 mb-2">Account Type</Text>
-          <View className="flex-row space-x-4">
+        <View style={styles.s_6}>
+          <Text style={styles.s_7}>Account Type</Text>
+          <View style={styles.s_8}>
             {(['cashier', 'admin'] as UserRole[]).map((type) => (
               <TouchableOpacity
                 key={type}
@@ -166,7 +219,7 @@ export default function SignUpScreen() {
         </View>
         
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-primary-navy-dark"
+          style={styles.s_5}
           placeholder="Password *"
           value={formData.password}
           onChangeText={(text) => setFormData({...formData, password: text})}
@@ -174,7 +227,7 @@ export default function SignUpScreen() {
         />
         
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 text-primary-navy-dark"
+          style={styles.s_5}
           placeholder="Confirm Password *"
           value={formData.confirmPassword}
           onChangeText={(text) => setFormData({...formData, confirmPassword: text})}
@@ -194,11 +247,11 @@ export default function SignUpScreen() {
         </Text>
       </TouchableOpacity>
 
-      <View className="flex-row justify-center">
-        <Text className="text-muted-foreground">Already have an account? </Text>
+      <View style={styles.s_10}>
+        <Text style={styles.s_11}>Already have an account? </Text>
         <Link href="/signin" asChild>
 
-          <Text className="text-[#FB923C] font-semibold"
+          <Text style={styles.s_12}
           style={{ color: '#FB923C' }}
           >Sign In</Text>
        

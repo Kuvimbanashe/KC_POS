@@ -10,6 +10,7 @@ import {
   Modal,
   FlatList
 } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { addPurchase, updateProduct } from '../../store/slices/userSlice';
@@ -136,29 +137,29 @@ const AdminPurchases = () => {
 
   const renderPurchaseItem = ({ item }: { item: PurchaseRecord }) => (
     <TouchableOpacity 
-      className="border-b border-border py-3 px-4 bg-card active:bg-muted"
+      style={styles.s_1}
       onPress={() => setSelectedPurchase(item)}
     >
-      <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-1">
-          <Text className="font-semibold text-foreground text-base">{item.productName}</Text>
-          <Text className="text-muted-foreground text-sm">{item.supplier}</Text>
+      <View style={styles.s_2}>
+        <View style={styles.s_3}>
+          <Text style={styles.s_4}>{item.productName}</Text>
+          <Text style={styles.s_5}>{item.supplier}</Text>
         </View>
-        <Text className="font-bold text-accent text-lg">
+        <Text style={styles.s_6}>
           ${item.total.toFixed(2)}
         </Text>
       </View>
       
-      <View className="flex-row justify-between items-center">
-        <View className="flex-row items-center space-x-3">
-          <Text className="text-xs text-muted-foreground">
+      <View style={styles.s_7}>
+        <View style={styles.s_8}>
+          <Text style={styles.s_9}>
             {item.quantity} units
           </Text>
-          <Text className="text-xs text-muted-foreground">
+          <Text style={styles.s_9}>
             ${item.unitCost.toFixed(2)}/unit
           </Text>
         </View>
-        <Text className="text-xs text-muted-foreground">
+        <Text style={styles.s_9}>
           {new Date(item.date).toLocaleDateString()}
         </Text>
       </View>
@@ -167,25 +168,25 @@ const AdminPurchases = () => {
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
-      className="border-b border-border py-3 px-4 bg-card active:bg-muted"
+      style={styles.s_1}
       onPress={() => handleProductSelect(item)}
     >
-      <View className="flex-row justify-between items-start mb-1">
-        <Text className="font-semibold text-foreground text-base flex-1">{item.name}</Text>
-        <Text className="text-muted-foreground text-sm">${item.price.toFixed(2)}</Text>
+      <View style={styles.s_10}>
+        <Text style={styles.s_11}>{item.name}</Text>
+        <Text style={styles.s_5}>${item.price.toFixed(2)}</Text>
       </View>
       
-      <View className="flex-row justify-between items-center">
-        <Text className="text-xs text-muted-foreground">
+      <View style={styles.s_7}>
+        <Text style={styles.s_9}>
           Stock: {item.stock} units
         </Text>
-        <Text className="text-xs text-muted-foreground">
+        <Text style={styles.s_9}>
           {item.category}
         </Text>
       </View>
       
       {item.supplier && (
-        <Text className="text-xs text-muted-foreground mt-1">
+        <Text style={styles.s_12}>
           Supplier: {item.supplier}
         </Text>
       )}
@@ -194,38 +195,38 @@ const AdminPurchases = () => {
 
   if (isLoading) {
     return (
-      <ScrollView className="flex-1 bg-background">
-        <View className="p-4 md:p-6 space-y-6">
+      <ScrollView style={styles.s_13}>
+        <View style={styles.s_14}>
           {/* Header Skeleton */}
-          <View className="flex-row justify-between items-center">
+          <View style={styles.s_7}>
             <View>
-              <View className="h-8 w-32 bg-muted rounded mb-2 animate-pulse" />
-              <View className="h-4 w-48 bg-muted rounded animate-pulse" />
+              <View style={styles.s_15} />
+              <View style={styles.s_16} />
             </View>
-            <View className="h-10 w-32 bg-muted rounded animate-pulse" />
+            <View style={styles.s_17} />
           </View>
 
           {/* Stats Grid Skeleton */}
-          <View className="grid grid-cols-2 gap-4">
+          <View style={styles.s_18}>
             {[1, 2, 3].map((i) => (
-              <View key={i} className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-                <View className="h-4 w-20 bg-muted rounded mb-2 animate-pulse" />
-                <View className="h-6 w-16 bg-muted rounded animate-pulse" />
+              <View key={i} style={styles.s_19}>
+                <View style={styles.s_20} />
+                <View style={styles.s_21} />
               </View>
             ))}
           </View>
 
           {/* Search Skeleton */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
-            <View className="h-6 w-40 bg-muted rounded mb-2 animate-pulse" />
-            <View className="h-4 w-56 bg-muted rounded mb-4 animate-pulse" />
-            <View className="h-10 bg-muted rounded animate-pulse" />
+          <View style={styles.s_22}>
+            <View style={styles.s_23} />
+            <View style={styles.s_24} />
+            <View style={styles.s_25} />
           </View>
 
           {/* Table Skeleton */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+          <View style={styles.s_22}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} className="h-16 bg-muted rounded mb-2 animate-pulse" />
+              <View key={i} style={styles.s_26} />
             ))}
           </View>
         </View>
@@ -234,86 +235,86 @@ const AdminPurchases = () => {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1">
-        <View className="p-4 md:p-6 space-y-6">
+    <View style={styles.s_13}>
+      <ScrollView style={styles.s_3}>
+        <View style={styles.s_14}>
 
 
           {/* Stats Cards */}
-          <View className="grid grid-cols-2 gap-4">
-            <View className="bg-primary rounded-lg p-4 w-full">
-              <Text className="text-sm font-medium text-primary-foreground mb-1 text-center">
+          <View style={styles.s_18}>
+            <View style={styles.s_27}>
+              <Text style={styles.s_28}>
                 Total Purchases
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-accent text-center">
+              <Text style={styles.s_29}>
                 {purchases.length}
               </Text>
             </View>
             <View className="bg-primary rounded-lg p-4 w-full ">
-              <Text className="text-sm font-medium text-primary-foreground mb-1 text-center">
+              <Text style={styles.s_28}>
                 Total Investment
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-accent text-center">
+              <Text style={styles.s_29}>
                 ${totalCost.toFixed(2)}
               </Text>
             </View>
-            <View className="bg-card rounded-lg hidden p-4 shadow-sm w-[48%] min-w-[160px]">
-              <Text className="text-sm font-medium text-muted-foreground mb-1">
+            <View style={styles.s_19}>
+              <Text style={styles.s_30}>
                 Total Units
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-foreground">
+              <Text style={styles.s_31}>
                 {totalQuantity}
               </Text>
             </View>
           </View>
           
-          <View className="w-full">
+          <View style={styles.s_32}>
             
           <TouchableOpacity
-              className="bg-accent rounded-lg px-4 py-3 flex-row items-center justify-center w-full"
+              style={styles.s_33}
               onPress={() => setIsProductModalOpen(true)}
             >
-              <Ionicons name="add" size={20} className="text-accent-foreground mr-2" />
-              <Text className="text-accent-foreground font-semibold text-center">New Purchase</Text>
+              <Ionicons name="add" size={20} style={styles.s_34} />
+              <Text style={styles.s_35}>New Purchase</Text>
             </TouchableOpacity>
             
             
           </View>
 
           {/* Search */}
-          <View className="bg-card rounded-lg p-4 border border-muted">
-            <Text className="text-lg font-bold text-foreground mb-1">
+          <View style={styles.s_36}>
+            <Text style={styles.s_37}>
               Purchase History
             </Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+            <Text style={styles.s_38}>
               All inventory purchase orders
             </Text>
             
-            <View className="relative">
+            <View style={styles.s_39}>
               <Ionicons 
                 name="search" 
                 size={20} 
-                className="absolute left-3 top-3 text-muted-foreground" 
+                style={styles.s_40} 
               />
               <TextInput
                 placeholder="Search by product, supplier, or ID..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                className="bg-background border border-input rounded-lg pl-10 pr-4 py-3 text-foreground"
+                style={styles.s_41}
                 placeholderTextColor="#6B7280"
               />
             </View>
           </View>
 
           {/* Purchases List */}
-          <View className="bg-card rounded-lg border-[1.5px] border-muted overflow-hidden">
+          <View style={styles.s_42}>
             {filteredPurchases.length === 0 ? (
-              <View className="p-8 items-center">
-                <Ionicons name="cart-outline" size={48} className="text-muted-foreground mb-4" />
-                <Text className="text-lg font-medium text-foreground mb-2">
+              <View style={styles.s_43}>
+                <Ionicons name="cart-outline" size={48} style={styles.s_44} />
+                <Text style={styles.s_45}>
                   No purchases found
                 </Text>
-                <Text className="text-muted-foreground text-center mb-4">
+                <Text style={styles.s_46}>
                   {searchQuery 
                     ? 'Try adjusting your search criteria'
                     : 'Get started by creating your first purchase order'
@@ -321,10 +322,10 @@ const AdminPurchases = () => {
                 </Text>
                 {searchQuery && (
                   <TouchableOpacity
-                    className="bg-accent rounded-lg px-4 py-2"
+                    style={styles.s_47}
                     onPress={() => setSearchQuery('')}
                   >
-                    <Text className="text-accent-foreground font-semibold">
+                    <Text style={styles.s_48}>
                       Clear Search
                     </Text>
                   </TouchableOpacity>
@@ -336,7 +337,7 @@ const AdminPurchases = () => {
                 renderItem={renderPurchaseItem}
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled={true}
-                className="max-h-96"
+                style={styles.s_49}
               />
             )}
           </View>
@@ -349,24 +350,24 @@ const AdminPurchases = () => {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View className="flex-1 bg-background pt-4">
-          <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">Select Product for Purchase</Text>
+        <View style={styles.s_50}>
+          <View style={styles.s_51}>
+            <Text style={styles.s_52}>Select Product for Purchase</Text>
             <TouchableOpacity onPress={() => setIsProductModalOpen(false)}>
-              <Ionicons name="close" size={24} className="text-foreground" />
+              <Ionicons name="close" size={24} style={styles.s_53} />
             </TouchableOpacity>
           </View>
 
-          <View className="p-4 border-b border-border">
-            <View className="relative">
+          <View style={styles.s_54}>
+            <View style={styles.s_39}>
               <Ionicons 
                 name="search" 
                 size={20} 
-                className="absolute left-3 top-3 text-muted-foreground" 
+                style={styles.s_40} 
               />
               <TextInput
                 placeholder="Search products..."
-                className="bg-background border border-input rounded-lg pl-10 pr-4 py-3 text-foreground"
+                style={styles.s_41}
                 placeholderTextColor="#6B7280"
               />
             </View>
@@ -376,7 +377,7 @@ const AdminPurchases = () => {
             data={products}
             renderItem={renderProductItem}
             keyExtractor={(item) => item.id.toString()}
-            className="flex-1"
+            style={styles.s_3}
           />
         </View>
       </Modal>
@@ -387,34 +388,34 @@ const AdminPurchases = () => {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View className="flex-1 bg-background pt-4">
-          <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">Create Purchase Order</Text>
+        <View style={styles.s_50}>
+          <View style={styles.s_51}>
+            <Text style={styles.s_52}>Create Purchase Order</Text>
             <TouchableOpacity onPress={() => setIsDialogOpen(false)}>
-              <Ionicons name="close" size={24} className="text-foreground" />
+              <Ionicons name="close" size={24} style={styles.s_53} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView className="flex-1 p-4">
+          <ScrollView style={styles.s_55}>
             {selectedProduct && (
-              <View className="mb-4 p-3 bg-secondary rounded-lg">
-                <Text className="text-sm text-muted-foreground mb-1">Selected Product</Text>
-                <Text className="font-semibold text-foreground text-base">{selectedProduct.name}</Text>
-                <Text className="text-xs text-muted-foreground">
+              <View style={styles.s_56}>
+                <Text style={styles.s_57}>Selected Product</Text>
+                <Text style={styles.s_4}>{selectedProduct.name}</Text>
+                <Text style={styles.s_9}>
                   Current stock: {selectedProduct.stock} units • ${selectedProduct.price.toFixed(2)} selling price
                 </Text>
               </View>
             )}
 
-            <View className="space-y-4">
+            <View style={styles.s_58}>
               {/* Supplier */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">Supplier</Text>
+                <Text style={styles.s_59}>Supplier</Text>
                 <TextInput
                   value={formData.supplier}
                   onChangeText={(text) => setFormData({ ...formData, supplier: text })}
                   placeholder="Enter supplier name"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_60}
                   placeholderTextColor="#6B7280"
                 />
               </View>
@@ -422,8 +423,8 @@ const AdminPurchases = () => {
               {/* Unit Type (if product supports packs) */}
               {selectedProduct && (selectedProduct.unitType === 'both' || selectedProduct.unitType === 'pack') && (
                 <View>
-                  <Text className="text-sm font-medium text-foreground mb-2">Purchase Unit Type</Text>
-                  <View className="flex-row space-x-2">
+                  <Text style={styles.s_59}>Purchase Unit Type</Text>
+                  <View style={styles.s_61}>
                     {['single', 'pack'].map((unitType) => (
                       <TouchableOpacity
                         key={unitType}
@@ -452,7 +453,7 @@ const AdminPurchases = () => {
 
               {/* Quantity */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_59}>
                   Quantity {formData.unitType === 'pack' && selectedProduct?.packSize && 
                     `(${selectedProduct.packSize} units/pack)`}
                 </Text>
@@ -461,14 +462,14 @@ const AdminPurchases = () => {
                   onChangeText={(text) => setFormData({ ...formData, quantity: text })}
                   placeholder="Enter quantity"
                   keyboardType="numeric"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_60}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               {/* Unit Cost */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_59}>
                   {formData.unitType === 'pack' ? 'Cost per Pack' : 'Cost per Unit'}
                 </Text>
                 <TextInput
@@ -476,47 +477,47 @@ const AdminPurchases = () => {
                   onChangeText={(text) => setFormData({ ...formData, unitCost: text })}
                   placeholder="0.00"
                   keyboardType="decimal-pad"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_60}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               {/* Profit Margin */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">Profit Margin (%)</Text>
+                <Text style={styles.s_59}>Profit Margin (%)</Text>
                 <TextInput
                   value={formData.profitMargin}
                   onChangeText={(text) => setFormData({ ...formData, profitMargin: text })}
                   placeholder="30"
                   keyboardType="numeric"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_60}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               {/* Calculation Summary */}
               {formData.quantity && formData.unitCost && (
-                <View className="p-4 bg-secondary rounded-lg space-y-3">
-                  <Text className="font-medium text-foreground mb-2">Order Summary</Text>
+                <View style={styles.s_62}>
+                  <Text style={styles.s_63}>Order Summary</Text>
                   
-                  <View className="flex-row justify-between">
-                    <Text className="text-muted-foreground">Total Cost</Text>
-                    <Text className="font-bold text-foreground">
+                  <View style={styles.s_64}>
+                    <Text style={styles.s_65}>Total Cost</Text>
+                    <Text style={styles.s_66}>
                       ${totalFormCost.toFixed(2)}
                     </Text>
                   </View>
                   
-                  <View className="flex-row justify-between">
-                    <Text className="text-muted-foreground">Suggested Selling Price</Text>
-                    <Text className="font-bold text-accent">
+                  <View style={styles.s_64}>
+                    <Text style={styles.s_65}>Suggested Selling Price</Text>
+                    <Text style={styles.s_67}>
                       ${suggestedPrice.toFixed(2)}
                     </Text>
                   </View>
                   
                   {formData.unitType === 'pack' && selectedProduct?.packSize && (
-                    <View className="flex-row justify-between pt-2 border-t border-border">
-                      <Text className="text-muted-foreground">Total Units to Stock</Text>
-                      <Text className="font-bold text-foreground">
+                    <View style={styles.s_68}>
+                      <Text style={styles.s_65}>Total Units to Stock</Text>
+                      <Text style={styles.s_66}>
                         {parseInt(formData.quantity) * (selectedProduct.packSize || 1)} units
                       </Text>
                     </View>
@@ -527,10 +528,10 @@ const AdminPurchases = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              className="bg-accent rounded-lg py-4 mt-6"
+              style={styles.s_69}
               onPress={handleSubmit}
             >
-              <Text className="text-accent-foreground text-center font-semibold text-lg">
+              <Text style={styles.s_70}>
                 Create Purchase
               </Text>
             </TouchableOpacity>
@@ -546,46 +547,46 @@ const AdminPurchases = () => {
         onRequestClose={() => setSelectedPurchase(null)}
       >
         {selectedPurchase && (
-          <View className="flex-1 bg-background pt-4">
-            <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-              <Text className="text-xl font-bold text-foreground">
+          <View style={styles.s_50}>
+            <View style={styles.s_51}>
+              <Text style={styles.s_52}>
                 Purchase Details - #{selectedPurchase.id}
               </Text>
               <TouchableOpacity onPress={() => setSelectedPurchase(null)}>
-                <Ionicons name="close" size={24} className="text-foreground" />
+                <Ionicons name="close" size={24} style={styles.s_53} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 p-4">
-              <View className="space-y-6">
-                <View className="flex-row flex-wrap justify-between gap-4">
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Product</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedPurchase.productName}</Text>
+            <ScrollView style={styles.s_55}>
+              <View style={styles.s_71}>
+                <View style={styles.s_72}>
+                  <View style={styles.s_73}>
+                    <Text style={styles.s_57}>Product</Text>
+                    <Text style={styles.s_74}>{selectedPurchase.productName}</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Supplier</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedPurchase.supplier}</Text>
+                  <View style={styles.s_73}>
+                    <Text style={styles.s_57}>Supplier</Text>
+                    <Text style={styles.s_74}>{selectedPurchase.supplier}</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Quantity</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedPurchase.quantity} units</Text>
+                  <View style={styles.s_73}>
+                    <Text style={styles.s_57}>Quantity</Text>
+                    <Text style={styles.s_74}>{selectedPurchase.quantity} units</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Unit Cost</Text>
-                    <Text className="font-medium text-foreground text-base">
+                  <View style={styles.s_73}>
+                    <Text style={styles.s_57}>Unit Cost</Text>
+                    <Text style={styles.s_74}>
                       ${selectedPurchase.unitCost.toFixed(2)}
                     </Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Total Cost</Text>
-                    <Text className="font-bold text-accent text-lg">
+                  <View style={styles.s_73}>
+                    <Text style={styles.s_57}>Total Cost</Text>
+                    <Text style={styles.s_6}>
                       ${selectedPurchase.total.toFixed(2)}
                     </Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Purchase Date</Text>
-                    <Text className="font-medium text-foreground text-base">
+                  <View style={styles.s_73}>
+                    <Text style={styles.s_57}>Purchase Date</Text>
+                    <Text style={styles.s_74}>
                       {new Date(selectedPurchase.date).toLocaleDateString()}
                     </Text>
                   </View>
@@ -599,6 +600,414 @@ const AdminPurchases = () => {
   );
 };
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  borderColor: "#e6edf3",
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  backgroundColor: "#ffffff"
+},
+
+  s_2: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  marginBottom: 8
+},
+
+  s_3: {
+  flex: 1
+},
+
+  s_4: {
+  color: "#0f172a"
+},
+
+  s_5: {
+  color: "#6b7280",
+  fontSize: 14
+},
+
+  s_6: {
+  fontWeight: "700",
+  color: "#f97316",
+  fontSize: 18
+},
+
+  s_7: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center"
+},
+
+  s_8: {
+  flexDirection: "row",
+  alignItems: "center"
+},
+
+  s_9: {
+  fontSize: 12,
+  color: "#6b7280"
+},
+
+  s_10: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-start"
+},
+
+  s_11: {
+  color: "#0f172a",
+  flex: 1
+},
+
+  s_12: {
+  fontSize: 12,
+  color: "#6b7280"
+},
+
+  s_13: {
+  flex: 1,
+  backgroundColor: "#ffffff"
+},
+
+  s_14: {
+  padding: 16
+},
+
+  s_15: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_16: {
+  borderRadius: 6
+},
+
+  s_17: {
+  borderRadius: 6
+},
+
+  s_18: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: 16
+},
+
+  s_19: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 1
+  },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 1,
+  width: "48%"
+},
+
+  s_20: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_21: {
+  borderRadius: 6
+},
+
+  s_22: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 1
+  },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 1
+},
+
+  s_23: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_24: {
+  borderRadius: 6,
+  marginBottom: 16
+},
+
+  s_25: {
+  borderRadius: 6
+},
+
+  s_26: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_27: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  padding: 16,
+  width: "100%"
+},
+
+  s_28: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#ffffff"
+},
+
+  s_29: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#f97316"
+},
+
+  s_30: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#6b7280"
+},
+
+  s_31: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_32: {
+  width: "100%"
+},
+
+  s_33: {
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%"
+},
+
+  s_34: {},
+
+  s_35: {},
+
+  s_36: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  borderWidth: 1
+},
+
+  s_37: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_38: {
+  fontSize: 14,
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_39: {},
+
+  s_40: {
+  color: "#6b7280"
+},
+
+  s_41: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingRight: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_42: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12
+},
+
+  s_43: {
+  alignItems: "center"
+},
+
+  s_44: {
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_45: {
+  fontSize: 18,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_46: {
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_47: {
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingHorizontal: 16
+},
+
+  s_48: {},
+
+  s_49: {},
+
+  s_50: {
+  flex: 1,
+  backgroundColor: "#ffffff",
+  paddingTop: 16
+},
+
+  s_51: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingHorizontal: 16,
+  paddingBottom: 16,
+  borderColor: "#e6edf3"
+},
+
+  s_52: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_53: {
+  color: "#0f172a"
+},
+
+  s_54: {
+  padding: 16,
+  borderColor: "#e6edf3"
+},
+
+  s_55: {
+  flex: 1,
+  padding: 16
+},
+
+  s_56: {
+  marginBottom: 16,
+  padding: 12,
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12
+},
+
+  s_57: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_58: {},
+
+  s_59: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_60: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_61: {
+  flexDirection: "row"
+},
+
+  s_62: {
+  padding: 16,
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12
+},
+
+  s_63: {
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_64: {
+  flexDirection: "row",
+  justifyContent: "space-between"
+},
+
+  s_65: {
+  color: "#6b7280"
+},
+
+  s_66: {
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_67: {
+  fontWeight: "700",
+  color: "#f97316"
+},
+
+  s_68: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  borderColor: "#e6edf3"
+},
+
+  s_69: {
+  backgroundColor: "#f97316",
+  borderRadius: 12
+},
+
+  s_70: {
+  fontSize: 18
+},
+
+  s_71: {},
+
+  s_72: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  gap: 16
+},
+
+  s_73: {
+  width: "48%"
+},
+
+  s_74: {
+  fontWeight: "600",
+  color: "#0f172a"
+}
+});
 export default AdminPurchases;
 
 

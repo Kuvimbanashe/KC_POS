@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator
 } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -57,14 +58,14 @@ const AdminReports = () => {
   const assetDepreciationRate = totalAssetsPurchaseValue > 0 ? (assetDepreciation / totalAssetsPurchaseValue) * 100 : 0;
 
   const StatCard = ({ title, value, description, isPositive = true, isCurrency = false }: { title: string, value: number, description: string, isPositive: boolean, isCurrency: boolean }) => (
-    <View className="bg-muted rounded-lg p-4 shadow-none mb-4 flex flex-row items-center justify-between">
+    <View style={styles.s_1}>
       <View>
-          <Text className="text-sm font-medium text-muted-foreground mb-1">
+          <Text style={styles.s_2}>
           {title}
         </Text>
         
               {description && (
-        <Text className="text-xs text-muted-foreground mt-1">
+        <Text style={styles.s_3}>
           {description}
         </Text>
       )}
@@ -82,9 +83,9 @@ const AdminReports = () => {
   );
 
   const MetricItem = ({ label, value, isPositive = true, isCurrency = false }: { label: string, value: number, isPositive: boolean, isCurrency: boolean }) => (
-    <View className="bg-secondary rounded-lg p-3 mb-2">
-      <View className="flex-row justify-between items-center">
-        <Text className="font-medium text-foreground text-sm flex-1">
+    <View style={styles.s_4}>
+      <View style={styles.s_5}>
+        <Text style={styles.s_6}>
           {label}
         </Text>
         <Text className={`font-bold text-base ${
@@ -99,11 +100,11 @@ const AdminReports = () => {
   );
 
   const SectionHeader = ({ title, subtitle, icon }: { title: string, subtitle: string, icon: keyof typeof Ionicons.glyphMap }) => (
-    <View className="flex-row items-center mb-4">
-      <Ionicons name={icon} size={24} className="text-accent mr-3" />
+    <View style={styles.s_7}>
+      <Ionicons name={icon} size={24} style={styles.s_8} />
       <View>
-        <Text className="text-xl font-bold text-foreground">{title}</Text>
-        <Text className="text-muted-foreground">{subtitle}</Text>
+        <Text style={styles.s_9}>{title}</Text>
+        <Text style={styles.s_10}>{subtitle}</Text>
       </View>
     </View>
   );
@@ -115,8 +116,8 @@ const AdminReports = () => {
         subtitle="Revenue, costs, and profitability"
         icon="trending-up"
       />
-      <View className="w-fullv">
-        <View className="w-full">
+      <View style={styles.s_11}>
+        <View style={styles.s_12}>
           <StatCard
             title="Total Revenue"
             value={totalRevenue}
@@ -125,7 +126,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Cost of Goods"
             value={totalCost}
@@ -134,7 +135,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Operating Expenses"
             value={totalExpenses}
@@ -143,7 +144,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Gross Profit"
             value={grossProfit}
@@ -152,7 +153,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Net Profit"
             value={netProfit}
@@ -161,7 +162,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Profit Margin"
             value={profitMargin}
@@ -170,7 +171,7 @@ const AdminReports = () => {
             isCurrency={false}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Operating Margin"
             value={operatingMargin}
@@ -179,7 +180,7 @@ const AdminReports = () => {
             isCurrency={false}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="COGS Ratio"
             value={costOfGoodsSoldRatio}
@@ -188,7 +189,7 @@ const AdminReports = () => {
             isCurrency={false}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Expense Ratio"
             value={expenseRatio}
@@ -209,7 +210,7 @@ const AdminReports = () => {
         icon="wallet"
       />
       <View className="flex-col w-full  ">
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Total Assets Value"
             value={totalAssetsValue}
@@ -218,7 +219,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Inventory Value"
             value={totalInventoryValue}
@@ -227,7 +228,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Asset Depreciation"
             value={assetDepreciation}
@@ -236,7 +237,7 @@ const AdminReports = () => {
             isCurrency={true}
           />
         </View>
-        <View className="w-full">
+        <View style={styles.s_12}>
           <StatCard
             title="Current Ratio"
             value={currentRatio}
@@ -256,10 +257,10 @@ const AdminReports = () => {
         subtitle="Key business indicators"
         icon="analytics"
       />
-      <View className="flex-col w-full">
-        <View className="w-full mb-4">
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-3">Summary</Text>
+      <View style={styles.s_13}>
+        <View style={styles.s_14}>
+          <View style={styles.s_15}>
+            <Text style={styles.s_16}>Summary</Text>
             <MetricItem
               label="Total Transactions"
               value={sales.length}
@@ -281,9 +282,9 @@ const AdminReports = () => {
           </View>
         </View>
         
-        <View className="w-full mb-4">
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-3">Performance</Text>
+        <View style={styles.s_14}>
+          <View style={styles.s_15}>
+            <Text style={styles.s_16}>Performance</Text>
             <MetricItem
               label="Avg Transaction Value"
               value={averageTransactionValue}
@@ -312,9 +313,9 @@ const AdminReports = () => {
           </View>
         </View>
 
-        <View className="w-full">
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-3">Asset Overview</Text>
+        <View style={styles.s_12}>
+          <View style={styles.s_15}>
+            <Text style={styles.s_16}>Asset Overview</Text>
             <MetricItem
               label="Number of Assets"
               value={assets.length}
@@ -348,9 +349,9 @@ const AdminReports = () => {
         icon="calculator"
       />
       <View className="flex-col w-full ">
-        <View className="w-full mb-4">
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-3">Profitability</Text>
+        <View style={styles.s_14}>
+          <View style={styles.s_15}>
+            <Text style={styles.s_16}>Profitability</Text>
             <MetricItem
               label="Net Profit Margin"
               value={profitMargin}
@@ -372,9 +373,9 @@ const AdminReports = () => {
           </View>
         </View>
         
-        <View className="w-full mb-4">
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-3">Efficiency</Text>
+        <View style={styles.s_14}>
+          <View style={styles.s_15}>
+            <Text style={styles.s_16}>Efficiency</Text>
             <MetricItem
               label="Inventory Turnover"
               value={inventoryTurnover}
@@ -396,9 +397,9 @@ const AdminReports = () => {
           </View>
         </View>
 
-        <View className="w-full">
-          <View className="bg-card rounded-lg p-4 border border-border">
-            <Text className="text-lg font-bold text-foreground mb-3">Liquidity</Text>
+        <View style={styles.s_12}>
+          <View style={styles.s_15}>
+            <Text style={styles.s_16}>Liquidity</Text>
             <MetricItem
               label="Current Ratio"
               value={currentRatio}
@@ -425,19 +426,19 @@ const AdminReports = () => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
+      <View style={styles.s_17}>
         <ActivityIndicator size="large" color="#FB923C" />
-        <Text className="text-muted-foreground mt-4">Loading reports...</Text>
+        <Text style={styles.s_18}>Loading reports...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={styles.s_19}>
       {/* Header */}
-      <View className="bg-card p-4 border-b border-border">
-        <Text className="text-2xl font-bold text-foreground">Reports</Text>
-        <Text className="text-muted-foreground">Financial reports and analytics</Text>
+      <View style={styles.s_20}>
+        <Text style={styles.s_21}>Reports</Text>
+        <Text style={styles.s_10}>Financial reports and analytics</Text>
       </View>
 
       {/* Section Navigation */}
@@ -481,8 +482,8 @@ const AdminReports = () => {
     </View>
 
       {/* Content */}
-      <ScrollView className="flex-1 p-4">
-        <View className="space-y-6">
+      <ScrollView style={styles.s_23}>
+        <View style={styles.s_24}>
           {activeSection === 'income' && renderIncomeStatement()}
           {activeSection === 'balance' && renderBalanceSheet()}
           {activeSection === 'performance' && renderPerformanceMetrics()}
@@ -490,31 +491,31 @@ const AdminReports = () => {
         </View>
 
         {/* Quick Stats Footer */}
-        <View className="bg-primary rounded-lg p-4 mt-6">
-          <Text className="text-lg font-semibold text-primary-foreground mb-3">
+        <View style={styles.s_25}>
+          <Text style={styles.s_26}>
             Quick Financial Overview
           </Text>
-          <View className="flex-row flex-wrap justify-between">
-            <View className="mb-3 w-[48%]">
-              <Text className="text-accent text-sm">Monthly Revenue</Text>
-              <Text className="text-primary-foreground text-lg font-bold">
+          <View style={styles.s_27}>
+            <View style={styles.s_28}>
+              <Text style={styles.s_29}>Monthly Revenue</Text>
+              <Text style={styles.s_30}>
                 ${(totalRevenue / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </Text>
             </View>
-            <View className="mb-3 w-[48%]">
-              <Text className="text-accent text-sm">Monthly Profit</Text>
-              <Text className="text-primary-foreground text-lg font-bold">
+            <View style={styles.s_28}>
+              <Text style={styles.s_29}>Monthly Profit</Text>
+              <Text style={styles.s_30}>
                 ${(netProfit / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </Text>
             </View>
-            <View className="mb-3 w-[48%]">
-              <Text className="text-accent text-sm">Active Products</Text>
-              <Text className="text-primary-foreground text-lg font-bold">
+            <View style={styles.s_28}>
+              <Text style={styles.s_29}>Active Products</Text>
+              <Text style={styles.s_30}>
                 {products.length}
               </Text>
             </View>
-            <View className="mb-3 w-[48%]">
-              <Text className="text-accent text-sm">Business Health</Text>
+            <View style={styles.s_28}>
+              <Text style={styles.s_29}>Business Health</Text>
               <Text className={`text-lg font-bold ${
                 profitMargin > 20 ? 'text-green-400' : 
                 profitMargin > 10 ? 'text-yellow-400' : 'text-red-400'
@@ -529,4 +530,177 @@ const AdminReports = () => {
   );
 };
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  borderRadius: 12,
+  padding: 16,
+  marginBottom: 16,
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between"
+},
+
+  s_2: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#6b7280"
+},
+
+  s_3: {
+  fontSize: 12,
+  color: "#6b7280"
+},
+
+  s_4: {
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12,
+  padding: 12,
+  marginBottom: 8
+},
+
+  s_5: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center"
+},
+
+  s_6: {
+  fontWeight: "600",
+  color: "#0f172a",
+  fontSize: 14,
+  flex: 1
+},
+
+  s_7: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 16
+},
+
+  s_8: {
+  color: "#f97316"
+},
+
+  s_9: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_10: {
+  color: "#6b7280"
+},
+
+  s_11: {},
+
+  s_12: {
+  width: "100%"
+},
+
+  s_13: {
+  flexDirection: "column",
+  width: "100%"
+},
+
+  s_14: {
+  width: "100%",
+  marginBottom: 16
+},
+
+  s_15: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  borderWidth: 1,
+  borderColor: "#e6edf3"
+},
+
+  s_16: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a",
+  marginBottom: 12
+},
+
+  s_17: {
+  flex: 1,
+  backgroundColor: "#ffffff",
+  justifyContent: "center",
+  alignItems: "center"
+},
+
+  s_18: {
+  color: "#6b7280",
+  marginTop: 16
+},
+
+  s_19: {
+  flex: 1,
+  backgroundColor: "#ffffff"
+},
+
+  s_20: {
+  backgroundColor: "#ffffff",
+  padding: 16,
+  borderColor: "#e6edf3"
+},
+
+  s_21: {
+  fontSize: 24,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_22: {
+  borderColor: "#e6edf3",
+  backgroundColor: "#ffffff",
+  display: "flex",
+  flexDirection: "row",
+  paddingHorizontal: 16
+},
+
+  s_23: {
+  flex: 1,
+  padding: 16
+},
+
+  s_24: {},
+
+  s_25: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  padding: 16
+},
+
+  s_26: {
+  fontSize: 18,
+  color: "#ffffff",
+  marginBottom: 12
+},
+
+  s_27: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between"
+},
+
+  s_28: {
+  marginBottom: 12,
+  width: "48%"
+},
+
+  s_29: {
+  color: "#f97316",
+  fontSize: 14
+},
+
+  s_30: {
+  color: "#ffffff",
+  fontSize: 18,
+  fontWeight: "700"
+}
+});
 export default AdminReports;

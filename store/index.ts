@@ -13,6 +13,13 @@ export const store = configureStore({
     userManagement: userManagementReducer,
     assets: assetsReducer,
   },
+  // Disable the serializable-state-invariant middleware in development
+  // to avoid expensive checks on large states/actions while developing.
+  // You can re-enable or fine-tune `serializableCheck` if needed.
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
 
 export default store;

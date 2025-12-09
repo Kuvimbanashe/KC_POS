@@ -1,31 +1,91 @@
 
 import { View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  height: "100%"
+},
+
+  s_2: {
+  padding: 12,
+  borderRadius: 6,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+},
+
+  s_3: {
+  fontWeight: "700",
+  marginBottom: 16
+},
+
+  s_4: {
+  fontSize: 18,
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_5: {
+  width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  gap: 16
+},
+
+  s_6: {
+  backgroundColor: "#0f172a",
+  paddingVertical: 12,
+  width: "100%"
+},
+
+  s_7: {
+  paddingVertical: 12,
+  width: "100%",
+  borderWidth: 1
+},
+
+  s_8: {
+  color: "#6b7280"
+},
+
+  s_9: {
+  fontSize: 14,
+  color: "#6b7280"
+}
+});
 export default function WelcomeScreen() {
   return (
     <View className="flex flex-col items-center justify-center bg-white w-full h-full p-5 ">
       
-         <View className="bg-orange-400 w-fit h-fit p-3 rounded flex items-center justify-center mb-8">
+         <View style={styles.s_2}>
        <Feather name="shopping-bag" size={48} color="white" />
        
         </View>
 
       
       <View style={{ alignItems: 'center', marginBottom: 48 }}>
-        <Text className="text-primary text-3xl font-bold mb-4 text-center">
+        <Text style={styles.s_3}>
           Shop Manager
         </Text>
-        <Text className="text-lg text-muted-foreground mb-4 text-center">
+        <Text style={styles.s_4}>
           Streamline your shop operations with ease
         </Text>
         
       </View>
       
 
-      <View className="w-full flex flex-col gap-4 mb-10">
+      <View style={styles.s_5}>
         <Link href="/signin" asChild>
-          <TouchableOpacity className="rounded-md bg-primary py-3 px-6 w-full">
+          <TouchableOpacity style={styles.s_6}>
             <Text style={{ 
               color: '#FFFFFF', 
               textAlign: 'center', 
@@ -38,8 +98,8 @@ export default function WelcomeScreen() {
         </Link>
         
         <Link href="/signup" asChild>
-          <TouchableOpacity className="rounded-md bg-white py-3 px-6 w-full border border-muted-foreground">
-            <Text className="text-muted-foreground" style={{ 
+          <TouchableOpacity style={styles.s_7}>
+            <Text style={styles.s_8} style={{ 
               
               textAlign: 'center', 
               fontSize: 18, 
@@ -53,7 +113,7 @@ export default function WelcomeScreen() {
       
       <View >
         
-        <Text className="text-sm text-muted-foreground text-center">
+        <Text style={styles.s_9}>
           Manage inventory, sales, and operations in one place.
         </Text>
       </View>

@@ -1,8 +1,47 @@
 // app/(auth)/otp-verification.js
 import { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  flex: 1,
+  padding: 24,
+  justifyContent: "center"
+},
+
+  s_2: {
+  fontWeight: "700",
+  marginBottom: 8
+},
+
+  s_3: {
+  color: "#6b7280"
+},
+
+  s_4: {
+  flexDirection: "row",
+  justifyContent: "space-between"
+},
+
+  s_5: {
+  borderRadius: 12,
+  fontSize: 18,
+  fontWeight: "700"
+},
+
+  s_6: {},
+
+  s_7: {
+  paddingVertical: 12,
+  borderWidth: 1
+},
+
+  s_8: {}
+});
 export default function OTPVerificationScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,15 +86,15 @@ export default function OTPVerificationScreen() {
   };
 
   return (
-    <View className="flex-1 bg-primary-white p-6 justify-center">
-      <Text className="text-3xl font-bold text-primary mb-2 text-center">
+    <View style={styles.s_1}>
+      <Text style={styles.s_2}>
         OTP Verification
       </Text>
-      <Text className="text-muted-foreground mb-8 text-center">
+      <Text style={styles.s_3}>
         Enter the 6-digit code sent to your email
       </Text>
 
-      <View className="flex-row justify-between mb-8">
+      <View style={styles.s_4}>
         {otp.map((digit, index) => (
           <TextInput
             key={index}
@@ -64,7 +103,7 @@ export default function OTPVerificationScreen() {
                 (inputs.current[index] as TextInput) = ref;
               }
             }}
-            className="w-12 h-12 border-2 rounded-lg text-center text-lg font-bold text-primary"
+            style={styles.s_5}
             value={digit}
             onChangeText={(value) => {
               const newOtp = [...otp];
@@ -87,14 +126,13 @@ export default function OTPVerificationScreen() {
         onPress={handleVerify}
         disabled={isLoading}
       >
-        <Text className="text-muted text-center  font-semibold">
+        <Text style={styles.s_6}>
           {isLoading ? 'Verifying...' : 'Verify OTP'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity className="py-3 border-muted-foreground border rounded-md ">
-        <Text className="text-primary
-         text-center  font-semibold">
+        <Text style={styles.s_8}>
           Resend OTP
         </Text>
       </TouchableOpacity>

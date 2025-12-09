@@ -9,6 +9,7 @@ import {
   Alert,
   Modal
 } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { updateProfile } from '../../store/slices/authSlice';
@@ -49,8 +50,8 @@ const AdminProfile = () => {
 
   if (!user) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
-        <Text className="text-foreground text-lg">User not found</Text>
+      <View style={styles.s_1}>
+        <Text style={styles.s_2}>User not found</Text>
       </View>
     );
   }
@@ -161,46 +162,46 @@ const AdminProfile = () => {
   ];
 
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1">
-        <View className="p-4 md:p-6 space-y-6">
+    <View style={styles.s_3}>
+      <ScrollView style={styles.s_4}>
+        <View style={styles.s_5}>
           {/* Header */}
           <View>
-            <Text className="text-2xl md:text-3xl font-bold text-foreground">
+            <Text style={styles.s_6}>
               Profile
             </Text>
-            <Text className="text-sm md:text-base text-muted-foreground">
+            <Text style={styles.s_7}>
               View and manage your account
             </Text>
           </View>
 
-          <View className="flex-col md:flex-row gap-6">
+          <View style={styles.s_8}>
             {/* Account Information Card */}
-            <View className="flex-1">
-              <View className="bg-card rounded-lg p-4 shadow-sm">
-                <Text className="text-lg font-bold text-foreground mb-1">
+            <View style={styles.s_4}>
+              <View style={styles.s_9}>
+                <Text style={styles.s_10}>
                   Account Information
                 </Text>
-                <Text className="text-sm text-muted-foreground mb-4">
+                <Text style={styles.s_11}>
                   Your personal details
                 </Text>
                 
-                <View className="space-y-3">
+                <View style={styles.s_12}>
                   {profileInfo.map((item, index) => (
                     <View 
                       key={index}
-                      className="flex-row items-center gap-3 p-3 bg-secondary rounded-lg"
+                      style={styles.s_13}
                     >
                       <Ionicons 
                         name={item.icon as keyof typeof Ionicons.glyphMap} 
                         size={20} 
                         className={item.color}
                       />
-                      <View className="flex-1">
-                        <Text className="text-sm font-medium text-muted-foreground">
+                      <View style={styles.s_4}>
+                        <Text style={styles.s_14}>
                           {item.label}
                         </Text>
-                        <Text className="font-semibold text-foreground">
+                        <Text style={styles.s_15}>
                           {item.value}
                         </Text>
                       </View>
@@ -211,80 +212,80 @@ const AdminProfile = () => {
             </View>
 
             {/* Account Settings Card */}
-            <View className="flex-1">
-              <View className="bg-card rounded-lg p-4 shadow-sm">
-                <Text className="text-lg font-bold text-foreground mb-1">
+            <View style={styles.s_4}>
+              <View style={styles.s_9}>
+                <Text style={styles.s_10}>
                   Account Settings
                 </Text>
-                <Text className="text-sm text-muted-foreground mb-4">
+                <Text style={styles.s_11}>
                   Manage your preferences
                 </Text>
                 
-                <View className="space-y-3">
+                <View style={styles.s_12}>
                   {/* Update Profile Button */}
                   <TouchableOpacity
-                    className="flex-row items-center gap-3 p-3 border border-input rounded-lg active:bg-secondary"
+                    style={styles.s_16}
                     onPress={() => setIsEditOpen(true)}
                   >
-                    <Ionicons name="create-outline" size={20} className="text-foreground" />
-                    <View className="flex-1">
-                      <Text className="font-medium text-foreground">
+                    <Ionicons name="create-outline" size={20} style={styles.s_17} />
+                    <View style={styles.s_4}>
+                      <Text style={styles.s_18}>
                         Update Profile
                       </Text>
-                      <Text className="text-sm text-muted-foreground">
+                      <Text style={styles.s_19}>
                         Update your personal information
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} className="text-muted-foreground" />
+                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
                   </TouchableOpacity>
 
                   {/* Change Password Button */}
                   <TouchableOpacity
-                    className="flex-row items-center gap-3 p-3 border border-input rounded-lg active:bg-secondary"
+                    style={styles.s_16}
                     onPress={() => setIsPasswordOpen(true)}
                   >
-                    <Ionicons name="key-outline" size={20} className="text-foreground" />
-                    <View className="flex-1">
-                      <Text className="font-medium text-foreground">
+                    <Ionicons name="key-outline" size={20} style={styles.s_17} />
+                    <View style={styles.s_4}>
+                      <Text style={styles.s_18}>
                         Change Password
                       </Text>
-                      <Text className="text-sm text-muted-foreground">
+                      <Text style={styles.s_19}>
                         Update your password
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} className="text-muted-foreground" />
+                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
                   </TouchableOpacity>
 
                   {/* Security Settings */}
                   <TouchableOpacity
-                    className="flex-row items-center gap-3 p-3 border border-input rounded-lg active:bg-secondary"
+                    style={styles.s_16}
                   >
-                    <Ionicons name="shield-checkmark-outline" size={20} className="text-foreground" />
-                    <View className="flex-1">
-                      <Text className="font-medium text-foreground">
+                    <Ionicons name="shield-checkmark-outline" size={20} style={styles.s_17} />
+                    <View style={styles.s_4}>
+                      <Text style={styles.s_18}>
                         Security Settings
                       </Text>
-                      <Text className="text-sm text-muted-foreground">
+                      <Text style={styles.s_19}>
                         Manage security preferences
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} className="text-muted-foreground" />
+                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
                   </TouchableOpacity>
 
                   {/* Notification Settings */}
                   <TouchableOpacity
-                    className="flex-row items-center gap-3 p-3 border border-input rounded-lg active:bg-secondary"
+                    style={styles.s_16}
                   >
-                    <Ionicons name="notifications-outline" size={20} className="text-foreground" />
-                    <View className="flex-1">
-                      <Text className="font-medium text-foreground">
+                    <Ionicons name="notifications-outline" size={20} style={styles.s_17} />
+                    <View style={styles.s_4}>
+                      <Text style={styles.s_18}>
                         Notifications
                       </Text>
-                      <Text className="text-sm text-muted-foreground">
+                      <Text style={styles.s_19}>
                         Configure notification settings
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} className="text-muted-foreground" />
+                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -292,32 +293,32 @@ const AdminProfile = () => {
           </View>
 
           {/* Additional Info Card */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
-            <Text className="text-lg font-bold text-foreground mb-4">
+          <View style={styles.s_9}>
+            <Text style={styles.s_21}>
               Account Statistics
             </Text>
-            <View className="flex-row flex-wrap justify-between gap-4">
-              <View className="flex-1 min-w-[150px]">
-                <Text className="text-sm text-muted-foreground mb-1">Last Login</Text>
-                <Text className="font-semibold text-foreground">
+            <View style={styles.s_22}>
+              <View style={styles.s_23}>
+                <Text style={styles.s_24}>Last Login</Text>
+                <Text style={styles.s_15}>
                   {new Date().toLocaleString()}
                 </Text>
               </View>
-              <View className="flex-1 min-w-[150px]">
-                <Text className="text-sm text-muted-foreground mb-1">Account Status</Text>
-                <View className="bg-green-100 px-2 py-1 rounded-full self-start">
-                  <Text className="text-green-800 text-xs font-medium">Active</Text>
+              <View style={styles.s_23}>
+                <Text style={styles.s_24}>Account Status</Text>
+                <View style={styles.s_25}>
+                  <Text style={styles.s_26}>Active</Text>
                 </View>
               </View>
-              <View className="flex-1 min-w-[150px]">
-                <Text className="text-sm text-muted-foreground mb-1">Two-Factor Auth</Text>
-                <View className="bg-yellow-100 px-2 py-1 rounded-full self-start">
-                  <Text className="text-yellow-800 text-xs font-medium">Disabled</Text>
+              <View style={styles.s_23}>
+                <Text style={styles.s_24}>Two-Factor Auth</Text>
+                <View style={styles.s_27}>
+                  <Text style={styles.s_28}>Disabled</Text>
                 </View>
               </View>
-              <View className="flex-1 min-w-[150px]">
-                <Text className="text-sm text-muted-foreground mb-1">Login Sessions</Text>
-                <Text className="font-semibold text-foreground">1 Active</Text>
+              <View style={styles.s_23}>
+                <Text style={styles.s_24}>Login Sessions</Text>
+                <Text style={styles.s_15}>1 Active</Text>
               </View>
             </View>
           </View>
@@ -330,30 +331,30 @@ const AdminProfile = () => {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View className="flex-1 bg-background pt-4">
-          <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">Update Profile</Text>
+        <View style={styles.s_29}>
+          <View style={styles.s_30}>
+            <Text style={styles.s_31}>Update Profile</Text>
             <TouchableOpacity onPress={() => setIsEditOpen(false)}>
-              <Ionicons name="close" size={24} className="text-foreground" />
+              <Ionicons name="close" size={24} style={styles.s_17} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView className="flex-1 p-4">
-            <View className="space-y-4">
+          <ScrollView style={styles.s_32}>
+            <View style={styles.s_33}>
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_34}>
                   Full Name *
                 </Text>
                 <TextInput
                   value={profileForm.name}
                   onChangeText={(text) => setProfileForm({ ...profileForm, name: text })}
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_35}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_34}>
                   Email *
                 </Text>
                 <TextInput
@@ -361,26 +362,26 @@ const AdminProfile = () => {
                   onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_35}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_34}>
                   Phone
                 </Text>
                 <TextInput
                   value={profileForm.phone}
                   onChangeText={(text) => setProfileForm({ ...profileForm, phone: text })}
                   keyboardType="phone-pad"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_35}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_34}>
                   Address
                 </Text>
                 <TextInput
@@ -388,27 +389,27 @@ const AdminProfile = () => {
                   onChangeText={(text) => setProfileForm({ ...profileForm, address: text })}
                   multiline
                   numberOfLines={3}
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground min-h-[100px]"
+                  style={styles.s_36}
                   placeholderTextColor="#6B7280"
                 />
               </View>
             </View>
 
-            <View className="flex-row space-x-3 pt-6">
+            <View style={styles.s_37}>
               <TouchableOpacity
-                className="flex-1 border border-input rounded-lg py-3"
+                style={styles.s_38}
                 onPress={() => setIsEditOpen(false)}
               >
-                <Text className="text-foreground text-center font-semibold">
+                <Text style={styles.s_39}>
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 bg-accent rounded-lg py-3"
+                style={styles.s_40}
                 onPress={handleProfileUpdate}
                 disabled={loading}
               >
-                <Text className="text-accent-foreground text-center font-semibold">
+                <Text style={styles.s_41}>
                   {loading ? 'Updating...' : 'Update Profile'}
                 </Text>
               </TouchableOpacity>
@@ -423,92 +424,92 @@ const AdminProfile = () => {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View className="flex-1 bg-background pt-4">
-          <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">Change Password</Text>
+        <View style={styles.s_29}>
+          <View style={styles.s_30}>
+            <Text style={styles.s_31}>Change Password</Text>
             <TouchableOpacity onPress={() => setIsPasswordOpen(false)}>
-              <Ionicons name="close" size={24} className="text-foreground" />
+              <Ionicons name="close" size={24} style={styles.s_17} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView className="flex-1 p-4">
-            <View className="space-y-4">
+          <ScrollView style={styles.s_32}>
+            <View style={styles.s_33}>
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_34}>
                   Current Password *
                 </Text>
                 <TextInput
                   value={passwordForm.currentPassword}
                   onChangeText={(text) => setPasswordForm({ ...passwordForm, currentPassword: text })}
                   secureTextEntry
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_35}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_34}>
                   New Password *
                 </Text>
                 <TextInput
                   value={passwordForm.newPassword}
                   onChangeText={(text) => setPasswordForm({ ...passwordForm, newPassword: text })}
                   secureTextEntry
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_35}
                   placeholderTextColor="#6B7280"
                 />
-                <Text className="text-xs text-muted-foreground mt-1">
+                <Text style={styles.s_42}>
                   Password must be at least 6 characters long
                 </Text>
               </View>
 
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">
+                <Text style={styles.s_34}>
                   Confirm New Password *
                 </Text>
                 <TextInput
                   value={passwordForm.confirmPassword}
                   onChangeText={(text) => setPasswordForm({ ...passwordForm, confirmPassword: text })}
                   secureTextEntry
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_35}
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               {/* Password Requirements */}
-              <View className="bg-secondary rounded-lg p-4">
-                <Text className="font-medium text-foreground mb-2">
+              <View style={styles.s_43}>
+                <Text style={styles.s_44}>
                   Password Requirements
                 </Text>
-                <View className="space-y-1">
-                  <Text className="text-xs text-muted-foreground">
+                <View style={styles.s_45}>
+                  <Text style={styles.s_46}>
                     • At least 6 characters long
                   </Text>
-                  <Text className="text-xs text-muted-foreground">
+                  <Text style={styles.s_46}>
                     • Include uppercase and lowercase letters
                   </Text>
-                  <Text className="text-xs text-muted-foreground">
+                  <Text style={styles.s_46}>
                     • Include numbers and special characters
                   </Text>
                 </View>
               </View>
             </View>
 
-            <View className="flex-row space-x-3 pt-6">
+            <View style={styles.s_37}>
               <TouchableOpacity
-                className="flex-1 border border-input rounded-lg py-3"
+                style={styles.s_38}
                 onPress={() => setIsPasswordOpen(false)}
               >
-                <Text className="text-foreground text-center font-semibold">
+                <Text style={styles.s_39}>
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 bg-accent rounded-lg py-3"
+                style={styles.s_40}
                 onPress={handlePasswordChange}
                 disabled={loading}
               >
-                <Text className="text-accent-foreground text-center font-semibold">
+                <Text style={styles.s_41}>
                   {loading ? 'Changing...' : 'Change Password'}
                 </Text>
               </TouchableOpacity>
@@ -520,4 +521,261 @@ const AdminProfile = () => {
   );
 };
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  flex: 1,
+  backgroundColor: "#ffffff",
+  justifyContent: "center",
+  alignItems: "center"
+},
+
+  s_2: {
+  color: "#0f172a",
+  fontSize: 18
+},
+
+  s_3: {
+  flex: 1,
+  backgroundColor: "#ffffff"
+},
+
+  s_4: {
+  flex: 1
+},
+
+  s_5: {
+  padding: 16
+},
+
+  s_6: {
+  fontSize: 24,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_7: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_8: {
+  flexDirection: "column"
+},
+
+  s_9: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 1
+  },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 1
+},
+
+  s_10: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_11: {
+  fontSize: 14,
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_12: {},
+
+  s_13: {
+  flexDirection: "row",
+  alignItems: "center",
+  padding: 12,
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12
+},
+
+  s_14: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#6b7280"
+},
+
+  s_15: {
+  color: "#0f172a"
+},
+
+  s_16: {
+  flexDirection: "row",
+  alignItems: "center",
+  padding: 12,
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12
+},
+
+  s_17: {
+  color: "#0f172a"
+},
+
+  s_18: {
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_19: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_20: {
+  color: "#6b7280"
+},
+
+  s_21: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a",
+  marginBottom: 16
+},
+
+  s_22: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  gap: 16
+},
+
+  s_23: {
+  flex: 1
+},
+
+  s_24: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_25: {},
+
+  s_26: {
+  fontSize: 12,
+  fontWeight: "600"
+},
+
+  s_27: {},
+
+  s_28: {
+  fontSize: 12,
+  fontWeight: "600"
+},
+
+  s_29: {
+  flex: 1,
+  backgroundColor: "#ffffff",
+  paddingTop: 16
+},
+
+  s_30: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingHorizontal: 16,
+  paddingBottom: 16,
+  borderColor: "#e6edf3"
+},
+
+  s_31: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_32: {
+  flex: 1,
+  padding: 16
+},
+
+  s_33: {},
+
+  s_34: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_35: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_36: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_37: {
+  flexDirection: "row"
+},
+
+  s_38: {
+  flex: 1,
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingVertical: 12
+},
+
+  s_39: {
+  color: "#0f172a"
+},
+
+  s_40: {
+  flex: 1,
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingVertical: 12
+},
+
+  s_41: {},
+
+  s_42: {
+  fontSize: 12,
+  color: "#6b7280"
+},
+
+  s_43: {
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12,
+  padding: 16
+},
+
+  s_44: {
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_45: {},
+
+  s_46: {
+  fontSize: 12,
+  color: "#6b7280"
+}
+});
 export default AdminProfile;

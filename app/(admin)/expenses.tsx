@@ -10,6 +10,7 @@ import {
   Modal,
   FlatList
 } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addExpense } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -135,15 +136,15 @@ const AdminExpenses = () => {
 
   const renderExpenseItem: ListRenderItem<ExpenseRecord> = ({ item }) => (
     <TouchableOpacity 
-      className="border-b border-border py-4 px-4 bg-card active:bg-muted"
+      style={styles.s_1}
       onPress={() => setSelectedExpense(item)}
     >
-      <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-1">
-          <Text className="font-semibold text-foreground text-base">{item.description}</Text>
+      <View style={styles.s_2}>
+        <View style={styles.s_3}>
+          <Text style={styles.s_4}>{item.description}</Text>
        
         </View>
-        <Text className="font-bold text-destructive text-lg">
+        <Text style={styles.s_5}>
           ${item.amount.toFixed(2)}
         </Text>
       </View>
@@ -153,41 +154,41 @@ const AdminExpenses = () => {
 
   if (isLoading) {
     return (
-      <ScrollView className="flex-1 bg-background">
-        <View className="p-4 space-y-6">
+      <ScrollView style={styles.s_6}>
+        <View style={styles.s_7}>
           {/* Header Skeleton */}
-          <View className="flex-row justify-between items-center">
+          <View style={styles.s_8}>
             <View>
-              <View className="h-8 w-32 bg-muted rounded mb-2 animate-pulse" />
-              <View className="h-4 w-48 bg-muted rounded animate-pulse" />
+              <View style={styles.s_9} />
+              <View style={styles.s_10} />
             </View>
-            <View className="h-10 w-32 bg-muted rounded animate-pulse" />
+            <View style={styles.s_11} />
           </View>
 
           {/* Stats Grid Skeleton */}
-          <View className="flex-row justify-between gap-4">
+          <View style={styles.s_12}>
             {[1, 2, 3].map((i) => (
-              <View key={i} className="bg-card rounded-lg p-4 flex-1">
-                <View className="h-4 w-20 bg-muted rounded mb-2 animate-pulse" />
-                <View className="h-6 w-16 bg-muted rounded animate-pulse" />
+              <View key={i} style={styles.s_13}>
+                <View style={styles.s_14} />
+                <View style={styles.s_15} />
               </View>
             ))}
           </View>
 
           {/* Search and Filter Skeleton */}
-          <View className="bg-card rounded-lg p-4">
-            <View className="h-6 w-40 bg-muted rounded mb-2 animate-pulse" />
-            <View className="h-4 w-56 bg-muted rounded mb-4 animate-pulse" />
-            <View className="flex-row gap-4">
-              <View className="flex-1 h-10 bg-muted rounded animate-pulse" />
-              <View className="w-32 h-10 bg-muted rounded animate-pulse" />
+          <View style={styles.s_16}>
+            <View style={styles.s_17} />
+            <View style={styles.s_18} />
+            <View style={styles.s_19}>
+              <View style={styles.s_20} />
+              <View style={styles.s_21} />
             </View>
           </View>
 
           {/* List Skeleton */}
-          <View className="bg-card rounded-lg p-4">
+          <View style={styles.s_16}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} className="h-16 bg-muted rounded mb-2 animate-pulse" />
+              <View key={i} style={styles.s_22} />
             ))}
           </View>
         </View>
@@ -196,69 +197,69 @@ const AdminExpenses = () => {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="p-4 space-y-6">
+    <View style={styles.s_6}>
+      <ScrollView style={styles.s_3} showsVerticalScrollIndicator={false}>
+        <View style={styles.s_7}>
          
 
           {/* Stats Cards */}
-          <View className="w-full grid grid-cols-2 gap-4">
-            <View className="bg-primary rounded-lg p-4 flex-1 items-center justify-center">
-              <Text className="text-sm font-medium text-primary-foreground mb-1">
+          <View style={styles.s_23}>
+            <View style={styles.s_24}>
+              <Text style={styles.s_25}>
                 Total Expenses
               </Text>
-              <Text className="text-xl font-bold text-accent">
+              <Text style={styles.s_26}>
                 ${totalExpenses.toFixed(2)}
               </Text>
             </View>
-            <View className="bg-primary rounded-lg p-4 flex-1 items-center justify-center">
-              <Text className="text-sm font-medium text-primary-foreground mb-1">
+            <View style={styles.s_24}>
+              <Text style={styles.s_25}>
                 Number of Expenses
               </Text>
-              <Text className="text-xl font-bold text-accent">
+              <Text style={styles.s_26}>
                 {expenses.length}
               </Text>
             </View>
             
           </View>
-          <View className="w-full">
+          <View style={styles.s_27}>
             <TouchableOpacity
-              className="bg-accent rounded-lg px-4 py-3 flex flex-row w-full items-center justify-center"
+              style={styles.s_28}
               onPress={() => setIsDialogOpen(true)}
             >
               <Ionicons name="add" size={20} className="text-accent-foreground mr-2 " />
-              <Text className="text-accent-foreground font-semibold">Add New Expense</Text>
+              <Text style={styles.s_30}>Add New Expense</Text>
             </TouchableOpacity>
           </View>
 
           {/* Search and Filter */}
-          <View className="bg-card rounded-lg p-4">
-            <Text className="text-lg font-bold text-foreground mb-1">
+          <View style={styles.s_16}>
+            <Text style={styles.s_31}>
               Expense History
             </Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+            <Text style={styles.s_32}>
               All recorded business expenses
             </Text>
             
             {/* Search Input */}
-            <View className="relative mb-4">
+            <View style={styles.s_33}>
               <Ionicons 
                 name="search" 
                 size={20} 
-                className="absolute left-3 top-3 text-muted-foreground z-10" 
+                style={styles.s_34} 
               />
               <TextInput
                 placeholder="Search by description or ID..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                className="bg-background border border-input rounded-lg pl-10 pr-4 py-3 text-foreground"
+                style={styles.s_35}
                 placeholderTextColor="#6B7280"
               />
             </View>
 
             {/* Category Filter */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row space-x-2">
+              <View style={styles.s_36}>
                 <TouchableOpacity
                   className={`px-4 py-2 rounded-lg border ${
                     categoryFilter === 'all'
@@ -299,14 +300,14 @@ const AdminExpenses = () => {
           </View>
 
           {/* Expenses List */}
-          <View className="bg-card rounded-lg overflow-hidden border border-border">
+          <View style={styles.s_37}>
             {filteredExpenses.length === 0 ? (
-              <View className="p-8 items-center">
-                <Ionicons name="receipt-outline" size={48} className="text-muted-foreground mb-4" />
-                <Text className="text-lg font-medium text-foreground mb-2">
+              <View style={styles.s_38}>
+                <Ionicons name="receipt-outline" size={48} style={styles.s_39} />
+                <Text style={styles.s_40}>
                   No expenses found
                 </Text>
-                <Text className="text-muted-foreground text-center mb-4">
+                <Text style={styles.s_41}>
                   {searchQuery || categoryFilter !== 'all' 
                     ? 'Try adjusting your search or filter criteria'
                     : 'Get started by adding your first expense'
@@ -314,13 +315,13 @@ const AdminExpenses = () => {
                 </Text>
                 {(searchQuery || categoryFilter !== 'all') && (
                   <TouchableOpacity
-                    className="bg-accent rounded-lg px-4 py-2"
+                    style={styles.s_42}
                     onPress={() => {
                       setSearchQuery('');
                       setCategoryFilter('all');
                     }}
                   >
-                    <Text className="text-accent-foreground font-semibold">
+                    <Text style={styles.s_30}>
                       Clear Filters
                     </Text>
                   </TouchableOpacity>
@@ -332,7 +333,7 @@ const AdminExpenses = () => {
                 renderItem={renderExpenseItem}
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled={true}
-                className="max-h-96"
+                style={styles.s_43}
               />
             )}
           </View>
@@ -345,19 +346,19 @@ const AdminExpenses = () => {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View className="flex-1 bg-background pt-4">
-          <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">New Expense</Text>
+        <View style={styles.s_44}>
+          <View style={styles.s_45}>
+            <Text style={styles.s_46}>New Expense</Text>
             <TouchableOpacity onPress={() => setIsDialogOpen(false)}>
-              <Ionicons name="close" size={24} className="text-foreground" />
+              <Ionicons name="close" size={24} style={styles.s_47} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
-            <View className="space-y-6">
+          <ScrollView style={styles.s_48} showsVerticalScrollIndicator={false}>
+            <View style={styles.s_49}>
               {/* Category */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-3">Category</Text>
+                <Text style={styles.s_50}>Category</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex flex-row gap-4  rounded-lg border-border w-full bg-muted py-2 px-2 ">
                     {EXPENSE_CATEGORY_OPTIONS.map((category) => (
                       <TouchableOpacity
@@ -384,12 +385,12 @@ const AdminExpenses = () => {
 
               {/* Description */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">Description</Text>
+                <Text style={styles.s_52}>Description</Text>
                 <TextInput
                   value={formData.description}
                   onChangeText={(text) => setFormData({ ...formData, description: text })}
                   placeholder="Enter expense description"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_53}
                   placeholderTextColor="#6B7280"
                   multiline
                   numberOfLines={3}
@@ -399,13 +400,13 @@ const AdminExpenses = () => {
 
               {/* Amount */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">Amount</Text>
+                <Text style={styles.s_52}>Amount</Text>
                 <TextInput
                   value={formData.amount}
                   onChangeText={(text) => setFormData({ ...formData, amount: text })}
                   placeholder="0.00"
                   keyboardType="decimal-pad"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground text-lg"
+                  style={styles.s_54}
                   placeholderTextColor="#6B7280"
                 />
               </View>
@@ -413,10 +414,10 @@ const AdminExpenses = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              className="bg-accent rounded-lg py-2 mt-6"
+              style={styles.s_55}
               onPress={handleSubmit}
             >
-              <Text className="text-accent-foreground text-center font-semibold text-lg">
+              <Text style={styles.s_56}>
                 Add Expense
               </Text>
             </TouchableOpacity>
@@ -432,27 +433,27 @@ const AdminExpenses = () => {
         onRequestClose={() => setSelectedExpense(null)}
       >
         {selectedExpense && (
-          <View className="flex-1 bg-background pt-4">
-            <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-              <Text className="text-xl font-bold text-foreground">
+          <View style={styles.s_44}>
+            <View style={styles.s_45}>
+              <Text style={styles.s_46}>
                 Expense # {selectedExpense.id}
               </Text>
               <TouchableOpacity onPress={() => setSelectedExpense(null)}>
-                <Ionicons name="close" size={24} className="text-foreground" />
+                <Ionicons name="close" size={24} style={styles.s_47} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
-              <View className="space-y-6">
-                <View className="flex-row flex-wrap justify-between gap-4">
+            <ScrollView style={styles.s_48} showsVerticalScrollIndicator={false}>
+              <View style={styles.s_49}>
+                <View style={styles.s_57}>
                   
                   <View className="bg-primary relative rounded-lg h-48 w-full flex flex-col items-center justify-center ">
                     
                    <View className={`px-4 py-2 absolute top-3 right-3 rounded-full ${getCategoryColor(selectedExpense.category)}`}>
-                      <Text className="font-medium text-sm">{selectedExpense.category}</Text>
+                      <Text style={styles.s_59}>{selectedExpense.category}</Text>
                     </View>
                     
-                    <Text className="text-5xl text-destructive">
+                    <Text style={styles.s_60}>
                       
                       ${selectedExpense.amount.toFixed(2)}
                       
@@ -460,12 +461,12 @@ const AdminExpenses = () => {
                     
                   </View>
                   
-                  <View className="w-full flex flex-row items-center justify-between px-2">
-                    <Text className="font-medium text-foreground text-base"> {"ID #"}
+                  <View style={styles.s_61}>
+                    <Text style={styles.s_62}> {"ID #"}
                       {selectedExpense.id}
                     </Text>
                     
-                    <Text className="font-medium text-foreground text-base">
+                    <Text style={styles.s_62}>
                       {new Date(selectedExpense.date).toLocaleDateString()}
                     </Text>
                     
@@ -473,9 +474,9 @@ const AdminExpenses = () => {
                   </View>
                 
 
-                  <View className="w-full px-2">
-                    <Text className="text-sm text-muted-foreground mb-1">Description</Text>
-                    <Text className="font-medium text-foreground text-base leading-6">
+                  <View style={styles.s_63}>
+                    <Text style={styles.s_64}>Description</Text>
+                    <Text style={styles.s_65}>
                       {selectedExpense.description}
                     </Text>
                   </View>
@@ -484,18 +485,18 @@ const AdminExpenses = () => {
                 </View>
 
                 {/* Category Statistics */}
-                <View className="bg-secondary rounded-lg p-4">
-                  <Text className="font-semibold text-foreground mb-3">Category Statistics</Text>
-                  <View className="space-y-2">
-                    <View className="flex-row justify-between">
-                      <Text className="text-muted-foreground">Total in {selectedExpense.category}</Text>
-                      <Text className="font-semibold text-foreground">
+                <View style={styles.s_66}>
+                  <Text style={styles.s_67}>Category Statistics</Text>
+                  <View style={styles.s_68}>
+                    <View style={styles.s_69}>
+                      <Text style={styles.s_70}>Total in {selectedExpense.category}</Text>
+                      <Text style={styles.s_71}>
                         ${categoryTotals[selectedExpense.category]?.toFixed(2) || '0.00'}
                       </Text>
                     </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-muted-foreground">Percentage of Total</Text>
-                      <Text className="font-semibold text-foreground">
+                    <View style={styles.s_69}>
+                      <Text style={styles.s_70}>Percentage of Total</Text>
+                      <Text style={styles.s_71}>
                         {((categoryTotals[selectedExpense.category] / totalExpenses) * 100).toFixed(1)}%
                       </Text>
                     </View>
@@ -510,4 +511,398 @@ const AdminExpenses = () => {
   );
 };
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  borderColor: "#e6edf3",
+  paddingHorizontal: 16,
+  backgroundColor: "#ffffff"
+},
+
+  s_2: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  marginBottom: 8
+},
+
+  s_3: {
+  flex: 1
+},
+
+  s_4: {
+  color: "#0f172a"
+},
+
+  s_5: {
+  fontWeight: "700",
+  fontSize: 18
+},
+
+  s_6: {
+  flex: 1,
+  backgroundColor: "#ffffff"
+},
+
+  s_7: {
+  padding: 16
+},
+
+  s_8: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center"
+},
+
+  s_9: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_10: {
+  borderRadius: 6
+},
+
+  s_11: {
+  borderRadius: 6
+},
+
+  s_12: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  gap: 16
+},
+
+  s_13: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  flex: 1
+},
+
+  s_14: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_15: {
+  borderRadius: 6
+},
+
+  s_16: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16
+},
+
+  s_17: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_18: {
+  borderRadius: 6,
+  marginBottom: 16
+},
+
+  s_19: {
+  flexDirection: "row",
+  gap: 16
+},
+
+  s_20: {
+  flex: 1,
+  borderRadius: 6
+},
+
+  s_21: {
+  borderRadius: 6
+},
+
+  s_22: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_23: {
+  width: "100%",
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: 16
+},
+
+  s_24: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  padding: 16,
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center"
+},
+
+  s_25: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#ffffff"
+},
+
+  s_26: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#f97316"
+},
+
+  s_27: {
+  width: "100%"
+},
+
+  s_28: {
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  display: "flex",
+  flexDirection: "row",
+  width: "100%",
+  alignItems: "center",
+  justifyContent: "center"
+},
+
+  s_29: {},
+
+  s_30: {},
+
+  s_31: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_32: {
+  fontSize: 14,
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_33: {
+  marginBottom: 16
+},
+
+  s_34: {
+  color: "#6b7280"
+},
+
+  s_35: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingRight: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_36: {
+  flexDirection: "row"
+},
+
+  s_37: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "#e6edf3"
+},
+
+  s_38: {
+  alignItems: "center"
+},
+
+  s_39: {
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_40: {
+  fontSize: 18,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_41: {
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_42: {
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingHorizontal: 16
+},
+
+  s_43: {},
+
+  s_44: {
+  flex: 1,
+  backgroundColor: "#ffffff",
+  paddingTop: 16
+},
+
+  s_45: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingHorizontal: 16,
+  paddingBottom: 16,
+  borderColor: "#e6edf3"
+},
+
+  s_46: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_47: {
+  color: "#0f172a"
+},
+
+  s_48: {
+  flex: 1,
+  padding: 16
+},
+
+  s_49: {},
+
+  s_50: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 12
+},
+
+  s_51: {
+  display: "flex",
+  flexDirection: "row",
+  gap: 16,
+  borderRadius: 12,
+  borderColor: "#e6edf3",
+  width: "100%"
+},
+
+  s_52: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_53: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_54: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  color: "#0f172a",
+  fontSize: 18
+},
+
+  s_55: {
+  backgroundColor: "#f97316",
+  borderRadius: 12
+},
+
+  s_56: {
+  fontSize: 18
+},
+
+  s_57: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  gap: 16
+},
+
+  s_58: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  width: "100%",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center"
+},
+
+  s_59: {
+  fontWeight: "600",
+  fontSize: 14
+},
+
+  s_60: {},
+
+  s_61: {
+  width: "100%",
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between"
+},
+
+  s_62: {
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_63: {
+  width: "100%"
+},
+
+  s_64: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_65: {
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_66: {
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12,
+  padding: 16
+},
+
+  s_67: {
+  color: "#0f172a",
+  marginBottom: 12
+},
+
+  s_68: {},
+
+  s_69: {
+  flexDirection: "row",
+  justifyContent: "space-between"
+},
+
+  s_70: {
+  color: "#6b7280"
+},
+
+  s_71: {
+  color: "#0f172a"
+}
+});
 export default AdminExpenses;

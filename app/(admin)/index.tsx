@@ -1,6 +1,7 @@
 // app/(admin)/index.js
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -75,47 +76,47 @@ const AdminHome = () => {
 
   if (isLoading) {
     return (
-      <ScrollView className="flex-1 bg-background">
-        <View className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <ScrollView style={styles.s_1}>
+        <View style={styles.s_2}>
           {/* Header Skeleton */}
           <View>
-            <View className="h-8 w-48 bg-muted rounded mb-2 animate-pulse" />
-            <View className="h-4 w-64 bg-muted rounded animate-pulse" />
+            <View style={styles.s_3} />
+            <View style={styles.s_4} />
           </View>
 
           {/* Stats Grid Skeleton */}
-          <View className="flex-row flex-wrap justify-between gap-4">
+          <View style={styles.s_5}>
             {[1, 2, 3, 4].map((i) => (
-              <View key={i} className="bg-card rounded-lg p-4 w-[48%] min-w-[160px]">
-                <View className="flex-row justify-between items-center mb-2">
-                  <View className="h-4 w-20 bg-muted rounded animate-pulse" />
-                  <View className="h-4 w-4 bg-muted rounded animate-pulse" />
+              <View key={i} style={styles.s_6}>
+                <View style={styles.s_7}>
+                  <View style={styles.s_8} />
+                  <View style={styles.s_9} />
                 </View>
-                <View className="h-6 w-12 bg-muted rounded mb-1 animate-pulse" />
-                <View className="h-3 w-24 bg-muted rounded animate-pulse" />
+                <View style={styles.s_10} />
+                <View style={styles.s_11} />
               </View>
             ))}
           </View>
 
           {/* Content Skeleton */}
-          <View className="flex-row flex-wrap justify-between gap-4">
-            <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
-              <View className="h-6 w-32 bg-muted rounded mb-1 animate-pulse" />
-              <View className="h-4 w-48 bg-muted rounded mb-4 animate-pulse" />
+          <View style={styles.s_5}>
+            <View style={styles.s_12}>
+              <View style={styles.s_13} />
+              <View style={styles.s_14} />
               {[1, 2, 3].map((i) => (
-                <View key={i} className="bg-secondary rounded-lg p-3 mb-2">
-                  <View className="h-4 w-40 bg-muted rounded mb-1 animate-pulse" />
-                  <View className="h-3 w-32 bg-muted rounded animate-pulse" />
+                <View key={i} style={styles.s_15}>
+                  <View style={styles.s_16} />
+                  <View style={styles.s_17} />
                 </View>
               ))}
             </View>
-            <View className="bg-card rounded-lg p-4 w-[48%] min-w-[300px]">
-              <View className="h-6 w-32 bg-muted rounded mb-1 animate-pulse" />
-              <View className="h-4 w-48 bg-muted rounded mb-4 animate-pulse" />
+            <View style={styles.s_12}>
+              <View style={styles.s_13} />
+              <View style={styles.s_14} />
               {[1, 2, 3].map((i) => (
-                <View key={i} className="bg-secondary rounded-lg p-3 mb-2">
-                  <View className="h-4 w-40 bg-muted rounded mb-1 animate-pulse" />
-                  <View className="h-3 w-24 bg-muted rounded animate-pulse" />
+                <View key={i} style={styles.s_15}>
+                  <View style={styles.s_16} />
+                  <View style={styles.s_11} />
                 </View>
               ))}
             </View>
@@ -126,85 +127,85 @@ const AdminHome = () => {
   }
 
   return (
-    <ScrollView className="flex-1 bg-background">
-      <View className="space-y-4 md:space-y-6 p-4 md:p-6">
+    <ScrollView style={styles.s_1}>
+      <View style={styles.s_2}>
         {/* Header */}
-        <View className="w-full">
+        <View style={styles.s_18}>
           
-          <Text className="text-lg md:text-center text-muted-foreground">
+          <Text style={styles.s_19}>
             Welcome to your shop management system
           </Text>
         </View>
 
         {/* Stats Cards */}
-        <View className="grid  grid-cols-2 gap-4 w-full">
+        <View style={styles.s_20}>
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
-              <View key={stat.title} className="bg-primary rounded-lg p-4 w-full  ">
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text className="text-sm font-medium text-muted">{stat.title}</Text>
+              <View key={stat.title} style={styles.s_21}>  
+                <View style={styles.s_7}>
+                  <Text style={styles.s_22}>{stat.title}</Text>
                   <Ionicons name={stat.icon as any} size={16} className={stat.color} />
                 </View>
-                <Text className="text-xl md:text-2xl font-bold text-primary-foreground">{stat.value}</Text>
-                <Text className="text-xs text-muted-foreground">{stat.description}</Text>
+                <Text style={styles.s_23}>{stat.value}</Text>
+                <Text style={styles.s_24}>{stat.description}</Text>
               </View>
             );
           })}
         </View>
 
         {/* Quick Actions and Recent Activity */}
-        <View className="flex-row flex-wrap justify-between gap-4 w-full">
+        <View style={styles.s_25}>
           {/* Quick Actions */}
-          <View className="bg-card rounded-lg p-4 w-full">
-            <Text className="text-lg font-bold text-foreground">Quick Actions</Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+          <View style={styles.s_26}>
+            <Text style={styles.s_27}>Quick Actions</Text>
+            <Text style={styles.s_28}>
               Common tasks for shop management
             </Text>
             
-            <View className="space-y-2">
-              <View className="p-3 bg-secondary rounded-lg">
-                <Text className="font-medium text-foreground">View Sales Report</Text>
-                <Text className="text-sm text-muted-foreground">Check today's transactions</Text>
+            <View style={styles.s_29}>
+              <View style={styles.s_30}>
+                <Text style={styles.s_31}>View Sales Report</Text>
+                <Text style={styles.s_32}>Check today's transactions</Text>
               </View>
-              <View className="p-3 bg-secondary rounded-lg">
-                <Text className="font-medium text-foreground">Manage Inventory</Text>
-                <Text className="text-sm text-muted-foreground">Update stock levels</Text>
+              <View style={styles.s_30}>
+                <Text style={styles.s_31}>Manage Inventory</Text>
+                <Text style={styles.s_32}>Update stock levels</Text>
               </View>
-              <View className="p-3 bg-secondary rounded-lg">
-                <Text className="font-medium text-foreground">Add Expense</Text>
-                <Text className="text-sm text-muted-foreground">Record business expenses</Text>
+              <View style={styles.s_30}>
+                <Text style={styles.s_31}>Add Expense</Text>
+                <Text style={styles.s_32}>Record business expenses</Text>
               </View>
             </View>
           </View>
 
           {/* Recent Activity */}
-          <View className="bg-card rounded-lg p-4 w-full">
-            <Text className="text-lg font-bold text-foreground">Recent Activity</Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+          <View style={styles.s_26}>
+            <Text style={styles.s_27}>Recent Activity</Text>
+            <Text style={styles.s_28}>
               Latest transactions and updates
             </Text>
-            <View className="space-y-3">
-              <View className="flex-row justify-between items-center p-2 bg-secondary rounded-lg">
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">Sale completed</Text>
-                  <Text className="text-xs text-muted-foreground">2 minutes ago</Text>
+            <View style={styles.s_33}>
+              <View style={styles.s_34}>
+                <View style={styles.s_35}>
+                  <Text style={styles.s_36}>Sale completed</Text>
+                  <Text style={styles.s_24}>2 minutes ago</Text>
                 </View>
-                <Text className="text-sm font-bold text-accent">$349.99</Text>
+                <Text style={styles.s_37}>$349.99</Text>
               </View>
-              <View className="flex-row justify-between items-center p-2 bg-secondary rounded-lg">
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">Stock updated</Text>
-                  <Text className="text-xs text-muted-foreground">15 minutes ago</Text>
+              <View style={styles.s_34}>
+                <View style={styles.s_35}>
+                  <Text style={styles.s_36}>Stock updated</Text>
+                  <Text style={styles.s_24}>15 minutes ago</Text>
                 </View>
-                <Text className="text-sm font-medium text-foreground">+50 units</Text>
+                <Text style={styles.s_36}>+50 units</Text>
               </View>
-              <View className="flex-row justify-between items-center p-2 bg-secondary rounded-lg">
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">New purchase order</Text>
-                  <Text className="text-xs text-muted-foreground">1 hour ago</Text>
+              <View style={styles.s_34}>
+                <View style={styles.s_35}>
+                  <Text style={styles.s_36}>New purchase order</Text>
+                  <Text style={styles.s_24}>1 hour ago</Text>
                 </View>
-                <Text className="text-sm font-medium text-foreground">20 items</Text>
+                <Text style={styles.s_36}>20 items</Text>
               </View>
             </View>
           </View>
@@ -214,4 +215,205 @@ const AdminHome = () => {
   );
 };
 
+
+
+const styles = StyleSheet.create({
+  s_1: {
+  flex: 1,
+  backgroundColor: "#ffffff"
+},
+
+  s_2: {
+  padding: 16
+},
+
+  s_3: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_4: {
+  borderRadius: 6
+},
+
+  s_5: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  gap: 16
+},
+
+  s_6: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  width: "48%"
+},
+
+  s_7: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 8
+},
+
+  s_8: {
+  borderRadius: 6
+},
+
+  s_9: {
+  borderRadius: 6
+},
+
+  s_10: {
+  borderRadius: 6
+},
+
+  s_11: {
+  borderRadius: 6
+},
+
+  s_12: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  width: "48%"
+},
+
+  s_13: {
+  borderRadius: 6
+},
+
+  s_14: {
+  borderRadius: 6,
+  marginBottom: 16
+},
+
+  s_15: {
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12,
+  padding: 12,
+  marginBottom: 8
+},
+
+  s_16: {
+  borderRadius: 6
+},
+
+  s_17: {
+  borderRadius: 6
+},
+
+  s_18: {
+  width: "100%"
+},
+
+  s_19: {
+  fontSize: 18,
+  color: "#6b7280"
+},
+
+  s_20: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+ 
+  width: "100%",
+  gap: 14
+},
+
+  s_21: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  padding: 16,
+  width: "48%"
+},
+
+  s_22: {
+  fontSize: 14,
+  fontWeight: "600"
+},
+
+  s_23: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#ffffff"
+},
+
+  s_24: {
+  fontSize: 12,
+  color: "#6b7280"
+},
+
+  s_25: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  gap: 16,
+  width: "100%"
+},
+
+  s_26: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  width: "100%"
+},
+
+  s_27: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_28: {
+  fontSize: 14,
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_29: {},
+
+  s_30: {
+  padding: 12,
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12
+},
+
+  s_31: {
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_32: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_33: {},
+
+  s_34: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: 8,
+  backgroundColor: "#f3f4f6",
+  borderRadius: 12
+},
+
+  s_35: {
+  flex: 1
+},
+
+  s_36: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_37: {
+  fontSize: 14,
+  fontWeight: "700",
+  color: "#f97316"
+}
+});
 export default AdminHome;

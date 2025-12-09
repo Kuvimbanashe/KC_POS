@@ -11,6 +11,7 @@ import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import type { UserProfile, UserRole } from '../store/types';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
   const dispatch = useAppDispatch();
@@ -49,29 +50,33 @@ function RootLayoutNav() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0d1938' }}>
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0d1938' }}>
         <ActivityIndicator size="large" color="#FB923C" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      {!isAuthenticated ? (
-        <Stack.Screen name="(auth)" />
-      ) : userType === 'admin' ? (
-        <Stack.Screen name="(admin)" />
-      ) : (
-        <Stack.Screen name="(cashier)" />
-      )}
-    </Stack>
+    <SafeAreaView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        {!isAuthenticated ? (
+          <Stack.Screen name="(auth)" />
+        ) : userType === 'admin' ? (
+          <Stack.Screen name="(admin)" />
+        ) : (
+          <Stack.Screen name="(cashier)" />
+        )}
+      </Stack>
+    </SafeAreaView>
   );
 }
 
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <RootLayoutNav />
+      <SafeAreaProvider>
+        <RootLayoutNav />
+      </SafeAreaProvider>
     </Provider>
   );
 }

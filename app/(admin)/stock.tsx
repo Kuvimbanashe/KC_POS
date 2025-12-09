@@ -9,6 +9,7 @@ import {
   FlatList,
   Alert
 } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addProduct, updateProduct } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -177,21 +178,21 @@ const AdminStock = () => {
   const getStockBadge = (stock: number, minStockLevel = 10) => {
     if (stock === 0) {
       return (
-        <View className="bg-destructive px-2 py-1 rounded-full">
-          <Text className="text-destructive-foreground text-xs font-medium">Out of Stock</Text>
+        <View style={styles.s_1}>
+          <Text style={styles.s_2}>Out of Stock</Text>
         </View>
       );
     }
     if (stock < minStockLevel) {
       return (
-        <View className="bg-yellow-100 px-2 py-1 rounded-full">
-          <Text className="text-yellow-800 text-xs font-medium">Low Stock</Text>
+        <View style={styles.s_3}>
+          <Text style={styles.s_4}>Low Stock</Text>
         </View>
       );
     }
     return (
-      <View className="bg-green-100 px-2 py-1 rounded-full">
-        <Text className="text-green-800 text-xs font-medium">In Stock</Text>
+      <View style={styles.s_5}>
+        <Text style={styles.s_6}>In Stock</Text>
       </View>
     );
   };
@@ -219,34 +220,34 @@ const AdminStock = () => {
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
-      className="border-b border-border py-3 px-4 bg-card active:bg-muted"
+      style={styles.s_7}
       onPress={() => setSelectedProduct(item)}
       onLongPress={() => handleEditProduct(item)}
     >
-      <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-1">
-          <Text className="font-semibold text-foreground text-base">{item.name}</Text>
-          <Text className="text-muted-foreground text-sm">{item.sku}</Text>
+      <View style={styles.s_8}>
+        <View style={styles.s_9}>
+          <Text style={styles.s_10}>{item.name}</Text>
+          <Text style={styles.s_11}>{item.sku}</Text>
         </View>
-        <Text className="font-bold text-accent text-lg">
+        <Text style={styles.s_12}>
           ${item.price?.toFixed(2) ?? '0.00'}
         </Text>
       </View>
       
-      <View className="flex-row justify-between items-center">
-        <View className="flex-row items-center space-x-3">
-          <Text className="text-xs text-muted-foreground">
+      <View style={styles.s_13}>
+        <View style={styles.s_14}>
+          <Text style={styles.s_15}>
             Stock: {item.stock ?? 0}
           </Text>
           {getStockBadge(item.stock ?? 0, item.minStockLevel ?? 10)}
         </View>
-        <Text className="text-xs text-muted-foreground">
+        <Text style={styles.s_15}>
           {item.category ?? ''}
         </Text>
       </View>
       
       {item.supplier && (
-        <Text className="text-xs text-muted-foreground mt-1">
+        <Text style={styles.s_16}>
           Supplier: {item.supplier ?? ''}
         </Text>
       )}
@@ -255,38 +256,38 @@ const AdminStock = () => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-background">
-        <ScrollView className="flex-1 p-4 md:p-6 space-y-6">
+      <View style={styles.s_17}>
+        <ScrollView style={styles.s_18}>
           {/* Header Skeleton */}
-          <View className="flex-row justify-between items-center">
+          <View style={styles.s_13}>
             <View>
-              <View className="h-8 w-48 bg-muted rounded mb-2 animate-pulse" />
-              <View className="h-4 w-56 bg-muted rounded animate-pulse" />
+              <View style={styles.s_19} />
+              <View style={styles.s_20} />
             </View>
-            <View className="h-10 w-32 bg-muted rounded animate-pulse" />
+            <View style={styles.s_21} />
           </View>
 
           {/* Stats Grid Skeleton */}
-          <View className="flex-row flex-wrap justify-between gap-4">
+          <View style={styles.s_22}>
             {[1, 2, 3, 4].map((i) => (
-              <View key={i} className="bg-card rounded-lg p-4 shadow-sm w-[48%] min-w-[160px]">
-                <View className="h-4 w-20 bg-muted rounded mb-2 animate-pulse" />
-                <View className="h-6 w-16 bg-muted rounded animate-pulse" />
+              <View key={i} style={styles.s_23}>
+                <View style={styles.s_24} />
+                <View style={styles.s_25} />
               </View>
             ))}
           </View>
 
           {/* Search Skeleton */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
-            <View className="h-6 w-40 bg-muted rounded mb-2 animate-pulse" />
-            <View className="h-4 w-56 bg-muted rounded mb-4 animate-pulse" />
-            <View className="h-10 bg-muted rounded animate-pulse" />
+          <View style={styles.s_26}>
+            <View style={styles.s_27} />
+            <View style={styles.s_28} />
+            <View style={styles.s_29} />
           </View>
 
           {/* Table Skeleton */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
+          <View style={styles.s_26}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} className="h-16 bg-muted rounded mb-2 animate-pulse" />
+              <View key={i} style={styles.s_30} />
             ))}
           </View>
         </ScrollView>
@@ -295,81 +296,81 @@ const AdminStock = () => {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1">
-        <View className="p-4 md:p-6 space-y-6">
+    <View style={styles.s_17}>
+      <ScrollView style={styles.s_9}>
+        <View style={styles.s_31}>
 
 
           {/* Stats Cards */}
-          <View className="grid grid-cols-2  gap-4">
-            <View className="bg-primary rounded-lg p-4 w-full">
-              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
+          <View style={styles.s_32}>
+            <View style={styles.s_33}>
+              <Text style={styles.s_34}>
                 Total Products
               </Text>
-              <Text className="text-xl md:text-2xl text-center font-bold text-accent">
+              <Text style={styles.s_35}>
                 {products.length}
               </Text>
             </View>
             <View className=" rounded-lg p-4 bg-primary w-full">
-              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
+              <Text style={styles.s_34}>
                 Low Stock
               </Text>
-              <Text className="text-xl md:text-2xl text-center font-bold text-accent">
+              <Text style={styles.s_35}>
                 {lowStockProducts.length}
               </Text>
             </View>
             <View className="bg-primary  rounded-lg p-4 text-center w-full ">
-              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
+              <Text style={styles.s_34}>
                 Out of Stock
               </Text>
-              <Text className="text-xl md:text-2xl text-center font-bold text-destructive">
+              <Text style={styles.s_38}>
                 {outOfStockProducts.length}
               </Text>
             </View>
-            <View className="bg-primary rounded-lg p-4 w-full">
-              <Text className="text-sm font-medium text-primary-foreground text-center mb-1">
+            <View style={styles.s_33}>
+              <Text style={styles.s_34}>
                 Total Value
               </Text>
-              <Text className="text-xl md:text-2xl font-bold text-accent text-center">
+              <Text style={styles.s_39}>
                 ${totalValue.toFixed(2)}
               </Text>
             </View>
           </View>
 
           {/* Search */}
-          <View className="bg-card rounded-lg p-4 shadow-sm">
-            <Text className="text-lg font-bold text-foreground mb-1">
+          <View style={styles.s_26}>
+            <Text style={styles.s_40}>
               Product Inventory
             </Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+            <Text style={styles.s_41}>
               All products and stock levels
             </Text>
             
-            <View className="relative">
+            <View style={styles.s_42}>
               <Ionicons 
                 name="search" 
                 size={20} 
-                className="absolute left-3 top-3 text-muted-foreground" 
+                style={styles.s_43} 
               />
               <TextInput
                 placeholder="Search by name, SKU, or category..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                className="bg-background border border-input rounded-lg pl-10 pr-4 py-3 text-foreground"
+                style={styles.s_44}
                 placeholderTextColor="#6B7280"
               />
             </View>
           </View>
 
           {/* Products List */}
-          <View className="bg-card rounded-lg shadow-sm overflow-hidden">
+          <View style={styles.s_45}>
             {filteredProducts.length === 0 ? (
-              <View className="p-8 items-center">
-                <Ionicons name="cube-outline" size={48} className="text-muted-foreground mb-4" />
-                <Text className="text-lg font-medium text-foreground mb-2">
+              <View style={styles.s_46}>
+                <Ionicons name="cube-outline" size={48} style={styles.s_47} />
+                <Text style={styles.s_48}>
                   No products found
                 </Text>
-                <Text className="text-muted-foreground text-center mb-4">
+                <Text style={styles.s_49}>
                   {searchQuery 
                     ? 'Try adjusting your search criteria'
                     : 'Get started by adding your first product'
@@ -377,22 +378,22 @@ const AdminStock = () => {
                 </Text>
                 {searchQuery ? (
                   <TouchableOpacity
-                    className="bg-accent rounded-lg px-4 py-2"
+                    style={styles.s_50}
                     onPress={() => setSearchQuery('')}
                   >
-                    <Text className="text-accent-foreground font-semibold">
+                    <Text style={styles.s_51}>
                       Clear Search
                     </Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
-                    className="bg-accent rounded-lg px-4 py-2"
+                    style={styles.s_50}
                     onPress={() => {
                       resetForm();
                       setIsDialogOpen(true);
                     }}
                   >
-                    <Text className="text-accent-foreground font-semibold">
+                    <Text style={styles.s_51}>
                       Add First Product
                     </Text>
                   </TouchableOpacity>
@@ -404,7 +405,7 @@ const AdminStock = () => {
                 renderItem={renderProductItem}
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled={true}
-                className="max-h-96"
+                style={styles.s_52}
               />
             )}
           </View>
@@ -417,51 +418,51 @@ const AdminStock = () => {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <View className="flex-1 bg-background pt-4">
-          <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-            <Text className="text-xl font-bold text-foreground">
+        <View style={styles.s_53}>
+          <View style={styles.s_54}>
+            <Text style={styles.s_55}>
               {isEditMode ? 'Edit Product' : 'Add New Product'}
             </Text>
             <TouchableOpacity onPress={() => {
               setIsDialogOpen(false);
               resetForm();
             }}>
-              <Ionicons name="close" size={24} className="text-foreground" />
+              <Ionicons name="close" size={24} style={styles.s_56} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView className="flex-1 p-4">
-            <View className="space-y-4">
+          <ScrollView style={styles.s_57}>
+            <View style={styles.s_58}>
               {/* Basic Information */}
-              <View className="flex-row flex-wrap justify-between gap-4">
-                <View className="w-[48%]">
-                  <Text className="text-sm font-medium text-foreground mb-2">Product Name *</Text>
+              <View style={styles.s_22}>
+                <View style={styles.s_59}>
+                  <Text style={styles.s_60}>Product Name *</Text>
                   <TextInput
                     value={formData.name}
                     onChangeText={(text) => setFormData({ ...formData, name: text })}
                     placeholder="Enter product name"
-                    className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                    style={styles.s_61}
                     placeholderTextColor="#6B7280"
                   />
                 </View>
-                <View className="w-[48%]">
-                  <Text className="text-sm font-medium text-foreground mb-2">SKU *</Text>
+                <View style={styles.s_59}>
+                  <Text style={styles.s_60}>SKU *</Text>
                   <TextInput
                     value={formData.sku}
                     onChangeText={(text) => setFormData({ ...formData, sku: text })}
                     placeholder="Enter SKU"
-                    className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                    style={styles.s_61}
                     placeholderTextColor="#6B7280"
                   />
                 </View>
               </View>
 
               {/* Category and Supplier */}
-              <View className="flex-row flex-wrap justify-between gap-4">
-                <View className="w-[48%]">
-                  <Text className="text-sm font-medium text-foreground mb-2">Category *</Text>
+              <View style={styles.s_22}>
+                <View style={styles.s_59}>
+                  <Text style={styles.s_60}>Category *</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View className="flex-row space-x-2">
+                    <View style={styles.s_62}>
                       {categoryOptions.map((category) => (
                         <TouchableOpacity
                           key={category}
@@ -484,10 +485,10 @@ const AdminStock = () => {
                     </View>
                   </ScrollView>
                 </View>
-                <View className="w-[48%]">
-                  <Text className="text-sm font-medium text-foreground mb-2">Supplier *</Text>
+                <View style={styles.s_59}>
+                  <Text style={styles.s_60}>Supplier *</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View className="flex-row space-x-2">
+                    <View style={styles.s_62}>
                       {supplierOptions.map((supplier) => (
                         <TouchableOpacity
                           key={supplier}
@@ -514,8 +515,8 @@ const AdminStock = () => {
 
               {/* Unit Type */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">Unit Type *</Text>
-                <View className="flex-row space-x-2">
+                <Text style={styles.s_60}>Unit Type *</Text>
+                <View style={styles.s_62}>
                   {['single', 'pack', 'both'].map((unitType) => (
                     <TouchableOpacity
                       key={unitType}
@@ -539,26 +540,26 @@ const AdminStock = () => {
               </View>
 
               {/* Stock and Price */}
-              <View className="flex-row flex-wrap justify-between gap-4">
-                <View className="w-[48%]">
-                  <Text className="text-sm font-medium text-foreground mb-2">Initial Stock *</Text>
+              <View style={styles.s_22}>
+                <View style={styles.s_59}>
+                  <Text style={styles.s_60}>Initial Stock *</Text>
                   <TextInput  
                     value={formData.stock}
                     onChangeText={(text) => setFormData({ ...formData, stock: text })}
                     placeholder="0"
                     keyboardType="numeric"
-                    className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                    style={styles.s_61}
                     placeholderTextColor="#6B7280"
                   />
                 </View>
-                <View className="w-[48%]">
-                  <Text className="text-sm font-medium text-foreground mb-2">Price *</Text>
+                <View style={styles.s_59}>
+                  <Text style={styles.s_60}>Price *</Text>
                   <TextInput
                     value={formData.price}
                     onChangeText={(text) => setFormData({ ...formData, price: text })}
                     placeholder="0.00"
                     keyboardType="decimal-pad"
-                    className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                    style={styles.s_61}
                     placeholderTextColor="#6B7280"
                   />
                 </View>
@@ -566,26 +567,26 @@ const AdminStock = () => {
 
               {/* Pack Configuration */}
               {(formData.unitType === 'pack' || formData.unitType === 'both') && (
-                <View className="flex-row flex-wrap justify-between gap-4">
-                  <View className="w-[48%]">
-                    <Text className="text-sm font-medium text-foreground mb-2">Pack Size *</Text>
+                <View style={styles.s_22}>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_60}>Pack Size *</Text>
                     <TextInput
                       value={formData.packSize}
                       onChangeText={(text) => setFormData({ ...formData, packSize: text })}
                       placeholder="Units per pack"
                       keyboardType="numeric"
-                      className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                      style={styles.s_61}
                       placeholderTextColor="#6B7280"
                     />
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm font-medium text-foreground mb-2">Pack Price *</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_60}>Pack Price *</Text>
                     <TextInput
                       value={formData.packPrice}
                       onChangeText={(text) => setFormData({ ...formData, packPrice: text })}
                       placeholder="0.00"
                       keyboardType="decimal-pad"
-                      className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                      style={styles.s_61}
                       placeholderTextColor="#6B7280"
                     />
                   </View>
@@ -595,13 +596,13 @@ const AdminStock = () => {
               {/* Single Price for Both */}
               {formData.unitType === 'both' && (
                 <View>
-                  <Text className="text-sm font-medium text-foreground mb-2">Single Unit Price *</Text>
+                  <Text style={styles.s_60}>Single Unit Price *</Text>
                   <TextInput
                     value={formData.singlePrice}
                     onChangeText={(text) => setFormData({ ...formData, singlePrice: text })}
                     placeholder="0.00"
                     keyboardType="decimal-pad"
-                    className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                    style={styles.s_61}
                     placeholderTextColor="#6B7280"
                   />
                 </View>
@@ -609,13 +610,13 @@ const AdminStock = () => {
 
               {/* Minimum Stock Level */}
               <View>
-                <Text className="text-sm font-medium text-foreground mb-2">Minimum Stock Level</Text>
+                <Text style={styles.s_60}>Minimum Stock Level</Text>
                 <TextInput
                   value={formData.minStockLevel}
                   onChangeText={(text) => setFormData({ ...formData, minStockLevel: text })}
                   placeholder="10"
                   keyboardType="numeric"
-                  className="bg-background border border-input rounded-lg px-4 py-3 text-foreground"
+                  style={styles.s_61}
                   placeholderTextColor="#6B7280"
                 />
               </View>
@@ -623,10 +624,10 @@ const AdminStock = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              className="bg-accent rounded-lg py-4 mt-6"
+              style={styles.s_63}
               onPress={handleSubmit}
             >
-              <Text className="text-accent-foreground text-center font-semibold text-lg">
+              <Text style={styles.s_64}>
                 {isEditMode ? 'Update Product' : 'Add Product'}
               </Text>
             </TouchableOpacity>
@@ -642,84 +643,84 @@ const AdminStock = () => {
         onRequestClose={() => setSelectedProduct(null)}
       >
         {selectedProduct && (
-          <View className="flex-1 bg-background pt-4">
-            <View className="flex-row justify-between items-center px-4 pb-4 border-b border-border">
-              <Text className="text-xl font-bold text-foreground">
+          <View style={styles.s_53}>
+            <View style={styles.s_54}>
+              <Text style={styles.s_55}>
                 Product Details - {selectedProduct.sku ?? ''}
               </Text>
               <TouchableOpacity onPress={() => setSelectedProduct(null)}>
-                <Ionicons name="close" size={24} className="text-foreground" />
+                <Ionicons name="close" size={24} style={styles.s_56} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 p-4">
-              <View className="space-y-6">
-                <View className="flex-row flex-wrap justify-between gap-4">
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Name</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.name ?? ''}</Text>
+            <ScrollView style={styles.s_57}>
+              <View style={styles.s_65}>
+                <View style={styles.s_22}>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>Name</Text>
+                    <Text style={styles.s_67}>{selectedProduct.name ?? ''}</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Category</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.category ?? ''}</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>Category</Text>
+                    <Text style={styles.s_67}>{selectedProduct.category ?? ''}</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">SKU</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.sku ?? ''}</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>SKU</Text>
+                    <Text style={styles.s_67}>{selectedProduct.sku ?? ''}</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Supplier</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.supplier ?? ''}</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>Supplier</Text>
+                    <Text style={styles.s_67}>{selectedProduct.supplier ?? ''}</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Price</Text>
-                    <Text className="font-bold text-accent text-lg">${selectedProduct.price?.toFixed(2) ?? '0.00'}</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>Price</Text>
+                    <Text style={styles.s_12}>${selectedProduct.price?.toFixed(2) ?? '0.00'}</Text>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Stock</Text>
-                    <View className="flex-row items-center gap-2">
-                      <Text className="font-bold text-foreground text-lg">{selectedProduct.stock ?? 0}</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>Stock</Text>
+                    <View style={styles.s_68}>
+                      <Text style={styles.s_69}>{selectedProduct.stock ?? 0}</Text>
                       {getStockBadge(selectedProduct.stock ?? 0, selectedProduct.minStockLevel ?? 10)}
                     </View>
                   </View>
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Unit Type</Text>
-                    <Text className="font-medium text-foreground text-base capitalize">{selectedProduct.unitType ?? ''}</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>Unit Type</Text>
+                    <Text style={styles.s_70}>{selectedProduct.unitType ?? ''}</Text>
                   </View>
                   {selectedProduct.packSize && (
-                    <View className="w-[48%]">
-                      <Text className="text-sm text-muted-foreground mb-1">Pack Size</Text>
-                      <Text className="font-medium text-foreground text-base">{selectedProduct.packSize ?? 0} units</Text>
+                    <View style={styles.s_59}>
+                      <Text style={styles.s_66}>Pack Size</Text>
+                      <Text style={styles.s_67}>{selectedProduct.packSize ?? 0} units</Text>
                     </View>
                   )}
                   {selectedProduct.packPrice && (
-                    <View className="w-[48%]">
-                      <Text className="text-sm text-muted-foreground mb-1">Pack Price</Text>
-                      <Text className="font-medium text-foreground text-base">${selectedProduct.packPrice.toFixed(2)}</Text>
+                    <View style={styles.s_59}>
+                      <Text style={styles.s_66}>Pack Price</Text>
+                      <Text style={styles.s_67}>${selectedProduct.packPrice.toFixed(2)}</Text>
                     </View>
                   )}
                   {selectedProduct.singlePrice && (
-                    <View className="w-[48%]">
-                      <Text className="text-sm text-muted-foreground mb-1">Single Price</Text>
-                      <Text className="font-medium text-foreground text-base">${selectedProduct.singlePrice.toFixed(2)}</Text>
+                    <View style={styles.s_59}>
+                      <Text style={styles.s_66}>Single Price</Text>
+                      <Text style={styles.s_67}>${selectedProduct.singlePrice.toFixed(2)}</Text>
                     </View>
                   )}
-                  <View className="w-[48%]">
-                    <Text className="text-sm text-muted-foreground mb-1">Min Stock Level</Text>
-                    <Text className="font-medium text-foreground text-base">{selectedProduct.minStockLevel || 10}</Text>
+                  <View style={styles.s_59}>
+                    <Text style={styles.s_66}>Min Stock Level</Text>
+                    <Text style={styles.s_67}>{selectedProduct.minStockLevel || 10}</Text>
                   </View>
                 </View>
 
                 {/* Action Buttons */}
-                <View className="flex-row space-x-3 pt-4">
+                <View style={styles.s_71}>
                   <TouchableOpacity 
-                    className="flex-1 bg-accent rounded-lg py-3"
+                    style={styles.s_72}
                     onPress={() => {
                       handleEditProduct(selectedProduct);
                       setSelectedProduct(null);
                     }}
                   >
-                    <Text className="text-accent-foreground text-center font-semibold">
+                    <Text style={styles.s_73}>
                       Edit Product
                     </Text>
                   </TouchableOpacity>
@@ -733,4 +734,403 @@ const AdminStock = () => {
   );
 };
 
+
+
+const styles = StyleSheet.create({
+  s_1: {},
+
+  s_2: {
+  fontSize: 12,
+  fontWeight: "600"
+},
+
+  s_3: {},
+
+  s_4: {
+  fontSize: 12,
+  fontWeight: "600"
+},
+
+  s_5: {},
+
+  s_6: {
+  fontSize: 12,
+  fontWeight: "600"
+},
+
+  s_7: {
+  borderColor: "#e6edf3",
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  backgroundColor: "#ffffff"
+},
+
+  s_8: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  marginBottom: 8
+},
+
+  s_9: {
+  flex: 1
+},
+
+  s_10: {
+  color: "#0f172a"
+},
+
+  s_11: {
+  color: "#6b7280",
+  fontSize: 14
+},
+
+  s_12: {
+  fontWeight: "700",
+  color: "#f97316",
+  fontSize: 18
+},
+
+  s_13: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center"
+},
+
+  s_14: {
+  flexDirection: "row",
+  alignItems: "center"
+},
+
+  s_15: {
+  fontSize: 12,
+  color: "#6b7280"
+},
+
+  s_16: {
+  fontSize: 12,
+  color: "#6b7280"
+},
+
+  s_17: {
+  flex: 1,
+  backgroundColor: "#ffffff"
+},
+
+  s_18: {
+  flex: 1,
+  padding: 16
+},
+
+  s_19: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_20: {
+  borderRadius: 6
+},
+
+  s_21: {
+  borderRadius: 6
+},
+
+  s_22: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  gap: 16
+},
+
+  s_23: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 1
+  },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 1,
+  width: "48%"
+},
+
+  s_24: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_25: {
+  borderRadius: 6
+},
+
+  s_26: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 1
+  },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 1
+},
+
+  s_27: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_28: {
+  borderRadius: 6,
+  marginBottom: 16
+},
+
+  s_29: {
+  borderRadius: 6
+},
+
+  s_30: {
+  borderRadius: 6,
+  marginBottom: 8
+},
+
+  s_31: {
+  padding: 16
+},
+
+  s_32: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: 16
+},
+
+  s_33: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  padding: 16,
+  width: "100%"
+},
+
+  s_34: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#ffffff"
+},
+
+  s_35: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#f97316"
+},
+
+  s_36: {
+  borderRadius: 12,
+  padding: 16,
+  backgroundColor: "#0f172a",
+  width: "100%"
+},
+
+  s_37: {
+  backgroundColor: "#0f172a",
+  borderRadius: 12,
+  padding: 16,
+  width: "100%"
+},
+
+  s_38: {
+  fontSize: 20,
+  fontWeight: "700"
+},
+
+  s_39: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#f97316"
+},
+
+  s_40: {
+  fontSize: 18,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_41: {
+  fontSize: 14,
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_42: {},
+
+  s_43: {
+  color: "#6b7280"
+},
+
+  s_44: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingRight: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_45: {
+  backgroundColor: "#ffffff",
+  borderRadius: 12,
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 1
+  },
+  shadowOpacity: 0.06,
+  shadowRadius: 4,
+  elevation: 1
+},
+
+  s_46: {
+  alignItems: "center"
+},
+
+  s_47: {
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_48: {
+  fontSize: 18,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_49: {
+  color: "#6b7280",
+  marginBottom: 16
+},
+
+  s_50: {
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingHorizontal: 16
+},
+
+  s_51: {},
+
+  s_52: {},
+
+  s_53: {
+  flex: 1,
+  backgroundColor: "#ffffff",
+  paddingTop: 16
+},
+
+  s_54: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingHorizontal: 16,
+  paddingBottom: 16,
+  borderColor: "#e6edf3"
+},
+
+  s_55: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#0f172a"
+},
+
+  s_56: {
+  color: "#0f172a"
+},
+
+  s_57: {
+  flex: 1,
+  padding: 16
+},
+
+  s_58: {},
+
+  s_59: {
+  width: "48%"
+},
+
+  s_60: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: "#0f172a",
+  marginBottom: 8
+},
+
+  s_61: {
+  backgroundColor: "#ffffff",
+  borderWidth: 1,
+  borderColor: "#e6edf3",
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  color: "#0f172a"
+},
+
+  s_62: {
+  flexDirection: "row"
+},
+
+  s_63: {
+  backgroundColor: "#f97316",
+  borderRadius: 12
+},
+
+  s_64: {
+  fontSize: 18
+},
+
+  s_65: {},
+
+  s_66: {
+  fontSize: 14,
+  color: "#6b7280"
+},
+
+  s_67: {
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_68: {
+  flexDirection: "row",
+  alignItems: "center"
+},
+
+  s_69: {
+  fontWeight: "700",
+  color: "#0f172a",
+  fontSize: 18
+},
+
+  s_70: {
+  fontWeight: "600",
+  color: "#0f172a"
+},
+
+  s_71: {
+  flexDirection: "row",
+  paddingTop: 16
+},
+
+  s_72: {
+  flex: 1,
+  backgroundColor: "#f97316",
+  borderRadius: 12,
+  paddingVertical: 12
+},
+
+  s_73: {}
+});
 export default AdminStock;
