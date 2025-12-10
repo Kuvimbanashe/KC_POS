@@ -1,588 +1,587 @@
 // app/(cashier)/index.js
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import type { Ionicons as IoniconsType } from '@expo/vector-icons';
 import { useAppSelector } from '../../store/hooks';
 import type { SaleRecord } from '../../store/types';
+
+// Correct Ionicon type
+type IoniconName = keyof typeof Ionicons.glyphMap;
 
 const CashierHome = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { sales, products } = useAppSelector((state) => state.user);
 
-  // Filter today's sales for current cashier
   const today = new Date().toDateString();
-  const todaySales = sales.filter(sale => 
-    sale.cashier === user?.name && new Date(sale.date).toDateString() === today
+
+  // Filter today's sales by cashier
+  const todaySales = sales.filter(
+    (sale) => sale.cashier === user?.name && new Date(sale.date).toDateString() === today
   );
 
-  // Calculate stats
+  // Stats
   const todayReceiptsCount = todaySales.length;
   const todaySalesAmount = todaySales.reduce((sum, sale) => sum + sale.total, 0);
-  
-  // Get low stock products
-  const lowStockProducts = products.filter(product => product.stock < 10);
 
-  // Quick actions
+  // Low stock products
+  const lowStockProducts = products.filter((p) => p.stock < 10);
+
+  // Quick Actions
   const quickActions = [
-    {
-      title: 'New Sale',
-      description: 'Start a new transaction',
-      icon: 'cart',
-      screen: 'sell',
-      color: 'bg-secondary',
-    },
-    {
-      title: 'View Products',
-      description: 'Check product availability',
-      icon: 'cube',
-      screen: 'products',
-      color: 'bg-secondary',
-    },
-
+    { title: 'New Sale', description: 'Start a new transaction', icon: 'cart', screen: 'sell' },
+    { title: 'View Products', description: 'Check product availability', icon: 'cube', screen: 'products' }
   ];
 
-  const StatCard = ({ title, value, description, icon, color = 'text-muted' }: { title: string, value: string, description: string, icon: string, color: string }) => (
-    <View className={`rounded-lg p-4  ${color}`}>
-      <View style={styles.s_1}>
-        <Text style={styles.s_2}>{title}</Text>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} className={color} />
-      </View>
-      <Text style={styles.s_3}>{value}</Text>
-      <Text style={styles.s_4}>{description}</Text>
-    </View>
-  );
-
-  const renderSaleItem = (sale: SaleRecord) => {
-    const primaryItem = sale.items?.[0];
-    const itemQuantity = sale.quantity ?? primaryItem?.quantity ?? 0;
-    const itemName = sale.productName ?? primaryItem?.productName ?? 'Item';
-    const itemPrice = sale.price ?? primaryItem?.price ?? 0;
-    const itemSubtotal = primaryItem?.subtotal ?? itemQuantity * itemPrice;
+  const StatCard = ({ title, value, description, icon, variant }) => {
+    const isDark = variant === 'dark';
+    const isAccent = variant === 'accent';
 
     return (
-      <View key={sale.id} style={styles.s_5}>
-        <View className="flex-row justify-between items-center ">
+      <View
+        style={[
+          styles.statCard,
+          isAccent && styles.statCardAccent,
+          isDark && styles.statCardDark
+        ]}
+      >
+        <View style={styles.statCardHeader}>
+          <Text style={[styles.statTitle, (isAccent || isDark) && styles.statTextLight]}>
+            {title}
+          </Text>
+
+          <Ionicons
+            name={icon as IoniconName}
+            size={20}
+            color={isAccent || isDark ? '#fff' : '#6b7280'}
+          />
+        </View>
+
+        <Text style={[styles.statValue, (isAccent || isDark) && styles.statTextLight]}>
+          {value}
+        </Text>
+
+        <Text
+          style={[
+            styles.statDescription,
+            (isAccent || isDark) && styles.statDescriptionLight
+          ]}
+        >
+          {description}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderSaleItem = (sale: SaleRecord) => {
+    const item = sale.items?.[0];
+    const qty = sale.quantity ?? item?.quantity ?? 0;
+    const name = sale.productName ?? item?.productName ?? 'Item';
+    const price = sale.price ?? item?.price ?? 0;
+    const subtotal = item?.subtotal ?? qty * price;
+
+    return (
+      <View key={sale.id} style={styles.saleItem}>
+        <View style={styles.saleHeader}>
           <View>
-            <Text style={styles.s_7}>
-              Receipt  #{sale.id}
-            </Text>
-            <Text style={styles.s_8}>
+            <Text style={styles.receiptId}>Receipt #{sale.id}</Text>
+            <Text style={styles.receiptTime}>
               {new Date(sale.date).toLocaleTimeString()}
             </Text>
           </View>
-          <View style={styles.s_9}>
-            <Text style={styles.s_10}>
-              {sale.paymentMethod}
-            </Text>
+
+          <View style={styles.paymentBadge}>
+            <Text style={styles.paymentBadgeText}>{sale.paymentMethod}</Text>
           </View>
-      
-        <View>
-           <Text style={styles.s_11}>${sale.total.toFixed(2)}</Text>
+
+          <Text style={styles.saleTotal}>${sale.total.toFixed(2)}</Text>
         </View>
+
+        <View style={styles.productRow}>
+          <Text style={styles.productText}>{qty}x {name}</Text>
+          <Text style={styles.productSubtotal}>${subtotal.toFixed(2)}</Text>
         </View>
-      
-        {/* Product details */}
-        <View style={styles.s_12}>
-          <View style={styles.s_13}>
-            <Text style={styles.s_8}>
-              {itemQuantity}x {itemName}
-            </Text>
-            <Text style={styles.s_14}>
-              ${itemSubtotal.toFixed(2)}
-            </Text>
-          </View>
-        </View>
-      
-        <View style={styles.s_15}>
-          <Text style={styles.s_16}>Total</Text>
-          <Text style={styles.s_17}>${sale.total.toFixed(2)}</Text>
+
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalValue}>${sale.total.toFixed(2)}</Text>
         </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.s_18}>
-      <ScrollView style={styles.s_19}>
-        <View style={styles.s_20}>
-          {/* Header */}
-          <View>
-            <Text style={styles.s_21}>
-              Welcome, {user?.name}!
-            </Text>
-            <Text style={styles.s_22}>
-              Today's Activity
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+
+        {/* Header */}
+        <View>
+          <Text style={styles.headerTitle}>Welcome, {user?.name}!</Text>
+          <Text style={styles.headerSubtitle}>Today's Activity</Text>
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.statsRow}>
+          <StatCard
+            title="Receipts Today"
+            value={String(todayReceiptsCount)}
+            description="Total transactions"
+            icon="receipt"
+            variant="accent"
+          />
+          <StatCard
+            title="Sales Amount"
+            value={`$${todaySalesAmount.toFixed(2)}`}
+            description="Total revenue today"
+            icon="cash"
+            variant="dark"
+          />
+        </View>
+
+        {/* Quick Actions */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActionsRow}>
+          {quickActions.map((action, i) => (
+            <TouchableOpacity key={i} style={styles.quickActionCard}>
+              <Ionicons name={action.icon as IoniconName} size={32} color="#f97316" />
+              <Text style={styles.quickActionTitle}>{action.title}</Text>
+              <Text style={styles.quickActionDescription}>{action.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Low Stock */}
+        {lowStockProducts.length > 0 && (
+          <View style={styles.alertCard}>
+            <View style={styles.alertHeader}>
+              <Ionicons name="warning" size={20} color="#f97316" />
+              <Text style={styles.alertTitle}>Low Stock Alert</Text>
+            </View>
+            <Text style={styles.alertText}>
+              {lowStockProducts.length} product{lowStockProducts.length > 1 && 's'} running low
             </Text>
           </View>
+        )}
 
-          {/* Quick Stats */}
-          <View style={styles.s_23}>
-            <View style={styles.s_24}>
-              <StatCard
-                title="Receipts Today"
-                value={todayReceiptsCount.toString()}
-                description="Total transactions"
-                icon="receipt"
-                color="text-muted bg-accent"
-              />
-            </View>
-            <View style={styles.s_24}>
-              <StatCard
-                title="Sales Amount"
-                value={`$${todaySalesAmount.toFixed(2)}`}
-                description="Total revenue today"
-                icon="cash"
-                color="text-muted bg-primary"
-              />
-            </View>
-          </View>
+        {/* Today's Tickets */}
+        <View style={styles.ticketsCard}>
+          <Text style={styles.ticketsTitle}>Today's Tickets</Text>
 
-          {/* Quick Actions */}
-          <View>
-            <Text style={styles.s_25}>
-              Quick Actions
-            </Text>
-            <View style={styles.s_26}>
-              {quickActions.map((action, index) => (
-                <TouchableOpacity
-                  key={index}
-                  className={`${action.color} rounded-lg p-4 w-[48%]  active:opacity-80`}
-                >
-                  <View style={styles.s_27}>
-                    <Ionicons 
-                      name={action.icon as keyof typeof Ionicons.glyphMap} 
-                      size={32} 
-                      style={styles.s_28} 
-                    />
-                    <Text style={styles.s_29}>
-                      {action.title}
-                    </Text>
-                    <Text style={styles.s_30}>
-                      {action.description}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          {todaySales.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="receipt-outline" size={48} color="#9ca3af" />
+              <Text style={styles.emptyTitle}>No sales yet today.</Text>
+              <Text style={styles.emptySubtitle}>Start selling to see your transactions here!</Text>
 
-          {/* Alerts */}
-          {lowStockProducts.length < 10 && (
-            <View style={styles.s_31}>
-              <View style={styles.s_32}>
-                <Ionicons name="warning" size={20} style={styles.s_33} />
-                <Text style={styles.s_34}>
-                  Low Stock Alert
-                </Text>
-              </View>
-              <Text style={styles.s_35}>
-                {lowStockProducts.length} product{lowStockProducts.length > 1 ? 's' : ''} running low on stock
-              </Text>
+              <TouchableOpacity style={styles.startSaleButton}>
+                <Text style={styles.startSaleButtonText}>Start New Sale</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ maxHeight: 400 }}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {todaySales.map(renderSaleItem)}
+              </ScrollView>
             </View>
           )}
+        </View>
 
-          {/* Today's Tickets */}
-          <View className="bg-card p-4 rounded-lg border border-border divide-y divide-border ">
-            <Text className="text-lg font-bold text-foreground mb-4 ">
-              Today's Tickets
-            </Text>
-            
-            {todaySales.length === 0 ? (
-              <View style={styles.s_38}>
-                <Ionicons name="receipt-outline" size={48} style={styles.s_39} />
-                <Text style={styles.s_40}>
-                  No sales yet today.
-                </Text>
-                <Text style={styles.s_41}>
-                  Start selling to see your transactions here!
-                </Text>
-                <TouchableOpacity style={styles.s_42}>
-                  <Text style={styles.s_43}>
-                    Start New Sale
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.s_44}>
-                <ScrollView 
-                  showsVerticalScrollIndicator={false}
-                  className="divide-y divide-border border-0 "
-                >
-                  {todaySales.map(renderSaleItem)}
-                </ScrollView>
-              </View>
-            )}
+        {/* Performance Summary */}
+        <View style={styles.performanceCard}>
+          <Text style={styles.performanceTitle}>Today's Performance</Text>
+
+          <View style={styles.performanceRow}>
+            <Text style={styles.performanceLabel}>Transactions</Text>
+            <Text style={styles.performanceValue}>{todayReceiptsCount}</Text>
           </View>
 
-          {/* Performance Summary */}
-          <View style={styles.s_46}>
-            <Text style={styles.s_47}>
-              Today's Performance
-            </Text>
-            <View style={styles.s_48}>
-              <View style={styles.s_13}>
-                <Text style={styles.s_49}>Transactions</Text>
-                <Text style={styles.s_50}>
-                  {todayReceiptsCount}
-                </Text>
-              </View>
-              <View style={styles.s_13}>
-                <Text style={styles.s_49}>Total Revenue</Text>
-                <Text style={styles.s_50}>
-                  ${todaySalesAmount.toFixed(2)}
-                </Text>
-              </View>
-              <View style={styles.s_13}>
-                <Text style={styles.s_49}>Average Sale</Text>
-                <Text style={styles.s_50}>
-                  ${todayReceiptsCount > 0 ? (todaySalesAmount / todayReceiptsCount).toFixed(2) : '0.00'}
-                </Text>
-              </View>
-              <View style={styles.s_51}>
-                <Text style={styles.s_50}>Performance</Text>
-                <Text className={`font-bold text-lg ${
-                  todaySalesAmount > 500 ? 'text-green-300' : 
-                  todaySalesAmount > 200 ? 'text-yellow-300' : 'text-red-300'
-                }`}>
-                  {todaySalesAmount > 500 ? 'Excellent' : 
-                   todaySalesAmount > 200 ? 'Good' : 'Getting Started'}
-                </Text>
-              </View>
-            </View>
+          <View style={styles.performanceRow}>
+            <Text style={styles.performanceLabel}>Total Revenue</Text>
+            <Text style={styles.performanceValue}>${todaySalesAmount.toFixed(2)}</Text>
           </View>
 
-          {/* Recent Activity */}
-          <View style={styles.s_52}>
-            <Text style={styles.s_25}>
-              Recent Activity
+          <View style={styles.performanceRow}>
+            <Text style={styles.performanceLabel}>Average Sale</Text>
+            <Text style={styles.performanceValue}>
+              ${todayReceiptsCount ? (todaySalesAmount / todayReceiptsCount).toFixed(2) : '0.00'}
             </Text>
-            <View style={styles.s_48}>
-              {todaySales.slice(0, 3).map((sale, index) => (
-                <View key={sale.id} style={styles.s_53}>
-                  <View style={styles.s_54}>
-                    <Ionicons name="cart" size={16} style={styles.s_55} />
-                  </View>
-                  <View style={styles.s_19}>
-                    <Text style={styles.s_56}>
-                      Sale #{sale.id}
-                    </Text>
-                    <Text style={styles.s_57}>
-                      {new Date(sale.date).toLocaleTimeString()} • {sale.paymentMethod}
-                    </Text>
-                  </View>
-                  <Text style={styles.s_58}>
-                    ${sale.total.toFixed(2)}
-                  </Text>
-                </View>
-              ))}
-              
-              {todaySales.length === 0 && (
-                <View style={styles.s_59}>
-                  <Ionicons name="time-outline" size={32} style={styles.s_60} />
-                  <Text style={styles.s_41}>
-                    No recent activity
-                  </Text>
-                </View>
-              )}
-            </View>
+          </View>
+
+          <View style={styles.performanceRow}>
+            <Text style={styles.performanceLabel}>Performance</Text>
+            <Text
+              style={[
+                styles.performanceBadge,
+                todaySalesAmount > 500 && styles.perfExcellent,
+                todaySalesAmount > 200 && todaySalesAmount <= 500 && styles.perfGood,
+                todaySalesAmount <= 200 && styles.perfLow
+              ]}
+            >
+              {todaySalesAmount > 500
+                ? 'Excellent'
+                : todaySalesAmount > 200
+                ? 'Good'
+                : 'Getting Started'}
+            </Text>
           </View>
         </View>
+
+        {/* Recent Activity */}
+        <View style={styles.recentCard}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+
+          {todaySales.length > 0 ? (
+            todaySales.slice(0, 3).map((sale) => (
+              <View key={sale.id} style={styles.recentItem}>
+                <View style={styles.recentIcon}>
+                  <Ionicons name="cart" size={16} color="#fff" />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.recentSaleId}>Sale #{sale.id}</Text>
+                  <Text style={styles.recentMeta}>
+                    {new Date(sale.date).toLocaleTimeString()} • {sale.paymentMethod}
+                  </Text>
+                </View>
+
+                <Text style={styles.recentTotal}>${sale.total.toFixed(2)}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyRecent}>
+              <Ionicons name="time-outline" size={32} color="#9ca3af" />
+              <Text style={styles.emptyTitle}>No recent activity</Text>
+            </View>
+          )}
+        </View>
+
       </ScrollView>
     </View>
   );
 };
 
-
-
+/* ------------------- CLEAN STYLES ------------------- */
 const styles = StyleSheet.create({
-  s_1: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 8
-},
+  screen: {
+    flex: 1,
+    backgroundColor: '#ffffff'
+  },
 
-  s_2: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#6b7280"
-},
+  scrollContainer: {
+    padding: 16
+  },
 
-  s_3: {
-  fontSize: 24,
-  fontWeight: "700",
-  color: "#6b7280"
-},
+  /* -------- Header -------- */
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#0f172a'
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4
+  },
 
-  s_4: {
-  fontSize: 12
-},
+  /* -------- Stats -------- */
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    marginBottom: 16
+  },
 
-  s_5: {
-  padding: 16,
-  borderColor: "#e6edf3"
-},
+  statCard: {
+    width: '48%',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e6edf3'
+  },
+  statCardAccent: {
+    backgroundColor: '#f97316',
+    borderColor: '#f97316'
+  },
+  statCardDark: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a'
+  },
 
-  s_6: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center"
-},
+  statCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8
+  },
 
-  s_7: {
-  color: "#0f172a"
-},
+  statTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280'
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6b7280',
+    marginBottom: 4
+  },
+  statDescription: {
+    fontSize: 12,
+    color: '#6b7280'
+  },
 
-  s_8: {
-  color: "#6b7280",
-  fontSize: 14
-},
+  statTextLight: {
+    color: '#ffffff'
+  },
+  statDescriptionLight: {
+    color: '#ffffff',
+    opacity: 0.9
+  },
 
-  s_9: {},
+  /* -------- Section Titles -------- */
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 12
+  },
 
-  s_10: {
-  fontSize: 12,
-  fontWeight: "600"
-},
+  /* -------- Quick Actions -------- */
+  quickActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
+  },
+  quickActionCard: {
+    width: '48%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    borderColor: '#e6edf3',
+    marginBottom: 12
+  },
+  quickActionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginTop: 8
+  },
+  quickActionDescription: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2
+  },
 
-  s_11: {
-  fontSize: 20,
-  fontWeight: "700"
-},
+  /* -------- Alerts -------- */
+  alertCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    borderColor: '#f97316',
+    marginTop: 16
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 6,
+    color: '#0f172a'
+  },
+  alertText: {
+    fontSize: 14,
+    color: '#6b7280'
+  },
 
-  s_12: {
-  marginBottom: 8
-},
+  /* -------- Tickets -------- */
+  ticketsCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    marginTop: 16
+  },
+  ticketsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    color: '#0f172a'
+  },
 
-  s_13: {
-  flexDirection: "row",
-  justifyContent: "space-between"
-},
+  saleItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#e5e7eb'
+  },
+  saleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    alignItems: 'center'
+  },
+  receiptId: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0f172a'
+  },
+  receiptTime: {
+    fontSize: 14,
+    color: '#6b7280'
+  },
+  paymentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#eef2ff',
+    borderRadius: 6
+  },
+  paymentBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0f172a'
+  },
+  saleTotal: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#f97316'
+  },
+  productRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8
+  },
+  productText: {
+    fontSize: 14,
+    color: '#6b7280'
+  },
+  productSubtotal: {
+    fontSize: 14,
+    color: '#0f172a'
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  totalLabel: {
+    color: '#0f172a'
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#f97316'
+  },
 
-  s_14: {
-  color: "#0f172a",
-  fontSize: 14
-},
+  /* -------- Empty State -------- */
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 8
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 4
+  },
+  startSaleButton: {
+    marginTop: 16,
+    backgroundColor: '#f97316',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24
+  },
+  startSaleButtonText: {
+    color: '#fff',
+    fontWeight: '600'
+  },
 
-  s_15: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  borderColor: "#e6edf3"
-},
+  /* -------- Performance -------- */
+  performanceCard: {
+    backgroundColor: '#0f172a',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16
+  },
+  performanceTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    marginBottom: 12
+  },
+  performanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8
+  },
+  performanceLabel: {
+    color: '#ffffff'
+  },
+  performanceValue: {
+    color: '#ffffff',
+    fontWeight: '700'
+  },
+  performanceBadge: {
+    fontWeight: '700',
+    fontSize: 18
+  },
+  perfExcellent: {
+    color: '#86efac'
+  },
+  perfGood: {
+    color: '#fde047'
+  },
+  perfLow: {
+    color: '#fca5a5'
+  },
 
-  s_16: {
-  color: "#0f172a"
-},
+  /* -------- Recent -------- */
+  recentCard: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    marginTop: 16
+  },
 
-  s_17: {
-  color: "#f97316",
-  fontSize: 18
-},
+  recentItem: {
+    backgroundColor: '#f3f4f6',
+    padding: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  recentIcon: {
+    backgroundColor: '#f97316',
+    padding: 8,
+    borderRadius: 50,
+    marginRight: 10
+  },
+  recentSaleId: {
+    color: '#0f172a',
+    fontWeight: '600'
+  },
+  recentMeta: {
+    fontSize: 12,
+    color: '#6b7280'
+  },
+  recentTotal: {
+    fontWeight: '700',
+    color: '#f97316'
+  },
 
-  s_18: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
-
-  s_19: {
-  flex: 1
-},
-
-  s_20: {
-  padding: 16
-},
-
-  s_21: {
-  fontSize: 24,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_22: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_23: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_24: {
-  width: "48%"
-},
-
-  s_25: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a",
-  marginBottom: 12
-},
-
-  s_26: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between"
-},
-
-  s_27: {
-  alignItems: "flex-start"
-},
-
-  s_28: {
-  marginBottom: 8,
-  display: "none"
-},
-
-  s_29: {
-  fontSize: 14
-},
-
-  s_30: {
-  color: "#6b7280",
-  fontSize: 12
-},
-
-  s_31: {
-  borderWidth: 1,
-  borderRadius: 12,
-  padding: 16
-},
-
-  s_32: {
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 8
-},
-
-  s_33: {},
-
-  s_34: {},
-
-  s_35: {
-  fontSize: 14
-},
-
-  s_36: {
-  backgroundColor: "#ffffff",
-  padding: 16,
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: "#e6edf3"
-},
-
-  s_37: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a",
-  marginBottom: 16
-},
-
-  s_38: {
-  alignItems: "center"
-},
-
-  s_39: {
-  color: "#6b7280",
-  marginBottom: 12
-},
-
-  s_40: {
-  color: "#6b7280",
-  marginBottom: 8
-},
-
-  s_41: {
-  color: "#6b7280"
-},
-
-  s_42: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingVertical: 12,
-  marginTop: 16
-},
-
-  s_43: {},
-
-  s_44: {},
-
-  s_45: {},
-
-  s_46: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16
-},
-
-  s_47: {
-  fontSize: 18,
-  color: "#ffffff",
-  marginBottom: 12
-},
-
-  s_48: {},
-
-  s_49: {
-  color: "#ffffff"
-},
-
-  s_50: {
-  color: "#ffffff",
-  fontWeight: "700"
-},
-
-  s_51: {
-  flexDirection: "row",
-  justifyContent: "space-between"
-},
-
-  s_52: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  borderWidth: 1,
-  borderColor: "#e6edf3"
-},
-
-  s_53: {
-  flexDirection: "row",
-  alignItems: "center",
-  padding: 12,
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12
-},
-
-  s_54: {
-  backgroundColor: "#f97316",
-  padding: 8
-},
-
-  s_55: {},
-
-  s_56: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_57: {
-  color: "#6b7280",
-  fontSize: 12
-},
-
-  s_58: {
-  fontWeight: "700",
-  color: "#f97316"
-},
-
-  s_59: {
-  alignItems: "center"
-},
-
-  s_60: {
-  color: "#6b7280",
-  marginBottom: 8
-}
+  emptyRecent: {
+    alignItems: 'center',
+    paddingVertical: 20
+  }
 });
+
 export default CashierHome;
