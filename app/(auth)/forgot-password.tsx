@@ -7,39 +7,63 @@ import { useRouter } from 'expo-router';
 
 
 const styles = StyleSheet.create({
-  s_1: {
-  flex: 1,
-  padding: 24,
-  justifyContent: "center"
-},
-
-  s_2: {
-  fontWeight: "700",
-  marginBottom: 8
-},
-
-  s_3: {
-  color: "#6b7280"
-},
-
-  s_4: {},
-
-  s_5: {
-  borderWidth: 1,
-  borderRadius: 12,
-  padding: 12
-},
-
-  s_6: {},
-
-  s_7: {
-  paddingVertical: 12,
-  borderWidth: 1
-},
-
-  s_8: {
-  color: "#6b7280"
-}
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    padding: 24,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 24,
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+  },
+  submitButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#0f172a',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backButton: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    backgroundColor: 'transparent',
+  },
+  backButtonText: {
+    color: '#6b7280',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -76,18 +100,19 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.s_1}>
-      <Text style={styles.s_2}>
+    <View style={styles.container}>
+      <Text style={styles.title}>
         Forgot Password
       </Text>
-      <Text style={styles.s_3}>
+      <Text style={styles.subtitle}>
         Enter your email to receive reset instructions
       </Text>
 
-      <View style={styles.s_4}>
+      <View style={styles.inputContainer}>
         <TextInput
-          style={styles.s_5}
+          style={styles.input}
           placeholder="Email Address"
+          placeholderTextColor="#9ca3af"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -96,22 +121,23 @@ export default function ForgotPasswordScreen() {
       </View>
 
       <TouchableOpacity 
-        className={`py-3 rounded-lg mb-4 ${
-          isLoading ? 'bg-gray-400' : 'bg-primary text-orange-300'
-        }`}
+        style={[
+          styles.submitButton,
+          isLoading && styles.submitButtonDisabled,
+        ]}
         onPress={handleResetPassword}
         disabled={isLoading}
       >
-        <Text style={{ color: '#FB923C' }} className=" text-center ">
+        <Text style={styles.submitButtonText}>
           {isLoading ? 'Sending...' : 'Send Reset Instructions'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
-        style={styles.s_7}
+        style={styles.backButton}
         onPress={() => router.back()}
       >
-        <Text style={styles.s_8}>
+        <Text style={styles.backButtonText}>
           Back to Sign In
         </Text>
       </TouchableOpacity>
