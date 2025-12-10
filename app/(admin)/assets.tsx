@@ -1,4 +1,3 @@
-// app/(admin)/assets.js
 import { useEffect, useState } from 'react';
 import { 
   View, 
@@ -8,13 +7,14 @@ import {
   TextInput, 
   Alert,
   Modal,
-  FlatList
+  FlatList,
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addAsset, deleteAsset } from '../../store/slices/assetsSlice';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import type { ListRenderItem } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { AssetRecord } from '../../store/types';
 
@@ -30,13 +30,20 @@ interface AssetFormData {
   location: string;
 }
 
+interface StatCard {
+  title: string;
+  value: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}
+
 const AdminAssets = () => {
   const { assets } = useAppSelector((state) => state.assets);
   const dispatch = useAppDispatch();
   
   const [filteredAssets, setFilteredAssets] = useState<AssetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [conditionFilter, setConditionFilter] = useState<ConditionFilter>('all');
   const [selectedAsset, setSelectedAsset] = useState<AssetRecord | null>(null);
@@ -52,8 +59,25 @@ const AdminAssets = () => {
     location: '',
   });
 
+  // Colors based on your Tailwind config
+  const COLORS = {
+    primary: '#0f172a', // hsl(220 90% 15%)
+    primaryLight: '#1e293b',
+    accent: '#f97316', // hsl(25 95% 53%)
+    accentLight: '#fb923c',
+    background: '#ffffff',
+    card: '#ffffff',
+    border: '#e2e8f0', // hsl(220 20% 90%)
+    input: '#e2e8f0',
+    destructive: '#ef4444',
+    muted: '#64748b', // hsl(220 30% 45%)
+    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#dc2626',
+  };
+
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
       setFilteredAssets(assets);
@@ -62,7 +86,7 @@ const AdminAssets = () => {
   }, [assets]);
 
   useEffect(() => {
-    let filtered: AssetRecord[] = assets;
+    let filtered = assets;
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -81,9 +105,74 @@ const AdminAssets = () => {
     setFilteredAssets(filtered);
   }, [searchQuery, conditionFilter, assets]);
 
+  // Calculate statistics
+  const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+  const totalPurchaseValue = assets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
+  const depreciation = totalPurchaseValue - totalValue;
+  const depreciationPercentage = totalPurchaseValue > 0 ? (depreciation / totalPurchaseValue) * 100 : 0;
+
+  // Stat cards configuration
+  const statCards: StatCard[] = [
+    {
+      title: "Total Assets",
+      value: assets.length.toString(),
+      icon: "cube-outline",
+      color: COLORS.primary,
+    },
+    {
+      title: "Current Value",
+      value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      icon: "cash-outline",
+      color: COLORS.success,
+    },
+    {
+      title: "Purchase Value",
+      value: `$${totalPurchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      icon: "receipt-outline",
+      color: COLORS.accent,
+    },
+    {
+      title: "Depreciation",
+      value: `$${depreciation.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      icon: "trending-down-outline",
+      color: COLORS.danger,
+    },
+  ];
+
+  // Category options
+  const categoryOptions = [
+    'Equipment',
+    'Furniture',
+    'Vehicle',
+    'Electronics',
+    'Software',
+    'Other'
+  ];
+
+  // Condition options
+  const conditionOptions = [
+    { value: 'all' as const, label: 'All' },
+    { value: 'excellent' as const, label: 'Excellent' },
+    { value: 'good' as const, label: 'Good' },
+    { value: 'fair' as const, label: 'Fair' },
+    { value: 'poor' as const, label: 'Poor' },
+  ];
+
+  // Get condition color
+  const getConditionColor = (condition: AssetRecord['condition']) => {
+    const colorMap: Record<AssetRecord['condition'], string> = {
+      excellent: COLORS.success,
+      good: '#3b82f6', // Blue
+      fair: COLORS.warning,
+      poor: COLORS.danger,
+    };
+    return colorMap[condition] || COLORS.muted;
+  };
+
+  // Handle form submission
   const handleSubmit = () => {
     if (!formData.name || !formData.category || !formData.purchaseValue || !formData.currentValue || !formData.location) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
@@ -99,7 +188,7 @@ const AdminAssets = () => {
       }));
 
       Alert.alert('Success', 'Asset added successfully');
-      setIsDialogOpen(false);
+      setIsAssetModalOpen(false);
       setFormData({
         name: '',
         category: '',
@@ -115,307 +204,270 @@ const AdminAssets = () => {
     }
   };
 
-  const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
-  const totalPurchaseValue = assets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
-  const depreciation = totalPurchaseValue - totalValue;
-
-  const getConditionBadge = (condition: AssetRecord['condition']) => {
-    const colorMap: Record<AssetRecord['condition'], string> = {
-      excellent: 'bg-green-100 text-green-800',
-      good: 'bg-blue-100 text-blue-800',
-      fair: 'bg-yellow-100 text-yellow-800',
-      poor: 'bg-red-100 text-red-800',
-    };
-    
-    return (
-      <View className={`px-2 py-1 rounded-full ${colorMap[condition] || 'bg-gray-100'}`}>
-        <Text style={styles.s_1}>
-          {condition}
-        </Text>
-      </View>
+  // Handle asset deletion
+  const handleDeleteAsset = (asset: AssetRecord) => {
+    Alert.alert(
+      'Delete Asset',
+      `Are you sure you want to delete "${asset.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => {
+            dispatch(deleteAsset(asset.id));
+            Alert.alert('Success', 'Asset deleted successfully');
+            setSelectedAsset(null);
+          }
+        },
+      ]
     );
   };
 
-  const conditionOptions: Array<{ value: ConditionFilter; label: string }> = [
-    { value: 'all', label: 'All Conditions' },
-    { value: 'excellent' as const, label: 'Excellent' },
-    { value: 'good' as const, label: 'Good' },
-    { value: 'fair' as const, label: 'Fair' },
-    { value: 'poor' as const, label: 'Poor' },
-  ];
-
-  const categoryOptions = [
-    'Equipment',
-    'Furniture',
-    'Vehicle',
-    'Electronics',
-    'Software',
-    'Other'
-  ];
-
-  const renderAssetItem: ListRenderItem<AssetRecord> = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.s_2}
-      onPress={() => setSelectedAsset(item)}
-    >
-      <View className="flex-row justify-between items-start ">
-        <View className="">
-          <Text style={styles.s_4}>{item.name}</Text>
-
+  // Render asset item
+  const renderAssetItem = ({ item }: { item: AssetRecord }) => {
+    const conditionColor = getConditionColor(item.condition);
+    const depreciationValue = item.purchaseValue - item.currentValue;
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.assetCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
+        onPress={() => setSelectedAsset(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.assetHeader}>
+          <View style={styles.assetInfo}>
+            <Text style={[styles.assetName, { color: COLORS.primary }]}>{item.name}</Text>
+            <Text style={[styles.assetCategory, { color: COLORS.muted }]}>{item.category}</Text>
+          </View>
+          <View style={[styles.conditionBadge, { backgroundColor: `${conditionColor}15` }]}>
+            <Text style={[styles.conditionText, { color: conditionColor }]}>
+              {item.condition.charAt(0).toUpperCase() + item.condition.slice(1)}
+            </Text>
+          </View>
         </View>
         
-        <View>
-          {getConditionBadge(item.condition)}
+        <View style={styles.assetDetails}>
+          <View style={styles.detailRow}>
+            <View style={styles.detailItem}>
+              <Ionicons name="location-outline" size={14} color={COLORS.muted} />
+              <Text style={[styles.detailText, { color: COLORS.muted }]}>{item.location}</Text>
+            </View>
+            <Text style={[styles.assetValue, { color: COLORS.accent }]}>
+              ${item.currentValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </Text>
+          </View>
           
+          <View style={styles.detailRow}>
+            <Text style={[styles.assetDate, { color: COLORS.muted }]}>
+              {new Date(item.purchaseDate).toLocaleDateString()}
+            </Text>
+            <Text style={[styles.depreciationText, { color: depreciationValue > 0 ? COLORS.danger : COLORS.success }]}>
+              ${depreciationValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </Text>
+          </View>
         </View>
+      </TouchableOpacity>
+    );
+  };
 
-        <View>
-        <Text style={styles.s_5}>
-          ${item.currentValue.toFixed(2)}
-        </Text>
-        </View>
-      </View>
-      
-    </TouchableOpacity>
-  );
-
+  // Loading state
   if (isLoading) {
     return (
-      <ScrollView style={styles.s_6}>
-        <View style={styles.s_7}>
-       
-
-          {/* Stats Grid Skeleton */}
-          <View style={styles.s_8}>
-            {[1, 2, 3, 4].map((i) => (
-              <View key={i} style={styles.s_9}>
-                <View style={styles.s_10} />
-                <View style={styles.s_11} />
-              </View>
-            ))}
-          </View>
-
-          {/* Search and Filter Skeleton */}
-          <View style={styles.s_12}>
-            <View style={styles.s_13} />
-            <View style={styles.s_14} />
-            <View style={styles.s_15}>
-              <View style={styles.s_16} />
-              <View style={styles.s_17} />
-            </View>
-          </View>
-
-          {/* Table Skeleton */}
-          <View style={styles.s_12}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} style={styles.s_18} />
-            ))}
-          </View>
-        </View>
-      </ScrollView>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading assets...</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.s_6}>
-      <ScrollView style={styles.s_19}>
-        <View style={styles.s_7}>
-  
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
+      <ScrollView style={styles.scrollView}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: COLORS.primary }]}>Assets</Text>
+          <Text style={[styles.subtitle, { color: COLORS.muted }]}>Manage business assets</Text>
+        </View>
 
-          {/* Stats Cards */}
-          <View style={styles.s_20}>
-            <View style={styles.s_21}>
-              <Text style={styles.s_22}>
-                Total Assets
-              </Text>
-              <Text style={styles.s_23}>
-                {assets.length}
-              </Text>
-            </View>
-            <View style={styles.s_21}>
-              <Text style={styles.s_22}>
-                Current Value
-              </Text>
-              <Text style={styles.s_23}>
-                ${totalValue.toFixed(2)}
-              </Text>
-            </View>
-            <View style={styles.s_21}>
-              <Text style={styles.s_22}>
-                Purchase Value
-              </Text>
-              <Text style={styles.s_23}>
-                ${totalPurchaseValue.toFixed(2)}
-              </Text>
-            </View>
-            <View style={styles.s_21}>
-              <Text style={styles.s_22}>
-                Depreciation
-              </Text>
-              <Text style={styles.s_24}>
-                ${depreciation.toFixed(2)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Search and Filter */}
-          <View style={styles.s_25}>
-            <View style={styles.s_26}>
-            <View>
-            <Text style={styles.s_27}>
-              Asset Inventory
-            </Text>
-            <Text className="text-xs  text-muted-foreground ">
-              All business assets and their values
-            </Text>
-            
-            </View>
-             <TouchableOpacity
-              style={styles.s_29}
-              onPress={() => setIsDialogOpen(true)}
+        {/* Stats Grid */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.statsScroll}
+          contentContainerStyle={styles.statsContent}
+        >
+          {statCards.map((stat, index) => (
+            <View 
+              key={index} 
+              style={[styles.statCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
             >
-              <Ionicons name="add" size={20} style={styles.s_30} />
-              <Text style={styles.s_31}>Add Asset</Text>
-            </TouchableOpacity>
+              <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
+                <Ionicons name={stat.icon} size={20} color={stat.color} />
+              </View>
+              <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
+              <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
             </View>
-            
-            <View style={styles.s_32}>
-              {/* Search Input */}
-              <View style={styles.s_19}>
-                <View style={styles.s_33}>
-                  <Ionicons 
-                    name="search" 
-                    size={20} 
-                    style={styles.s_34} 
-                  />
-                  <TextInput
-                    placeholder="Search by name, category, or location..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    style={styles.s_35}
-                    placeholderTextColor="#6B7280"
-                  />
-                </View>
-              </View>
+          ))}
+        </ScrollView>
 
-              {/* Condition Filter */}
-              <View style={styles.s_36}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.s_37}>
-                    {conditionOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option.value}
-                        className={`px-3 py-2 rounded mx-1 ${
-                          conditionFilter === option.value 
-                            ? 'bg-accent' 
-                            : 'bg-transparent'
-                        }`}
-                        onPress={() => setConditionFilter(option.value)}
-                      >
-                        <Text className={
-                          conditionFilter === option.value 
-                            ? 'text-accent-foreground text-xs font-medium'
-                            : 'text-muted-foreground text-xs'
-                        }>
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
+        {/* Search and Actions Section */}
+        <View style={[styles.searchCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+          <View style={styles.searchHeader}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Asset Inventory</Text>
+              <Text style={[styles.sectionSubtitle, { color: COLORS.muted }]}>
+                {filteredAssets.length} assets found
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: COLORS.accent }]}
+              onPress={() => setIsAssetModalOpen(true)}
+            >
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Add Asset</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <View style={[styles.searchBar, { backgroundColor: COLORS.input }]}>
+              <Ionicons name="search" size={18} color={COLORS.muted} />
+              <TextInput
+                placeholder="Search assets..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={[styles.searchInput, { color: COLORS.primary }]}
+                placeholderTextColor={COLORS.muted}
+              />
+              {searchQuery && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.muted} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
-          {/* Assets List */}
-          <View style={styles.s_38}>
-            {filteredAssets.length === 0 ? (
-              <View style={styles.s_39}>
-                <Ionicons name="cube-outline" size={48} style={styles.s_40} />
-                <Text style={styles.s_41}>
-                  No assets found
-                </Text>
-                <Text style={styles.s_42}>
-                  {searchQuery || conditionFilter !== 'all' 
-                    ? 'Try adjusting your search or filter criteria'
-                    : 'Get started by adding your first asset'
-                  }
-                </Text>
-                {(searchQuery || conditionFilter !== 'all') && (
+          {/* Condition Filter */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.filterContainer}>
+              {conditionOptions.map((option) => {
+                const isActive = conditionFilter === option.value;
+                const conditionColor = option.value !== 'all' ? getConditionColor(option.value) : COLORS.primary;
+                return (
                   <TouchableOpacity
-                    style={styles.s_43}
-                    onPress={() => {
-                      setSearchQuery('');
-                      setConditionFilter('all');
-                    }}
+                    key={option.value}
+                    style={[
+                      styles.filterButton,
+                      { 
+                        backgroundColor: isActive ? conditionColor : COLORS.input,
+                        borderColor: isActive ? conditionColor : COLORS.border
+                      }
+                    ]}
+                    onPress={() => setConditionFilter(option.value)}
                   >
-                    <Text style={styles.s_31}>
-                      Clear Filters
+                    <Text style={[
+                      styles.filterButtonText,
+                      { color: isActive ? '#FFFFFF' : COLORS.primary }
+                    ]}>
+                      {option.label}
                     </Text>
                   </TouchableOpacity>
-                )}
-              </View>
-            ) : (
-              <FlatList
-                data={filteredAssets}
-                renderItem={renderAssetItem}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={true}
-                style={styles.s_44}
-              />
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Assets List */}
+        {filteredAssets.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="cube-outline" size={64} color={COLORS.border} />
+            <Text style={[styles.emptyTitle, { color: COLORS.primary }]}>No assets found</Text>
+            <Text style={[styles.emptyText, { color: COLORS.muted }]}>
+              {searchQuery || conditionFilter !== 'all' 
+                ? 'Try adjusting your search'
+                : 'Start by adding your first asset'
+              }
+            </Text>
+            {(searchQuery || conditionFilter !== 'all') && (
+              <TouchableOpacity
+                style={[styles.clearButton, { backgroundColor: COLORS.danger }]}
+                onPress={() => {
+                  setSearchQuery('');
+                  setConditionFilter('all');
+                }}
+              >
+                <Text style={styles.clearButtonText}>Clear Filters</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
+        ) : (
+          <FlatList
+            data={filteredAssets}
+            renderItem={renderAssetItem}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={false}
+            style={styles.assetsList}
+            contentContainerStyle={styles.assetsContent}
+          />
+        )}
       </ScrollView>
 
       {/* Add Asset Modal */}
       <Modal
-        visible={isDialogOpen}
+        visible={isAssetModalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setIsAssetModalOpen(false)}
       >
-        <View style={styles.s_45}>
-          <View style={styles.s_46}>
-            <Text style={styles.s_47}>Add New Asset</Text>
-            <TouchableOpacity onPress={() => setIsDialogOpen(false)}>
-              <Ionicons name="close" size={24} style={styles.s_48} />
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Add Asset</Text>
+            <TouchableOpacity onPress={() => setIsAssetModalOpen(false)}>
+              <Ionicons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.s_49}>
-            <View style={styles.s_50}>
+          <ScrollView style={styles.modalScroll}>
+            <View style={styles.formContainer}>
               {/* Asset Name */}
-              <View>
-                <Text style={styles.s_51}>Asset Name</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Asset Name *</Text>
                 <TextInput
                   value={formData.name}
                   onChangeText={(text) => setFormData({ ...formData, name: text })}
                   placeholder="Enter asset name"
-                  style={styles.s_52}
-                  placeholderTextColor="#6B7280"
+                  style={[styles.formInput, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border,
+                    color: COLORS.primary 
+                  }]}
+                  placeholderTextColor={COLORS.muted}
                 />
               </View>
 
               {/* Category */}
-              <View>
-                <Text style={styles.s_51}>Category</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Category *</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.s_53}>
+                  <View style={styles.categoryContainer}>
                     {categoryOptions.map((category) => (
                       <TouchableOpacity
                         key={category}
-                        className={`px-4 py-2 rounded-lg border ${
-                          formData.category === category
-                            ? 'bg-accent border-accent'
-                            : 'bg-background border-input'
-                        }`}
+                        style={[
+                          styles.categoryButton,
+                          { 
+                            backgroundColor: formData.category === category ? COLORS.primary : COLORS.input,
+                            borderColor: formData.category === category ? COLORS.primary : COLORS.border
+                          }
+                        ]}
                         onPress={() => setFormData({ ...formData, category })}
                       >
-                        <Text className={
-                          formData.category === category
-                            ? 'text-accent-foreground font-medium'
-                            : 'text-foreground'
-                        }>
+                        <Text style={[
+                          styles.categoryButtonText,
+                          { color: formData.category === category ? '#FFFFFF' : COLORS.primary }
+                        ]}>
                           {category}
                         </Text>
                       </TouchableOpacity>
@@ -425,39 +477,51 @@ const AdminAssets = () => {
               </View>
 
               {/* Purchase and Current Value */}
-              <View style={styles.s_54}>
-                <View style={styles.s_19}>
-                  <Text style={styles.s_51}>Purchase Value</Text>
+              <View style={styles.formRow}>
+                <View style={[styles.formGroup, styles.formGroupHalf]}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Purchase Value *</Text>
                   <TextInput
                     value={formData.purchaseValue}
                     onChangeText={(text) => setFormData({ ...formData, purchaseValue: text })}
                     placeholder="0.00"
                     keyboardType="decimal-pad"
-                    style={styles.s_52}
-                    placeholderTextColor="#6B7280"
+                    style={[styles.formInput, { 
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary 
+                    }]}
+                    placeholderTextColor={COLORS.muted}
                   />
                 </View>
-                <View style={styles.s_19}>
-                  <Text style={styles.s_51}>Current Value</Text>
+                <View style={[styles.formGroup, styles.formGroupHalf]}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Current Value *</Text>
                   <TextInput
                     value={formData.currentValue}
                     onChangeText={(text) => setFormData({ ...formData, currentValue: text })}
                     placeholder="0.00"
                     keyboardType="decimal-pad"
-                    style={styles.s_52}
-                    placeholderTextColor="#6B7280"
+                    style={[styles.formInput, { 
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary 
+                    }]}
+                    placeholderTextColor={COLORS.muted}
                   />
                 </View>
               </View>
 
               {/* Purchase Date */}
-              <View>
-                <Text style={styles.s_51}>Purchase Date</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Purchase Date</Text>
                 <TouchableOpacity
-                  style={styles.s_55}
+                  style={[styles.dateButton, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border 
+                  }]}
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Text style={styles.s_48}>
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.muted} />
+                  <Text style={[styles.dateButtonText, { color: COLORS.primary }]}>
                     {formData.purchaseDate.toLocaleDateString()}
                   </Text>
                 </TouchableOpacity>
@@ -477,60 +541,67 @@ const AdminAssets = () => {
               </View>
 
               {/* Condition */}
-              <View>
-                <Text style={styles.s_51}>Condition</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Condition</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.s_53}>
-                    {(['excellent', 'good', 'fair', 'poor'] as AssetRecord['condition'][]).map((condition) => (
-                      <TouchableOpacity
-                        key={condition}
-                        className={`px-4 py-2 rounded-lg border ${
-                          formData.condition === condition
-                            ? 'bg-accent border-accent'
-                            : 'bg-background border-input'
-                        }`}
-                        onPress={() => setFormData({ ...formData, condition })}
-                      >
-                        <Text className={
-                          formData.condition === condition
-                            ? 'text-accent-foreground font-medium capitalize'
-                            : 'text-foreground capitalize'
-                        }>
-                          {condition}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <View style={styles.conditionContainer}>
+                    {(['excellent', 'good', 'fair', 'poor'] as AssetRecord['condition'][]).map((condition) => {
+                      const conditionColor = getConditionColor(condition);
+                      const isActive = formData.condition === condition;
+                      return (
+                        <TouchableOpacity
+                          key={condition}
+                          style={[
+                            styles.conditionButton,
+                            { 
+                              backgroundColor: isActive ? conditionColor : COLORS.input,
+                              borderColor: isActive ? conditionColor : COLORS.border
+                            }
+                          ]}
+                          onPress={() => setFormData({ ...formData, condition })}
+                        >
+                          <Text style={[
+                            styles.conditionButtonText,
+                            { color: isActive ? '#FFFFFF' : COLORS.primary }
+                          ]}>
+                            {condition.charAt(0).toUpperCase() + condition.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </ScrollView>
               </View>
 
               {/* Location */}
-              <View>
-                <Text style={styles.s_51}>Location</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Location *</Text>
                 <TextInput
                   value={formData.location}
                   onChangeText={(text) => setFormData({ ...formData, location: text })}
                   placeholder="Enter location"
-                  style={styles.s_52}
-                  placeholderTextColor="#6B7280"
+                  style={[styles.formInput, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border,
+                    color: COLORS.primary 
+                  }]}
+                  placeholderTextColor={COLORS.muted}
                 />
               </View>
             </View>
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={styles.s_56}
+              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
               onPress={handleSubmit}
             >
-              <Text style={styles.s_57}>
-                Add Asset
-              </Text>
+              <Text style={styles.submitButtonText}>Add Asset</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
 
-      {/* Asset Detail Modal */}
+      {/* Asset Details Modal */}
       <Modal
         visible={!!selectedAsset}
         animationType="slide"
@@ -538,468 +609,465 @@ const AdminAssets = () => {
         onRequestClose={() => setSelectedAsset(null)}
       >
         {selectedAsset && (
-          <View style={styles.s_45}>
-            <View style={styles.s_46}>
-              <Text style={styles.s_47}>
-                Asset Details - {selectedAsset.id}
-              </Text>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Asset Details</Text>
               <TouchableOpacity onPress={() => setSelectedAsset(null)}>
-                <Ionicons name="close" size={24} style={styles.s_48} />
+                <Ionicons name="close" size={24} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.s_49}>
-              <View style={styles.s_58}>
-                <View style={styles.s_59}>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Name</Text>
-                    <Text style={styles.s_62}>{selectedAsset.name}</Text>
-                  </View>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Category</Text>
-                    <Text style={styles.s_62}>{selectedAsset.category}</Text>
-                  </View>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Location</Text>
-                    <Text style={styles.s_62}>{selectedAsset.location}</Text>
-                  </View>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Condition</Text>
-                    {getConditionBadge(selectedAsset.condition)}
-                  </View>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Purchase Value</Text>
-                    <Text style={styles.s_62}>
-                      ${selectedAsset.purchaseValue.toFixed(2)}
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.detailsContainer}>
+                {/* Asset Header */}
+                <View style={styles.detailsHeader}>
+                  <Text style={[styles.assetNameLarge, { color: COLORS.primary }]}>{selectedAsset.name}</Text>
+                  <View style={[styles.conditionBadge, { 
+                    backgroundColor: `${getConditionColor(selectedAsset.condition)}15` 
+                  }]}>
+                    <Text style={[styles.conditionText, { color: getConditionColor(selectedAsset.condition) }]}>
+                      {selectedAsset.condition.charAt(0).toUpperCase() + selectedAsset.condition.slice(1)}
                     </Text>
                   </View>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Current Value</Text>
-                    <Text style={styles.s_5}>
-                      ${selectedAsset.currentValue.toFixed(2)}
-                    </Text>
+                </View>
+
+                {/* Details Grid */}
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedAsset.category}</Text>
                   </View>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Depreciation</Text>
-                    <Text style={styles.s_63}>
-                      ${(selectedAsset.purchaseValue - selectedAsset.currentValue).toFixed(2)}
-                    </Text>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Location</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedAsset.location}</Text>
                   </View>
-                  <View style={styles.s_60}>
-                    <Text style={styles.s_61}>Purchase Date</Text>
-                    <Text style={styles.s_62}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Purchase Date</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
                       {new Date(selectedAsset.purchaseDate).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Purchase Value</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                      ${selectedAsset.purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Current Value</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.accent }]}>
+                      ${selectedAsset.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Depreciation</Text>
+                    <Text style={[styles.detailValue, { 
+                      color: (selectedAsset.purchaseValue - selectedAsset.currentValue) > 0 ? COLORS.danger : COLORS.success 
+                    }]}>
+                      ${(selectedAsset.purchaseValue - selectedAsset.currentValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
                 </View>
 
                 {/* Action Buttons */}
-                <View style={styles.s_64}>
-                  <TouchableOpacity 
-                    style={styles.s_65}
-                    onPress={() => {
-                      Alert.alert(
-                        'Delete Asset',
-                        `Are you sure you want to delete ${selectedAsset.name}?`,
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          { 
-                            text: 'Delete', 
-                            style: 'destructive',
-                            onPress: () => {
-                              dispatch(deleteAsset(selectedAsset.id));
-                              setSelectedAsset(null);
-                              Alert.alert('Success', 'Asset deleted successfully');
-                            }
-                          },
-                        ]
-                      );
-                    }}
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { backgroundColor: COLORS.danger }]}
+                    onPress={() => handleDeleteAsset(selectedAsset)}
                   >
-                    <Text style={styles.s_66}>
-                      Delete Asset
-                    </Text>
+                    <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.deleteButtonText}>Delete Asset</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </ScrollView>
-          </View>
+          </SafeAreaView>
         )}
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  s_1: {
-  fontSize: 12,
-  fontWeight: "600"
-},
-
-  s_2: {
-  borderColor: "#e6edf3",
-  paddingVertical: 12,
-  paddingHorizontal: 16,
-  backgroundColor: "#ffffff"
-},
-
-  s_3: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "flex-start"
-},
-
-  s_4: {
-  color: "#0f172a"
-},
-
-  s_5: {
-  fontWeight: "700",
-  color: "#f97316",
-  fontSize: 18
-},
-
-  s_6: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
-
-  s_7: {
-  padding: 16
-},
-
-  s_8: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: 16
-},
-
-  s_9: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
+  // Main container
+  container: {
+    flex: 1,
   },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1,
-  width: "48%"
-},
-
-  s_10: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_11: {
-  borderRadius: 6
-},
-
-  s_12: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
+  scrollView: {
+    flex: 1,
   },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1
-},
 
-  s_13: {
-  borderRadius: 6,
-  marginBottom: 8
-},
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
 
-  s_14: {
-  borderRadius: 6,
-  marginBottom: 16
-},
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+  },
 
-  s_15: {
-  flexDirection: "row",
-  gap: 16
-},
+  // Stats
+  statsScroll: {
+    marginBottom: 20,
+  },
+  statsContent: {
+    paddingHorizontal: 20,
+    paddingRight: 40,
+  },
+  statCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+    width: 140,
+    borderWidth: 1,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 12,
+  },
 
-  s_16: {
-  flex: 1,
-  borderRadius: 6
-},
+  // Search Section
+  searchCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+  },
+  searchHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  addButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
 
-  s_17: {
-  borderRadius: 6
-},
+  // Search
+  searchContainer: {
+    marginBottom: 16,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 8,
+    marginRight: 8,
+  },
 
-  s_18: {
-  borderRadius: 6,
-  marginBottom: 8
-},
+  // Filter
+  filterContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  filterButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
 
-  s_19: {
-  flex: 1
-},
+  // Assets List
+  assetsList: {
+    marginHorizontal: 20,
+  },
+  assetsContent: {
+    paddingBottom: 40,
+  },
+  assetCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  assetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  assetInfo: {
+    flex: 1,
+  },
+  assetName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  assetCategory: {
+    fontSize: 13,
+  },
+  conditionBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  conditionText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  assetDetails: {
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  detailText: {
+    fontSize: 13,
+    marginLeft: 4,
+  },
+  assetValue: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  assetDate: {
+    fontSize: 13,
+  },
+  depreciationText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
-  s_20: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: 16,
-  width: "100%"
-},
+  // Empty State
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  clearButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  clearButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
-  s_21: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16,
-  width: "100%",
-  flex: 1,
-  alignItems: "center",
-  justifyContent: "center"
-},
+  // Modal
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  modalScroll: {
+    flex: 1,
+    padding: 20,
+  },
 
-  s_22: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#ffffff"
-},
+  // Form
+  formContainer: {
+    gap: 24,
+  },
+  formGroup: {
+    gap: 8,
+  },
+  formRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  formGroupHalf: {
+    flex: 1,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  formInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  categoryContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  categoryButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  categoryButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  dateButtonText: {
+    fontSize: 16,
+  },
+  conditionContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  conditionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  conditionButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  submitButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
-  s_23: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#f97316"
-},
-
-  s_24: {
-  fontSize: 20,
-  fontWeight: "700"
-},
-
-  s_25: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  borderWidth: 1,
-  borderColor: "#e6edf3"
-},
-
-  s_26: {
-  width: "100%",
-  display: "flex",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between"
-},
-
-  s_27: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_28: {
-  fontSize: 12,
-  color: "#6b7280"
-},
-
-  s_29: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  flexDirection: "row",
-  alignItems: "center"
-},
-
-  s_30: {},
-
-  s_31: {},
-
-  s_32: {
-  flexDirection: "column",
-  gap: 16
-},
-
-  s_33: {},
-
-  s_34: {
-  color: "#6b7280"
-},
-
-  s_35: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingRight: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_36: {
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  backgroundColor: "#ffffff"
-},
-
-  s_37: {
-  flexDirection: "row"
-},
-
-  s_38: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: "#e6edf3"
-},
-
-  s_39: {
-  alignItems: "center"
-},
-
-  s_40: {
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_41: {
-  fontSize: 18,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_42: {
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_43: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingHorizontal: 16
-},
-
-  s_44: {},
-
-  s_45: {
-  flex: 1,
-  backgroundColor: "#ffffff",
-  paddingTop: 16
-},
-
-  s_46: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: 16,
-  paddingBottom: 16,
-  borderColor: "#e6edf3"
-},
-
-  s_47: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_48: {
-  color: "#0f172a"
-},
-
-  s_49: {
-  flex: 1,
-  padding: 16
-},
-
-  s_50: {},
-
-  s_51: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_52: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_53: {
-  flexDirection: "row"
-},
-
-  s_54: {
-  flexDirection: "row"
-},
-
-  s_55: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12
-},
-
-  s_56: {
-  backgroundColor: "#f97316",
-  borderRadius: 12
-},
-
-  s_57: {
-  fontSize: 18
-},
-
-  s_58: {},
-
-  s_59: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_60: {
-  width: "48%"
-},
-
-  s_61: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_62: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_63: {
-  fontWeight: "600"
-},
-
-  s_64: {
-  flexDirection: "row",
-  paddingTop: 16
-},
-
-  s_65: {
-  flex: 1,
-  borderRadius: 12,
-  paddingVertical: 12
-},
-
-  s_66: {}
+  // Details Modal
+  detailsContainer: {
+    gap: 24,
+  },
+  detailsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  assetNameLarge: {
+    fontSize: 24,
+    fontWeight: "700",
+    flex: 1,
+    marginRight: 12,
+  },
+  detailsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  
+  detailLabel: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  actionButtons: {
+    marginTop: 16,
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
+
 export default AdminAssets;
