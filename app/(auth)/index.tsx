@@ -6,117 +6,111 @@ import Feather from '@expo/vector-icons/Feather';
 
 
 const styles = StyleSheet.create({
-  s_1: {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "100%",
-  height: "100%"
-},
-
-  s_2: {
-  padding: 12,
-  borderRadius: 6,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center"
-},
-
-  s_3: {
-  fontWeight: "700",
-  marginBottom: 16
-},
-
-  s_4: {
-  fontSize: 18,
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_5: {
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  gap: 16
-},
-
-  s_6: {
-  backgroundColor: "#0f172a",
-  paddingVertical: 12,
-  width: "100%"
-},
-
-  s_7: {
-  paddingVertical: 12,
-  width: "100%",
-  borderWidth: 1
-},
-
-  s_8: {
-  color: "#6b7280"
-},
-
-  s_9: {
-  fontSize: 14,
-  color: "#6b7280"
-}
+  container: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    width: '100%',
+    padding: 20,
+  },
+  iconContainer: {
+    backgroundColor: '#f97316',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 32,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 16,
+  },
+  subtitle: {
+    fontSize: 18,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    width: '100%',
+    gap: 16,
+    marginBottom: 32,
+  },
+  primaryButton: {
+    backgroundColor: '#0f172a',
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: '100%',
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    backgroundColor: 'transparent',
+  },
+  secondaryButtonText: {
+    color: '#6b7280',
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  footerContainer: {
+    marginTop: 'auto',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
 });
 export default function WelcomeScreen() {
   return (
-    <View className="flex flex-col items-center justify-center bg-white w-full h-full p-5 ">
-      
-         <View style={styles.s_2}>
-       <Feather name="shopping-bag" size={48} color="white" />
-       
-        </View>
+    <View style={styles.container}>
+      <View style={styles.iconContainer}>
+        <Feather name="shopping-bag" size={48} color="white" />
+      </View>
 
-      
-      <View style={{ alignItems: 'center', marginBottom: 48 }}>
-        <Text style={styles.s_3}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>
           Shop Manager
         </Text>
-        <Text style={styles.s_4}>
+        <Text style={styles.subtitle}>
           Streamline your shop operations with ease
         </Text>
-        
       </View>
-      
 
-      <View style={styles.s_5}>
+      <View style={styles.buttonContainer}>
         <Link href="/signin" asChild>
-          <TouchableOpacity style={styles.s_6}>
-            <Text style={{ 
-              color: '#FFFFFF', 
-              textAlign: 'center', 
-              fontSize: 18, 
-              fontWeight: '600' 
-            }}>
+          <TouchableOpacity style={styles.primaryButton}>
+            <Text style={styles.primaryButtonText}>
               Sign In
             </Text>
           </TouchableOpacity>
         </Link>
         
         <Link href="/signup" asChild>
-          <TouchableOpacity style={styles.s_7}>
-            <Text style={styles.s_8} style={{ 
-              
-              textAlign: 'center', 
-              fontSize: 18, 
-              fontWeight: '600' 
-            }}>
+          <TouchableOpacity style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>
               Create Account
             </Text>
           </TouchableOpacity>
         </Link>
       </View>
       
-      <View >
-        
-        <Text style={styles.s_9}>
-          Manage inventory, sales, and operations in one place.
-        </Text>
-      </View>
+     
     </View>
   );
 }
