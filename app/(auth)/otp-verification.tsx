@@ -7,40 +7,69 @@ import { useRouter } from 'expo-router';
 
 
 const styles = StyleSheet.create({
-  s_1: {
-  flex: 1,
-  padding: 24,
-  justifyContent: "center"
-},
-
-  s_2: {
-  fontWeight: "700",
-  marginBottom: 8
-},
-
-  s_3: {
-  color: "#6b7280"
-},
-
-  s_4: {
-  flexDirection: "row",
-  justifyContent: "space-between"
-},
-
-  s_5: {
-  borderRadius: 12,
-  fontSize: 18,
-  fontWeight: "700"
-},
-
-  s_6: {},
-
-  s_7: {
-  paddingVertical: 12,
-  borderWidth: 1
-},
-
-  s_8: {}
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    padding: 24,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 32,
+  },
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+    gap: 12,
+  },
+  otpInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    borderRadius: 12,
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    paddingVertical: 16,
+    color: '#0f172a',
+    backgroundColor: '#f8fafc',
+  },
+  submitButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#0f172a',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  resendButton: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    backgroundColor: 'transparent',
+  },
+  resendButtonText: {
+    color: '#6b7280',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
 export default function OTPVerificationScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -86,15 +115,15 @@ export default function OTPVerificationScreen() {
   };
 
   return (
-    <View style={styles.s_1}>
-      <Text style={styles.s_2}>
+    <View style={styles.container}>
+      <Text style={styles.title}>
         OTP Verification
       </Text>
-      <Text style={styles.s_3}>
+      <Text style={styles.subtitle}>
         Enter the 6-digit code sent to your email
       </Text>
 
-      <View style={styles.s_4}>
+      <View style={styles.otpContainer}>
         {otp.map((digit, index) => (
           <TextInput
             key={index}
@@ -103,7 +132,7 @@ export default function OTPVerificationScreen() {
                 (inputs.current[index] as TextInput) = ref;
               }
             }}
-            style={styles.s_5}
+            style={styles.otpInput}
             value={digit}
             onChangeText={(value) => {
               const newOtp = [...otp];
@@ -120,19 +149,20 @@ export default function OTPVerificationScreen() {
       </View>
 
       <TouchableOpacity 
-        className={`py-3 rounded-md mb-4 ${
-          isLoading ? 'bg-gray-400' : 'bg-primary text-orange-400'
-        }`}
+        style={[
+          styles.submitButton,
+          isLoading && styles.submitButtonDisabled,
+        ]}
         onPress={handleVerify}
         disabled={isLoading}
       >
-        <Text style={styles.s_6}>
+        <Text style={styles.submitButtonText}>
           {isLoading ? 'Verifying...' : 'Verify OTP'}
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity className="py-3 border-muted-foreground border rounded-md ">
-        <Text style={styles.s_8}>
+      <TouchableOpacity style={styles.resendButton}>
+        <Text style={styles.resendButtonText}>
           Resend OTP
         </Text>
       </TouchableOpacity>
