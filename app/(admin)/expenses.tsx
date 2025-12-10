@@ -1,4 +1,3 @@
-// app/(admin)/expenses.tsx
 import { useEffect, useState } from 'react';
 import { 
   View, 
@@ -8,14 +7,15 @@ import {
   TextInput, 
   Alert,
   Modal,
-  FlatList
+  FlatList,
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addExpense } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { ExpenseRecord } from '../../store/types';
-import type { ListRenderItem } from 'react-native';
 
 const EXPENSE_CATEGORY_OPTIONS = [
   'Rent',
@@ -39,6 +39,13 @@ interface ExpenseFormData {
   amount: string;
 }
 
+interface StatCard {
+  title: string;
+  value: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}
+
 const AdminExpenses = () => {
   const { expenses } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
@@ -56,8 +63,25 @@ const AdminExpenses = () => {
     amount: '',
   });
 
+  // Colors based on your Tailwind config
+  const COLORS = {
+    primary: '#0f172a', // hsl(220 90% 15%)
+    primaryLight: '#1e293b',
+    accent: '#f97316', // hsl(25 95% 53%)
+    accentLight: '#fb923c',
+    background: '#ffffff',
+    card: '#ffffff',
+    border: '#e2e8f0', // hsl(220 20% 90%)
+    input: '#e2e8f0',
+    destructive: '#ef4444',
+    muted: '#64748b', // hsl(220 30% 45%)
+    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#dc2626',
+  };
+
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
       setFilteredExpenses(expenses);
@@ -66,7 +90,7 @@ const AdminExpenses = () => {
   }, [expenses]);
 
   useEffect(() => {
-    let filtered: ExpenseRecord[] = expenses;
+    let filtered = expenses;
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -108,6 +132,7 @@ const AdminExpenses = () => {
     }
   };
 
+  // Calculate statistics
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const categoryTotals = expenses.reduce<Record<string, number>>((acc, expense) => {
     const key = expense.category;
@@ -117,227 +142,249 @@ const AdminExpenses = () => {
 
   const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
 
+  // Stat cards
+  const statCards: StatCard[] = [
+    {
+      title: "Total Expenses",
+      value: `$${totalExpenses.toFixed(2)}`,
+      icon: "cash-outline",
+      color: COLORS.accent,
+    },
+    {
+      title: "Number of Expenses",
+      value: expenses.length.toString(),
+      icon: "receipt-outline",
+      color: COLORS.primary,
+    },
+    {
+      title: "Top Category",
+      value: topCategory?.[0] || 'None',
+      icon: "trending-up-outline",
+      color: COLORS.success,
+    },
+  ];
+
+  // Category colors
   const getCategoryColor = (category: string) => {
-    const colorMap: Record<ExpenseCategory, string> = {
-      Rent: 'bg-blue-100 text-blue-800',
-      Utilities: 'bg-green-100 text-green-800',
-      Salaries: 'bg-purple-100 text-purple-800',
-      Marketing: 'bg-pink-100 text-pink-800',
-      Maintenance: 'bg-yellow-100 text-yellow-800',
-      Supplies: 'bg-indigo-100 text-indigo-800',
-      Transportation: 'bg-orange-100 text-orange-800',
-      Insurance: 'bg-red-100 text-red-800',
-      'Professional Services': 'bg-teal-100 text-teal-800',
-      Miscellaneous: 'bg-gray-100 text-gray-800',
+    const colorMap: Record<ExpenseCategory, { bg: string, text: string }> = {
+      Rent: { bg: '#dbeafe', text: '#1e40af' },
+      Utilities: { bg: '#d1fae5', text: '#065f46' },
+      Salaries: { bg: '#ede9fe', text: '#5b21b6' },
+      Marketing: { bg: '#fce7f3', text: '#9d174d' },
+      Maintenance: { bg: '#fef3c7', text: '#92400e' },
+      Supplies: { bg: '#e0e7ff', text: '#3730a3' },
+      Transportation: { bg: '#fed7aa', text: '#9a3412' },
+      Insurance: { bg: '#fee2e2', text: '#991b1b' },
+      'Professional Services': { bg: '#ccfbf1', text: '#0f766e' },
+      Miscellaneous: { bg: '#f1f5f9', text: '#475569' },
     };
     
-    return colorMap[category as ExpenseCategory] ?? 'bg-gray-100 text-gray-800';
+    return colorMap[category as ExpenseCategory] ?? { bg: '#f1f5f9', text: '#475569' };
   };
 
-  const renderExpenseItem: ListRenderItem<ExpenseRecord> = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.s_1}
-      onPress={() => setSelectedExpense(item)}
-    >
-      <View style={styles.s_2}>
-        <View style={styles.s_3}>
-          <Text style={styles.s_4}>{item.description}</Text>
-       
+  // Render expense item
+  const renderExpenseItem = ({ item }: { item: ExpenseRecord }) => {
+    const categoryColor = getCategoryColor(item.category);
+    const date = new Date(item.date);
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.expenseCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
+        onPress={() => setSelectedExpense(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.expenseHeader}>
+          <View style={styles.expenseInfo}>
+            <Text style={[styles.expenseDescription, { color: COLORS.primary }]}>
+              {item.description}
+            </Text>
+            <Text style={[styles.expenseDate, { color: COLORS.muted }]}>
+              {date.toLocaleDateString()}
+            </Text>
+          </View>
+          <Text style={[styles.expenseAmount, { color: COLORS.accent }]}>
+            ${item.amount.toFixed(2)}
+          </Text>
         </View>
-        <Text style={styles.s_5}>
-          ${item.amount.toFixed(2)}
-        </Text>
-      </View>
-      
-    </TouchableOpacity>
-  );
+        
+        <View style={styles.expenseFooter}>
+          <View style={[styles.categoryBadge, { backgroundColor: categoryColor.bg }]}>
+            <Text style={[styles.categoryText, { color: categoryColor.text }]}>
+              {item.category}
+            </Text>
+          </View>
+          <Text style={[styles.expenseId, { color: COLORS.muted }]}>
+            #{item.id.toString().padStart(4, '0')}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
+  // Loading state
   if (isLoading) {
     return (
-      <ScrollView style={styles.s_6}>
-        <View style={styles.s_7}>
-          {/* Header Skeleton */}
-          <View style={styles.s_8}>
-            <View>
-              <View style={styles.s_9} />
-              <View style={styles.s_10} />
-            </View>
-            <View style={styles.s_11} />
-          </View>
-
-          {/* Stats Grid Skeleton */}
-          <View style={styles.s_12}>
-            {[1, 2, 3].map((i) => (
-              <View key={i} style={styles.s_13}>
-                <View style={styles.s_14} />
-                <View style={styles.s_15} />
-              </View>
-            ))}
-          </View>
-
-          {/* Search and Filter Skeleton */}
-          <View style={styles.s_16}>
-            <View style={styles.s_17} />
-            <View style={styles.s_18} />
-            <View style={styles.s_19}>
-              <View style={styles.s_20} />
-              <View style={styles.s_21} />
-            </View>
-          </View>
-
-          {/* List Skeleton */}
-          <View style={styles.s_16}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} style={styles.s_22} />
-            ))}
-          </View>
-        </View>
-      </ScrollView>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading expenses...</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.s_6}>
-      <ScrollView style={styles.s_3} showsVerticalScrollIndicator={false}>
-        <View style={styles.s_7}>
-         
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
+      <ScrollView style={styles.scrollView}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: COLORS.primary }]}>Expenses</Text>
+          <Text style={[styles.subtitle, { color: COLORS.muted }]}>Track business expenses</Text>
+        </View>
 
-          {/* Stats Cards */}
-          <View style={styles.s_23}>
-            <View style={styles.s_24}>
-              <Text style={styles.s_25}>
-                Total Expenses
-              </Text>
-              <Text style={styles.s_26}>
-                ${totalExpenses.toFixed(2)}
+        {/* Stats Grid */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.statsScroll}
+          contentContainerStyle={styles.statsContent}
+        >
+          {statCards.map((stat, index) => (
+            <View 
+              key={index} 
+              style={[
+                styles.statCard, 
+                { 
+                  backgroundColor: COLORS.card,
+                  borderColor: COLORS.border 
+                }
+              ]}
+            >
+              <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
+                <Ionicons name={stat.icon} size={20} color={stat.color} />
+              </View>
+              <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
+              <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Search and Filter Section */}
+        <View style={[styles.searchCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+          <View style={styles.searchHeader}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Expense History</Text>
+              <Text style={[styles.sectionSubtitle, { color: COLORS.muted }]}>
+                {filteredExpenses.length} expenses found
               </Text>
             </View>
-            <View style={styles.s_24}>
-              <Text style={styles.s_25}>
-                Number of Expenses
-              </Text>
-              <Text style={styles.s_26}>
-                {expenses.length}
-              </Text>
-            </View>
-            
-          </View>
-          <View style={styles.s_27}>
             <TouchableOpacity
-              style={styles.s_28}
+              style={[styles.addButton, { backgroundColor: COLORS.accent }]}
               onPress={() => setIsDialogOpen(true)}
             >
-              <Ionicons name="add" size={20} className="text-accent-foreground mr-2 " />
-              <Text style={styles.s_30}>Add New Expense</Text>
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Add Expense</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Search and Filter */}
-          <View style={styles.s_16}>
-            <Text style={styles.s_31}>
-              Expense History
-            </Text>
-            <Text style={styles.s_32}>
-              All recorded business expenses
-            </Text>
-            
-            {/* Search Input */}
-            <View style={styles.s_33}>
-              <Ionicons 
-                name="search" 
-                size={20} 
-                style={styles.s_34} 
-              />
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <View style={[styles.searchBar, { backgroundColor: COLORS.input }]}>
+              <Ionicons name="search" size={18} color={COLORS.muted} />
               <TextInput
-                placeholder="Search by description or ID..."
+                placeholder="Search expenses..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                style={styles.s_35}
-                placeholderTextColor="#6B7280"
+                style={[styles.searchInput, { color: COLORS.primary }]}
+                placeholderTextColor={COLORS.muted}
               />
-            </View>
-
-            {/* Category Filter */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.s_36}>
-                <TouchableOpacity
-                  className={`px-4 py-2 rounded-lg border ${
-                    categoryFilter === 'all'
-                      ? 'bg-accent border-accent'
-                      : 'bg-background border-input'
-                  }`}
-                  onPress={() => setCategoryFilter('all')}
-                >
-                  <Text className={
-                    categoryFilter === 'all'
-                      ? 'text-accent-foreground font-medium'
-                      : 'text-foreground'
-                  }>
-                    All Categories
-                  </Text>
+              {searchQuery && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.muted} />
                 </TouchableOpacity>
-                {EXPENSE_CATEGORY_OPTIONS.map((category) => (
+              )}
+            </View>
+          </View>
+
+          {/* Category Filter */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.categoryContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.categoryFilter,
+                  { 
+                    backgroundColor: categoryFilter === 'all' ? COLORS.accent : COLORS.input,
+                    borderColor: categoryFilter === 'all' ? COLORS.accent : COLORS.border
+                  }
+                ]}
+                onPress={() => setCategoryFilter('all')}
+              >
+                <Text style={[
+                  styles.categoryFilterText,
+                  { color: categoryFilter === 'all' ? '#FFFFFF' : COLORS.primary }
+                ]}>
+                  All Categories
+                </Text>
+              </TouchableOpacity>
+              {EXPENSE_CATEGORY_OPTIONS.map((category) => {
+                const categoryColor = getCategoryColor(category);
+                const isActive = categoryFilter === category;
+                return (
                   <TouchableOpacity
                     key={category}
-                    className={`px-4 py-2 rounded-lg border ${
-                      categoryFilter === category
-                        ? 'bg-accent border-accent'
-                        : 'bg-background border-input'
-                    }`}
+                    style={[
+                      styles.categoryFilter,
+                      { 
+                        backgroundColor: isActive ? COLORS.primary : COLORS.input,
+                        borderColor: isActive ? COLORS.primary : COLORS.border
+                      }
+                    ]}
                     onPress={() => setCategoryFilter(category)}
                   >
-                    <Text className={
-                      categoryFilter === category
-                        ? 'text-accent-foreground font-medium'
-                        : 'text-foreground'
-                    }>
+                    <Text style={[
+                      styles.categoryFilterText,
+                      { color: isActive ? '#FFFFFF' : COLORS.primary }
+                    ]}>
                       {category}
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
 
-          {/* Expenses List */}
-          <View style={styles.s_37}>
-            {filteredExpenses.length === 0 ? (
-              <View style={styles.s_38}>
-                <Ionicons name="receipt-outline" size={48} style={styles.s_39} />
-                <Text style={styles.s_40}>
-                  No expenses found
-                </Text>
-                <Text style={styles.s_41}>
-                  {searchQuery || categoryFilter !== 'all' 
-                    ? 'Try adjusting your search or filter criteria'
-                    : 'Get started by adding your first expense'
-                  }
-                </Text>
-                {(searchQuery || categoryFilter !== 'all') && (
-                  <TouchableOpacity
-                    style={styles.s_42}
-                    onPress={() => {
-                      setSearchQuery('');
-                      setCategoryFilter('all');
-                    }}
-                  >
-                    <Text style={styles.s_30}>
-                      Clear Filters
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ) : (
-              <FlatList
-                data={filteredExpenses}
-                renderItem={renderExpenseItem}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={true}
-                style={styles.s_43}
-              />
+        {/* Expenses List */}
+        {filteredExpenses.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="receipt-outline" size={64} color={COLORS.border} />
+            <Text style={[styles.emptyTitle, { color: COLORS.primary }]}>No expenses found</Text>
+            <Text style={[styles.emptyText, { color: COLORS.muted }]}>
+              {searchQuery || categoryFilter !== 'all' 
+                ? 'Try adjusting your search'
+                : 'Start by adding your first expense'
+              }
+            </Text>
+            {(searchQuery || categoryFilter !== 'all') && (
+              <TouchableOpacity
+                style={[styles.clearButton, { backgroundColor: COLORS.danger }]}
+                onPress={() => {
+                  setSearchQuery('');
+                  setCategoryFilter('all');
+                }}
+              >
+                <Text style={styles.clearButtonText}>Clear Filters</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
+        ) : (
+          <FlatList
+            data={filteredExpenses}
+            renderItem={renderExpenseItem}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={false}
+            style={styles.expensesList}
+            contentContainerStyle={styles.expensesContent}
+          />
+        )}
       </ScrollView>
 
       {/* Add Expense Modal */}
@@ -345,53 +392,64 @@ const AdminExpenses = () => {
         visible={isDialogOpen}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setIsDialogOpen(false)}
       >
-        <View style={styles.s_44}>
-          <View style={styles.s_45}>
-            <Text style={styles.s_46}>New Expense</Text>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>New Expense</Text>
             <TouchableOpacity onPress={() => setIsDialogOpen(false)}>
-              <Ionicons name="close" size={24} style={styles.s_47} />
+              <Ionicons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.s_48} showsVerticalScrollIndicator={false}>
-            <View style={styles.s_49}>
+          <ScrollView style={styles.modalScroll}>
+            <View style={styles.formContainer}>
               {/* Category */}
-              <View>
-                <Text style={styles.s_50}>Category</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex flex-row gap-4  rounded-lg border-border w-full bg-muted py-2 px-2 ">
-                    {EXPENSE_CATEGORY_OPTIONS.map((category) => (
-                      <TouchableOpacity
-                        key={category}
-                        className={`px-4 py-3 mr-3 rounded-lg border ${
-                          formData.category === category
-                            ? 'bg-accent border-accent'
-                            : 'bg-background border-input'
-                        }`}
-                        onPress={() => setFormData({ ...formData, category })}
-                      >
-                        <Text className={
-                          formData.category === category
-                            ? 'text-accent-foreground font-medium'
-                            : 'text-foreground'
-                        }>
-                          {category}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Category *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.categoryGrid}>
+                    {EXPENSE_CATEGORY_OPTIONS.map((category) => {
+                      const categoryColor = getCategoryColor(category);
+                      const isActive = formData.category === category;
+                      return (
+                        <TouchableOpacity
+                          key={category}
+                          style={[
+                            styles.categoryTag,
+                            { 
+                              backgroundColor: isActive ? COLORS.primary : COLORS.input,
+                              borderColor: isActive ? COLORS.primary : COLORS.border
+                            }
+                          ]}
+                          onPress={() => setFormData({ ...formData, category })}
+                        >
+                          <Text style={[
+                            styles.categoryTagText,
+                            { color: isActive ? '#FFFFFF' : COLORS.primary }
+                          ]}>
+                            {category}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </ScrollView>
               </View>
 
               {/* Description */}
-              <View>
-                <Text style={styles.s_52}>Description</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Description *</Text>
                 <TextInput
                   value={formData.description}
                   onChangeText={(text) => setFormData({ ...formData, description: text })}
                   placeholder="Enter expense description"
-                  style={styles.s_53}
-                  placeholderTextColor="#6B7280"
+                  style={[styles.descriptionInput, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border,
+                    color: COLORS.primary 
+                  }]}
+                  placeholderTextColor={COLORS.muted}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
@@ -399,30 +457,32 @@ const AdminExpenses = () => {
               </View>
 
               {/* Amount */}
-              <View>
-                <Text style={styles.s_52}>Amount</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Amount *</Text>
                 <TextInput
                   value={formData.amount}
                   onChangeText={(text) => setFormData({ ...formData, amount: text })}
                   placeholder="0.00"
                   keyboardType="decimal-pad"
-                  style={styles.s_54}
-                  placeholderTextColor="#6B7280"
+                  style={[styles.amountInput, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border,
+                    color: COLORS.primary 
+                  }]}
+                  placeholderTextColor={COLORS.muted}
                 />
               </View>
             </View>
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={styles.s_55}
+              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
               onPress={handleSubmit}
             >
-              <Text style={styles.s_56}>
-                Add Expense
-              </Text>
+              <Text style={styles.submitButtonText}>Add Expense</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* Expense Detail Modal */}
@@ -433,70 +493,85 @@ const AdminExpenses = () => {
         onRequestClose={() => setSelectedExpense(null)}
       >
         {selectedExpense && (
-          <View style={styles.s_44}>
-            <View style={styles.s_45}>
-              <Text style={styles.s_46}>
-                Expense # {selectedExpense.id}
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
+                Expense Details
               </Text>
               <TouchableOpacity onPress={() => setSelectedExpense(null)}>
-                <Ionicons name="close" size={24} style={styles.s_47} />
+                <Ionicons name="close" size={24} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.s_48} showsVerticalScrollIndicator={false}>
-              <View style={styles.s_49}>
-                <View style={styles.s_57}>
-                  
-                  <View className="bg-primary relative rounded-lg h-48 w-full flex flex-col items-center justify-center ">
-                    
-                   <View className={`px-4 py-2 absolute top-3 right-3 rounded-full ${getCategoryColor(selectedExpense.category)}`}>
-                      <Text style={styles.s_59}>{selectedExpense.category}</Text>
-                    </View>
-                    
-                    <Text style={styles.s_60}>
-                      
-                      ${selectedExpense.amount.toFixed(2)}
-                      
-                    </Text>
-                    
-                  </View>
-                  
-                  <View style={styles.s_61}>
-                    <Text style={styles.s_62}> {"ID #"}
-                      {selectedExpense.id}
-                    </Text>
-                    
-                    <Text style={styles.s_62}>
-                      {new Date(selectedExpense.date).toLocaleDateString()}
-                    </Text>
-                    
-                    
-                  </View>
-                
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.detailsContainer}>
+                {/* Amount Display */}
+                <View style={[styles.amountDisplay, { backgroundColor: COLORS.primary }]}>
+                  <Text style={styles.amountValue}>${selectedExpense.amount.toFixed(2)}</Text>
+                  <Text style={styles.amountLabel}>Total Amount</Text>
+                </View>
 
-                  <View style={styles.s_63}>
-                    <Text style={styles.s_64}>Description</Text>
-                    <Text style={styles.s_65}>
-                      {selectedExpense.description}
-                    </Text>
+                {/* Details */}
+                <View style={styles.detailsSection}>
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Description</Text>
+                      <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                        {selectedExpense.description}
+                      </Text>
+                    </View>
                   </View>
-                  
-                 
+
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
+                      <View style={[styles.categoryBadge, { 
+                        backgroundColor: getCategoryColor(selectedExpense.category).bg 
+                      }]}>
+                        <Text style={[styles.categoryText, { 
+                          color: getCategoryColor(selectedExpense.category).text 
+                        }]}>
+                          {selectedExpense.category}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Date</Text>
+                      <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                        {new Date(selectedExpense.date).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Expense ID</Text>
+                      <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                        #{selectedExpense.id.toString().padStart(4, '0')}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
 
                 {/* Category Statistics */}
-                <View style={styles.s_66}>
-                  <Text style={styles.s_67}>Category Statistics</Text>
-                  <View style={styles.s_68}>
-                    <View style={styles.s_69}>
-                      <Text style={styles.s_70}>Total in {selectedExpense.category}</Text>
-                      <Text style={styles.s_71}>
+                <View style={[styles.statsSection, { backgroundColor: COLORS.mutedLight }]}>
+                  <Text style={[styles.statsTitle, { color: COLORS.primary }]}>
+                    Category Statistics
+                  </Text>
+                  <View style={styles.statsGrid}>
+                    <View style={styles.statRow}>
+                      <Text style={[styles.statLabel, { color: COLORS.muted }]}>
+                        Total in {selectedExpense.category}
+                      </Text>
+                      <Text style={[styles.statValue, { color: COLORS.primary }]}>
                         ${categoryTotals[selectedExpense.category]?.toFixed(2) || '0.00'}
                       </Text>
                     </View>
-                    <View style={styles.s_69}>
-                      <Text style={styles.s_70}>Percentage of Total</Text>
-                      <Text style={styles.s_71}>
+                    <View style={styles.statRow}>
+                      <Text style={[styles.statLabel, { color: COLORS.muted }]}>
+                        Percentage of Total
+                      </Text>
+                      <Text style={[styles.statValue, { color: COLORS.primary }]}>
                         {((categoryTotals[selectedExpense.category] / totalExpenses) * 100).toFixed(1)}%
                       </Text>
                     </View>
@@ -504,405 +579,371 @@ const AdminExpenses = () => {
                 </View>
               </View>
             </ScrollView>
-          </View>
+          </SafeAreaView>
         )}
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  s_1: {
-  borderColor: "#e6edf3",
-  paddingHorizontal: 16,
-  backgroundColor: "#ffffff"
-},
-
-  s_2: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  marginBottom: 8
-},
-
-  s_3: {
-  flex: 1
-},
-
-  s_4: {
-  color: "#0f172a"
-},
-
-  s_5: {
-  fontWeight: "700",
-  fontSize: 18
-},
-
-  s_6: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
-
-  s_7: {
-  padding: 16
-},
-
-  s_8: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center"
-},
-
-  s_9: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_10: {
-  borderRadius: 6
-},
-
-  s_11: {
-  borderRadius: 6
-},
-
-  s_12: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_13: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  flex: 1
-},
-
-  s_14: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_15: {
-  borderRadius: 6
-},
-
-  s_16: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16
-},
-
-  s_17: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_18: {
-  borderRadius: 6,
-  marginBottom: 16
-},
-
-  s_19: {
-  flexDirection: "row",
-  gap: 16
-},
-
-  s_20: {
-  flex: 1,
-  borderRadius: 6
-},
-
-  s_21: {
-  borderRadius: 6
-},
-
-  s_22: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_23: {
-  width: "100%",
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: 16
-},
-
-  s_24: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16,
-  flex: 1,
-  alignItems: "center",
-  justifyContent: "center"
-},
-
-  s_25: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#ffffff"
-},
-
-  s_26: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#f97316"
-},
-
-  s_27: {
-  width: "100%"
-},
-
-  s_28: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  display: "flex",
-  flexDirection: "row",
-  width: "100%",
-  alignItems: "center",
-  justifyContent: "center"
-},
-
-  s_29: {},
-
-  s_30: {},
-
-  s_31: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_32: {
-  fontSize: 14,
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_33: {
-  marginBottom: 16
-},
-
-  s_34: {
-  color: "#6b7280"
-},
-
-  s_35: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingRight: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_36: {
-  flexDirection: "row"
-},
-
-  s_37: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: "#e6edf3"
-},
-
-  s_38: {
-  alignItems: "center"
-},
-
-  s_39: {
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_40: {
-  fontSize: 18,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_41: {
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_42: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingHorizontal: 16
-},
-
-  s_43: {},
-
-  s_44: {
-  flex: 1,
-  backgroundColor: "#ffffff",
-  paddingTop: 16
-},
-
-  s_45: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: 16,
-  paddingBottom: 16,
-  borderColor: "#e6edf3"
-},
-
-  s_46: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_47: {
-  color: "#0f172a"
-},
-
-  s_48: {
-  flex: 1,
-  padding: 16
-},
-
-  s_49: {},
-
-  s_50: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 12
-},
-
-  s_51: {
-  display: "flex",
-  flexDirection: "row",
-  gap: 16,
-  borderRadius: 12,
-  borderColor: "#e6edf3",
-  width: "100%"
-},
-
-  s_52: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_53: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_54: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  color: "#0f172a",
-  fontSize: 18
-},
-
-  s_55: {
-  backgroundColor: "#f97316",
-  borderRadius: 12
-},
-
-  s_56: {
-  fontSize: 18
-},
-
-  s_57: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_58: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center"
-},
-
-  s_59: {
-  fontWeight: "600",
-  fontSize: 14
-},
-
-  s_60: {},
-
-  s_61: {
-  width: "100%",
-  display: "flex",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between"
-},
-
-  s_62: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_63: {
-  width: "100%"
-},
-
-  s_64: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_65: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_66: {
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12,
-  padding: 16
-},
-
-  s_67: {
-  color: "#0f172a",
-  marginBottom: 12
-},
-
-  s_68: {},
-
-  s_69: {
-  flexDirection: "row",
-  justifyContent: "space-between"
-},
-
-  s_70: {
-  color: "#6b7280"
-},
-
-  s_71: {
-  color: "#0f172a"
-}
+  // Main container
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+  },
+
+  // Stats
+  statsScroll: {
+    marginBottom: 20,
+  },
+  statsContent: {
+    paddingHorizontal: 20,
+    paddingRight: 40,
+  },
+  statCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+    width: 140,
+    borderWidth: 1,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 12,
+  },
+
+  // Search Section
+  searchCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+  },
+  searchHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  addButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+
+  // Search
+  searchContainer: {
+    marginBottom: 16,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 8,
+    marginRight: 8,
+  },
+
+  // Category Filter
+  categoryContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  categoryFilter: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  categoryFilterText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  // Expenses List
+  expensesList: {
+    marginHorizontal: 20,
+  },
+  expensesContent: {
+    paddingBottom: 40,
+  },
+  expenseCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  expenseHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  expenseInfo: {
+    flex: 1,
+  },
+  expenseDescription: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  expenseDate: {
+    fontSize: 13,
+  },
+  expenseAmount: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  expenseFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  expenseId: {
+    fontSize: 12,
+  },
+
+  // Empty State
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  clearButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  clearButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Modal
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  modalScroll: {
+    flex: 1,
+    padding: 20,
+  },
+
+  // Form
+  formContainer: {
+    gap: 24,
+  },
+  formGroup: {
+    gap: 12,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  categoryTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  categoryTagText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  descriptionInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  amountInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  submitButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  // Details Modal
+  detailsContainer: {
+    gap: 24,
+  },
+  amountDisplay: {
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  amountValue: {
+    fontSize: 36,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  amountLabel: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.9,
+  },
+  detailsSection: {
+    gap: 20,
+  },
+  detailRow: {
+    flexDirection: "row",
+  },
+  detailItem: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  detailsGrid: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  statsSection: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  statsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  statsGrid: {
+    gap: 12,
+  },
+  statRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statLabel: {
+    fontSize: 14,
+  },
+  
 });
+
 export default AdminExpenses;
