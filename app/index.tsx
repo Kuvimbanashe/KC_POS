@@ -1,124 +1,120 @@
 
-import { View, Text, TouchableOpacity } from 'react-native';
-import { StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
+import { Ionicons } from '@expo/vector-icons';
 
 
-const styles = StyleSheet.create({
-  s_1: {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#ffffff",
-  width: "100%",
-  height: "100%"
-},
 
-  s_2: {
-  backgroundColor: "#f97316",
-  padding: 12,
-  borderRadius: 6,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center"
-},
-
-  s_3: {
-  fontWeight: "700",
-  marginBottom: 16
-},
-
-  s_4: {
-  fontSize: 18,
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_5: {
-  width: "100%",
-  display: "flex",
-  flexDirection: "column",
-  gap: 16
-},
-
-  s_6: {
-  backgroundColor: "#0f172a",
-  paddingVertical: 12,
-  width: "100%"
-},
-
-  s_7: {
-  paddingVertical: 12,
-  width: "100%",
-  borderWidth: 1
-},
-
-  s_8: {
-  color: "#6b7280"
-},
-
-  s_9: {
-  fontSize: 14,
-  color: "#6b7280"
-}
-});
 export default function WelcomeScreen() {
   return (
-    <View className="flex flex-col items-center justify-center bg-background w-full h-full p-5 ">
-      
-         <View style={styles.s_2}>
-       <Feather name="shopping-bag" size={48} color="white" />
-       
-        </View>
+    <View style={styles.container}>
 
-      
-      <View style={{ alignItems: 'center', marginBottom: 48 }}>
-        <Text style={styles.s_3}>
+      <View style={styles.iconBadge}>
+        <Ionicons name="briefcase" size={48} color="black" />
+
+      </View>
+
+
+      <View style={styles.header}>
+        <Text style={styles.title}>
           Shop Manager
         </Text>
-        <Text style={styles.s_4}>
+        <Text style={styles.subtitle}>
           Streamline your shop operations with ease
         </Text>
-        
-      </View>
-      
 
-      <View style={styles.s_5}>
+      </View>
+
+
+      <View style={styles.actions}>
         <Link href="/signin" asChild>
-          <TouchableOpacity style={styles.s_6}>
-            <Text style={{ 
-              color: '#FFFFFF', 
-              textAlign: 'center', 
-              fontSize: 18, 
-              fontWeight: '600' 
-            }}>
+          <TouchableOpacity style={styles.primaryCta}>
+            <Text style={styles.primaryCtaText}>
               Sign In
             </Text>
           </TouchableOpacity>
         </Link>
-        
+
         <Link href="/signup" asChild>
-          <TouchableOpacity style={styles.s_7}>
-            <Text style={styles.s_8} style={{ 
-              
-              textAlign: 'center', 
-              fontSize: 18, 
-              fontWeight: '600' 
-            }}>
+          <TouchableOpacity style={styles.secondaryCta}>
+            <Text style={styles.secondaryCtaText}>
               Create Account
             </Text>
           </TouchableOpacity>
         </Link>
+        <View>
+
+          <Text style={styles.footerText}>
+            Manage inventory, sales, and operations in one place.
+          </Text>
+        </View>
       </View>
-      
-      <View >
-        
-        <Text style={styles.s_9}>
-          Manage inventory, sales, and operations in one place.
-        </Text>
-      </View>
+
+
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    padding: 20,
+    justifyContent: "center",
+    gap: 32,
+  },
+  iconBadge: {
+    backgroundColor: "#f97316",
+    padding: 12,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  header: {
+    alignItems: "center",
+    gap: 8,
+  },
+  title: {
+    fontWeight: "700",
+    fontSize: 24,
+    color: "#0f172a",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  actions: {
+    width: "100%",
+    gap: 12,
+  },
+  primaryCta: {
+    backgroundColor: "#0f172a",
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  primaryCtaText: {
+    color: "#ffffff",
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  secondaryCta: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  secondaryCtaText: {
+    color: "#0f172a",
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+});
