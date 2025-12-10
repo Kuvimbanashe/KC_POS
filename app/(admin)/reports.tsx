@@ -1,15 +1,36 @@
-// app/(admin)/reports.js
 import { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
   ScrollView, 
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
+  SafeAreaView
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
+
+interface StatCardProps {
+  title: string;
+  value: number;
+  description: string;
+  isPositive?: boolean;
+  isCurrency?: boolean;
+}
+
+interface MetricItemProps {
+  label: string;
+  value: number;
+  isPositive?: boolean;
+  isCurrency?: boolean;
+}
+
+interface SectionHeaderProps {
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
 
 const AdminReports = () => {
   const { sales, purchases, expenses, products } = useAppSelector(state => state.user);
@@ -19,8 +40,25 @@ const AdminReports = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('income');
 
+  // Colors based on your Tailwind config
+  const COLORS = {
+    primary: '#0f172a', // hsl(220 90% 15%)
+    primaryLight: '#1e293b',
+    accent: '#f97316', // hsl(25 95% 53%)
+    accentLight: '#fb923c',
+    background: '#ffffff',
+    card: '#ffffff',
+    border: '#e2e8f0', // hsl(220 20% 90%)
+    input: '#e2e8f0',
+    destructive: '#ef4444',
+    muted: '#64748b', // hsl(220 30% 45%)
+    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#dc2626',
+  };
+
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1500);
@@ -57,433 +95,388 @@ const AdminReports = () => {
   const grossProfitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
   const assetDepreciationRate = totalAssetsPurchaseValue > 0 ? (assetDepreciation / totalAssetsPurchaseValue) * 100 : 0;
 
-  const StatCard = ({ title, value, description, isPositive = true, isCurrency = false }: { title: string, value: number, description: string, isPositive: boolean, isCurrency: boolean }) => (
-    <View style={styles.s_1}>
-      <View>
-          <Text style={styles.s_2}>
-          {title}
-        </Text>
-        
-              {description && (
-        <Text style={styles.s_3}>
-          {description}
-        </Text>
-      )}
-      </View>
-      
-      <Text className={`text-xl font-bold ${
-        typeof value === 'number' && value < 0 ? 'text-destructive' : 
-        isPositive ? 'text-accent' : 'text-foreground'
-      }`}>
-        {isCurrency && typeof value === 'number' ? `$${value.toFixed(2)}` : 
-         typeof value === 'number' ? `${value.toFixed(2)}${title.includes('Ratio') || title.includes('Margin') ? '%' : ''}` : value}
-      </Text>
+  // Navigation sections
+  const sections = [
+    { key: 'income', label: 'Income', icon: 'trending-up' as const },
+    { key: 'balance', label: 'Balance', icon: 'wallet' as const },
+    { key: 'performance', label: 'Performance', icon: 'analytics' as const },
+    { key: 'ratios', label: 'Ratios', icon: 'calculator' as const },
+  ];
 
+  // Stat Card Component
+  const StatCard = ({ title, value, description, isPositive = true, isCurrency = false }: StatCardProps) => {
+    const valueColor = typeof value === 'number' && value < 0 ? COLORS.danger : 
+                      isPositive ? COLORS.accent : COLORS.primary;
+    
+    const formattedValue = isCurrency ? `$${Math.abs(value).toFixed(2)}` :
+                           title.includes('Ratio') || title.includes('Margin') || title.includes('Rate') ? 
+                           `${value.toFixed(1)}%` : value.toFixed(2);
+
+    return (
+      <View style={[styles.statCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+        <View>
+          <Text style={[styles.statCardTitle, { color: COLORS.muted }]}>{title}</Text>
+          {description && (
+            <Text style={[styles.statCardDescription, { color: COLORS.muted }]}>{description}</Text>
+          )}
+        </View>
+        <Text style={[styles.statCardValue, { color: valueColor }]}>
+          {formattedValue}
+        </Text>
+      </View>
+    );
+  };
+
+  // Metric Item Component
+  const MetricItem = ({ label, value, isPositive = true, isCurrency = false }: MetricItemProps) => {
+    const valueColor = typeof value === 'number' && value < 0 ? COLORS.danger : 
+                      isPositive ? COLORS.accent : COLORS.primary;
+    
+    const formattedValue = isCurrency ? `$${Math.abs(value).toFixed(2)}` :
+                           label.includes('Ratio') || label.includes('Margin') || label.includes('Rate') ? 
+                           `${value.toFixed(1)}%` : value.toFixed(2);
+
+    return (
+      <View style={[styles.metricItem, { backgroundColor: COLORS.mutedLight }]}>
+        <Text style={[styles.metricLabel, { color: COLORS.primary }]}>{label}</Text>
+        <Text style={[styles.metricValue, { color: valueColor }]}>{formattedValue}</Text>
+      </View>
+    );
+  };
+
+  // Section Header Component
+  const SectionHeader = ({ title, subtitle, icon }: SectionHeaderProps) => (
+    <View style={styles.sectionHeader}>
+      <View style={[styles.sectionIcon, { backgroundColor: `${COLORS.accent}20` }]}>
+        <Ionicons name={icon} size={24} color={COLORS.accent} />
+      </View>
+      <View style={styles.sectionTitleContainer}>
+        <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>{title}</Text>
+        <Text style={[styles.sectionSubtitle, { color: COLORS.muted }]}>{subtitle}</Text>
+      </View>
     </View>
   );
 
-  const MetricItem = ({ label, value, isPositive = true, isCurrency = false }: { label: string, value: number, isPositive: boolean, isCurrency: boolean }) => (
-    <View style={styles.s_4}>
-      <View style={styles.s_5}>
-        <Text style={styles.s_6}>
-          {label}
-        </Text>
-        <Text className={`font-bold text-base ${
-          typeof value === 'number' && value < 0 ? 'text-destructive' : 
-          isPositive ? 'text-accent' : 'text-foreground'
-        }`}>
-          {isCurrency && typeof value === 'number' ? `$${value.toFixed(2)}` : 
-           typeof value === 'number' ? `${value.toFixed(2)}${label.includes('Ratio') || label.includes('Margin') || label.includes('Rate') ? '%' : ''}` : value}
-        </Text>
-      </View>
-    </View>
-  );
-
-  const SectionHeader = ({ title, subtitle, icon }: { title: string, subtitle: string, icon: keyof typeof Ionicons.glyphMap }) => (
-    <View style={styles.s_7}>
-      <Ionicons name={icon} size={24} style={styles.s_8} />
-      <View>
-        <Text style={styles.s_9}>{title}</Text>
-        <Text style={styles.s_10}>{subtitle}</Text>
-      </View>
-    </View>
-  );
-
+  // Income Statement Section
   const renderIncomeStatement = () => (
-    <View>
+    <View style={styles.sectionContainer}>
       <SectionHeader 
         title="Income Statement" 
         subtitle="Revenue, costs, and profitability"
         icon="trending-up"
       />
-      <View style={styles.s_11}>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Total Revenue"
-            value={totalRevenue}
-            description="From all sales"
-            isPositive={true}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Cost of Goods"
-            value={totalCost}
-            description="Purchase costs"
-            isPositive={false}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Operating Expenses"
-            value={totalExpenses}
-            description="Business costs"
-            isPositive={false}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Gross Profit"
-            value={grossProfit}
-            description="Revenue - COGS"
-            isPositive={true}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Net Profit"
-            value={netProfit}
-            description="After all expenses"
-            isPositive={netProfit >= 0}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Profit Margin"
-            value={profitMargin}
-            description="Net profit percentage"
-            isPositive={profitMargin >= 0}
-            isCurrency={false}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Operating Margin"
-            value={operatingMargin}
-            description="Operating income %"
-            isPositive={operatingMargin >= 0}
-            isCurrency={false}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="COGS Ratio"
-            value={costOfGoodsSoldRatio}
-            description="Cost vs revenue"
-            isPositive={false}
-            isCurrency={false}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Expense Ratio"
-            value={expenseRatio}
-            description="Expenses vs revenue"
-            isPositive={false}
-            isCurrency={false}
-          />
-        </View>
+      
+      <View style={styles.metricsGrid}>
+        <StatCard
+          title="Total Revenue"
+          value={totalRevenue}
+          description="From all sales"
+          isPositive={true}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Cost of Goods"
+          value={totalCost}
+          description="Purchase costs"
+          isPositive={false}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Gross Profit"
+          value={grossProfit}
+          description="Revenue - COGS"
+          isPositive={true}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Operating Expenses"
+          value={totalExpenses}
+          description="Business costs"
+          isPositive={false}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Net Profit"
+          value={netProfit}
+          description="After all expenses"
+          isPositive={netProfit >= 0}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Profit Margin"
+          value={profitMargin}
+          description="Net profit percentage"
+          isPositive={profitMargin >= 0}
+          isCurrency={false}
+        />
       </View>
     </View>
   );
 
+  // Balance Sheet Section
   const renderBalanceSheet = () => (
-    <View>
+    <View style={styles.sectionContainer}>
       <SectionHeader 
         title="Balance Sheet" 
         subtitle="Assets, liabilities, and equity"
         icon="wallet"
       />
-      <View className="flex-col w-full  ">
-        <View style={styles.s_12}>
-          <StatCard
-            title="Total Assets Value"
-            value={totalAssetsValue}
-            description="Current asset worth"
-            isPositive={true}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Inventory Value"
-            value={totalInventoryValue}
-            description="Stock on hand"
-            isPositive={true}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Asset Depreciation"
-            value={assetDepreciation}
-            description="Value loss"
-            isPositive={false}
-            isCurrency={true}
-          />
-        </View>
-        <View style={styles.s_12}>
-          <StatCard
-            title="Current Ratio"
-            value={currentRatio}
-            description="Liquidity measure"
-            isPositive={currentRatio >= 1}
-            isCurrency={false}
-          />
-        </View>
+      
+      <View style={styles.metricsGrid}>
+        <StatCard
+          title="Total Assets"
+          value={totalAssetsValue}
+          description="Current asset worth"
+          isPositive={true}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Inventory Value"
+          value={totalInventoryValue}
+          description="Stock on hand"
+          isPositive={true}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Current Assets"
+          value={currentAssets}
+          description="Total liquid assets"
+          isPositive={true}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Current Ratio"
+          value={currentRatio}
+          description="Liquidity measure"
+          isPositive={currentRatio >= 1}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Asset Depreciation"
+          value={assetDepreciation}
+          description="Value loss"
+          isPositive={false}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Depreciation Rate"
+          value={assetDepreciationRate}
+          description="Annual depreciation"
+          isPositive={false}
+          isCurrency={false}
+        />
       </View>
     </View>
   );
 
+  // Performance Metrics Section
   const renderPerformanceMetrics = () => (
-    <View>
+    <View style={styles.sectionContainer}>
       <SectionHeader 
         title="Performance Metrics" 
         subtitle="Key business indicators"
         icon="analytics"
       />
-      <View style={styles.s_13}>
-        <View style={styles.s_14}>
-          <View style={styles.s_15}>
-            <Text style={styles.s_16}>Summary</Text>
-            <MetricItem
-              label="Total Transactions"
-              value={sales.length}
-              isPositive={true}
-              isCurrency={false}
-            />
-            <MetricItem
-              label="Total Purchase Orders"
-              value={purchases.length}
-              isPositive={true}
-              isCurrency={false}
-            />
-            <MetricItem
-              label="Total Expense Records"
-              value={expenses.length}
-              isPositive={true}
-              isCurrency={false}
-            />
-          </View>
-        </View>
-        
-        <View style={styles.s_14}>
-          <View style={styles.s_15}>
-            <Text style={styles.s_16}>Performance</Text>
-            <MetricItem
-              label="Avg Transaction Value"
-              value={averageTransactionValue}
-              isPositive={true}
-              isCurrency={true}
-            />
-            <MetricItem
-              label="Return on Assets (ROA)"
-              value={returnOnAssets}
-              isPositive={returnOnAssets >= 0}
-              isCurrency={false}
-            />
-            <MetricItem
-              label="Inventory Turnover"
-              value={inventoryTurnover}
-              isPositive={true}
-              isCurrency={false}
-            
-            />
-            <MetricItem
-              label="Gross Profit Margin"
-              value={grossProfitMargin}
-              isPositive={true}
-              isCurrency={false}
-              />
-          </View>
-        </View>
-
-        <View style={styles.s_12}>
-          <View style={styles.s_15}>
-            <Text style={styles.s_16}>Asset Overview</Text>
-            <MetricItem
-              label="Number of Assets"
-              value={assets.length}
-              isPositive={true}
-              isCurrency={false}
-            />
-            <MetricItem
-              label="Number of Products"
-              value={products.length}
-              isCurrency={false}
-              isPositive={true}
-              
-              />
-            <MetricItem
-              label="Total Current Assets"
-              value={currentAssets}
-              isCurrency={true}
-              isPositive={true}
-            />
-          </View>
-        </View>
+      
+      <View style={styles.metricsGrid}>
+        <StatCard
+          title="Total Transactions"
+          value={sales.length}
+          description="Number of sales"
+          isPositive={true}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Avg Transaction"
+          value={averageTransactionValue}
+          description="Average sale value"
+          isPositive={true}
+          isCurrency={true}
+        />
+        <StatCard
+          title="Inventory Turnover"
+          value={inventoryTurnover}
+          description="Turnover ratio"
+          isPositive={true}
+          isCurrency={false}
+        />
+        <StatCard
+          title="ROA"
+          value={returnOnAssets}
+          description="Return on assets"
+          isPositive={returnOnAssets >= 0}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Gross Margin"
+          value={grossProfitMargin}
+          description="Gross profit percentage"
+          isPositive={true}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Operating Margin"
+          value={operatingMargin}
+          description="Operating income %"
+          isPositive={operatingMargin >= 0}
+          isCurrency={false}
+        />
       </View>
     </View>
   );
 
+  // Financial Ratios Section
   const renderFinancialRatios = () => (
-    <View>
+    <View style={styles.sectionContainer}>
       <SectionHeader 
         title="Financial Ratios" 
         subtitle="Business health indicators"
         icon="calculator"
       />
-      <View className="flex-col w-full ">
-        <View style={styles.s_14}>
-          <View style={styles.s_15}>
-            <Text style={styles.s_16}>Profitability</Text>
-            <MetricItem
-              label="Net Profit Margin"
-              value={profitMargin}
-              isPositive={profitMargin >= 0}
-              isCurrency={false}
-            />
-            <MetricItem
-              label="Operating Margin"
-              value={operatingMargin}
-              isPositive={operatingMargin >= 0}
-              isCurrency={false}
-            />
-            <MetricItem
-              label="Gross Margin"
-              value={grossProfitMargin}
-              isPositive={true}
-              isCurrency={false}
-            />
-          </View>
-        </View>
-        
-        <View style={styles.s_14}>
-          <View style={styles.s_15}>
-            <Text style={styles.s_16}>Efficiency</Text>
-            <MetricItem
-              label="Inventory Turnover"
-              value={inventoryTurnover}
-              isPositive={true}
-              isCurrency={false}
-            />
-            <MetricItem
-              label="Asset Turnover"
-              value={totalRevenue > 0 ? totalRevenue / totalAssetsValue : 0}
-              isPositive={true}
-              isCurrency={false}
-              />
-            <MetricItem
-              label="Expense Ratio"
-              value={expenseRatio}
-              isPositive={false}
-              isCurrency={false}
-              />
-          </View>
-        </View>
-
-        <View style={styles.s_12}>
-          <View style={styles.s_15}>
-            <Text style={styles.s_16}>Liquidity</Text>
-            <MetricItem
-              label="Current Ratio"
-              value={currentRatio}
-              isPositive={currentRatio >= 1}
-              isCurrency={false}
-              />
-            <MetricItem
-              label="Quick Ratio"
-              value={currentLiabilities > 0 ? (currentAssets - totalInventoryValue) / currentLiabilities : 0}
-              isPositive={true}
-              isCurrency={false}
-              />
-            <MetricItem
-              label="Working Capital"
-              value={currentAssets - currentLiabilities}
-              isPositive={true}
-              isCurrency={true}
-            />
-          </View>
-        </View>
+      
+      <View style={styles.metricsGrid}>
+        <StatCard
+          title="Current Ratio"
+          value={currentRatio}
+          description="Liquidity measure"
+          isPositive={currentRatio >= 1}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Quick Ratio"
+          value={currentLiabilities > 0 ? (currentAssets - totalInventoryValue) / currentLiabilities : 0}
+          description="Acid-test ratio"
+          isPositive={true}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Profit Margin"
+          value={profitMargin}
+          description="Net profit percentage"
+          isPositive={profitMargin >= 0}
+          isCurrency={false}
+        />
+        <StatCard
+          title="COGS Ratio"
+          value={costOfGoodsSoldRatio}
+          description="Cost vs revenue"
+          isPositive={false}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Expense Ratio"
+          value={expenseRatio}
+          description="Expenses vs revenue"
+          isPositive={false}
+          isCurrency={false}
+        />
+        <StatCard
+          title="Asset Turnover"
+          value={totalRevenue > 0 ? totalRevenue / totalAssetsValue : 0}
+          description="Asset efficiency"
+          isPositive={true}
+          isCurrency={false}
+        />
       </View>
     </View>
   );
 
+  // Quick Stats Footer
+  const renderQuickStats = () => {
+    const monthlyRevenue = totalRevenue / 12;
+    const monthlyProfit = netProfit / 12;
+    const businessHealth = profitMargin > 20 ? 'Excellent' : profitMargin > 10 ? 'Good' : 'Needs Attention';
+    const healthColor = profitMargin > 20 ? COLORS.success : profitMargin > 10 ? COLORS.warning : COLORS.danger;
+
+    return (
+      <View style={[styles.quickStats, { backgroundColor: COLORS.primary }]}>
+        <Text style={[styles.quickStatsTitle, { color: '#FFFFFF' }]}>Quick Overview</Text>
+        
+        <View style={styles.quickStatsGrid}>
+          <View style={styles.quickStatItem}>
+            <Text style={[styles.quickStatLabel, { color: COLORS.accent }]}>Monthly Revenue</Text>
+            <Text style={[styles.quickStatValue, { color: '#FFFFFF' }]}>
+              ${monthlyRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </Text>
+          </View>
+          
+          <View style={styles.quickStatItem}>
+            <Text style={[styles.quickStatLabel, { color: COLORS.accent }]}>Monthly Profit</Text>
+            <Text style={[styles.quickStatValue, { color: '#FFFFFF' }]}>
+              ${monthlyProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </Text>
+          </View>
+          
+          <View style={styles.quickStatItem}>
+            <Text style={[styles.quickStatLabel, { color: COLORS.accent }]}>Active Products</Text>
+            <Text style={[styles.quickStatValue, { color: '#FFFFFF' }]}>{products.length}</Text>
+          </View>
+          
+          <View style={styles.quickStatItem}>
+            <Text style={[styles.quickStatLabel, { color: COLORS.accent }]}>Business Health</Text>
+            <Text style={[styles.quickStatHealth, { color: healthColor }]}>{businessHealth}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   if (isLoading) {
     return (
-      <View style={styles.s_17}>
-        <ActivityIndicator size="large" color="#FB923C" />
-        <Text style={styles.s_18}>Loading reports...</Text>
-      </View>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading reports...</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.s_19}>
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
       {/* Header */}
-      <View style={styles.s_20}>
-        <Text style={styles.s_21}>Reports</Text>
-        <Text style={styles.s_10}>Financial reports and analytics</Text>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: COLORS.primary }]}>Reports</Text>
+        <Text style={[styles.subtitle, { color: COLORS.muted }]}>Financial reports and analytics</Text>
       </View>
 
       {/* Section Navigation */}
-    <View>
-      
-        <ScrollView 
-      horizontal showsHorizontalScrollIndicator={false}
-        className=" border-b border-border bg-card h-fit flex flex-row px-4 py-2 ">
-          {[
-            { key: 'income', label: 'Income', icon: 'trending-up' },
-            { key: 'balance', label: 'Balance Sheet', icon: 'wallet' },
-            { key: 'performance', label: 'Performance', icon: 'analytics' },
-            { key: 'ratios', label: 'Ratios', icon: 'calculator' },
-          ].map((section) => (
-            <TouchableOpacity
-              key={section.key}
-              className={`px-4 py-2 rounded-full h-fit w-fit flex-row items-center ${
-                activeSection === section.key ? 'bg-accent' : 'bg-transparent'
-              }`}
-              onPress={() => setActiveSection(section.key)}
-            >
-              <Ionicons 
-                name={section.icon as keyof typeof Ionicons.glyphMap} 
-                size={16} 
-                className={
-                  activeSection === section.key ? 'text-accent-foreground mr-2' : 'text-muted-foreground mr-2'
-                } 
-              />
-              <Text className={
-                activeSection === section.key 
-                  ? 'text-accent-foreground font-semibold' 
-                  : 'text-muted-foreground'
-              }>
-                {section.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        
+     <View>
+     <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.navigationScroll}
+        contentContainerStyle={styles.navigationContent}
+      >
+        {sections.map((section) => (
+          <TouchableOpacity
+            key={section.key}
+            style={[
+              styles.navButton,
+              { 
+                backgroundColor: activeSection === section.key ? COLORS.accent : COLORS.card,
+                borderColor: activeSection === section.key ? COLORS.accent : COLORS.border
+              }
+            ]}
+            onPress={() => setActiveSection(section.key)}
+          >
+            <Ionicons 
+              name={section.icon} 
+              size={16} 
+              color={activeSection === section.key ? '#FFFFFF' : COLORS.muted} 
+            />
+            <Text style={[
+              styles.navButtonText,
+              { color: activeSection === section.key ? '#FFFFFF' : COLORS.primary }
+            ]}>
+              {section.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
-      
-    </View>
+     </View>
 
       {/* Content */}
-      <ScrollView style={styles.s_23}>
-        <View style={styles.s_24}>
+      <ScrollView style={styles.contentScroll}>
+        <View style={styles.contentContainer}>
           {activeSection === 'income' && renderIncomeStatement()}
           {activeSection === 'balance' && renderBalanceSheet()}
           {activeSection === 'performance' && renderPerformanceMetrics()}
@@ -491,216 +484,188 @@ const AdminReports = () => {
         </View>
 
         {/* Quick Stats Footer */}
-        <View style={styles.s_25}>
-          <Text style={styles.s_26}>
-            Quick Financial Overview
-          </Text>
-          <View style={styles.s_27}>
-            <View style={styles.s_28}>
-              <Text style={styles.s_29}>Monthly Revenue</Text>
-              <Text style={styles.s_30}>
-                ${(totalRevenue / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </Text>
-            </View>
-            <View style={styles.s_28}>
-              <Text style={styles.s_29}>Monthly Profit</Text>
-              <Text style={styles.s_30}>
-                ${(netProfit / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </Text>
-            </View>
-            <View style={styles.s_28}>
-              <Text style={styles.s_29}>Active Products</Text>
-              <Text style={styles.s_30}>
-                {products.length}
-              </Text>
-            </View>
-            <View style={styles.s_28}>
-              <Text style={styles.s_29}>Business Health</Text>
-              <Text className={`text-lg font-bold ${
-                profitMargin > 20 ? 'text-green-400' : 
-                profitMargin > 10 ? 'text-yellow-400' : 'text-red-400'
-              }`}>
-                {profitMargin > 20 ? 'Excellent' : profitMargin > 10 ? 'Good' : 'Needs Attention'}
-              </Text>
-            </View>
-          </View>
-        </View>
+        {renderQuickStats()}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  s_1: {
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 16,
-  display: "flex",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between"
-},
+  // Main container
+  container: {
+    flex: 1,
+  },
+  
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
 
-  s_2: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#6b7280"
-},
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+  },
 
-  s_3: {
-  fontSize: 12,
-  color: "#6b7280"
-},
+  // Navigation
+  navigationScroll: {
+    marginBottom: 20,
+    
+     alignSelf:"flex-start",
+   
+  },
+  navigationContent: {
+    paddingHorizontal: 20,
+   
+  },
+  navButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 1,
+    alignSelf:"flex-start"
+  },
+  navButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
 
-  s_4: {
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12,
-  padding: 12,
-  marginBottom: 8
-},
+  // Content
+  contentScroll: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+  },
 
-  s_5: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center"
-},
+  // Section
+  sectionContainer: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  sectionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  sectionTitleContainer: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+  },
 
-  s_6: {
-  fontWeight: "600",
-  color: "#0f172a",
-  fontSize: 14,
-  flex: 1
-},
+  // Metrics Grid
+  metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
 
-  s_7: {
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 16
-},
+  // Stat Card
+  statCard: {
+    width: "100%",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems:"center",
+    justifyContent:"space-between"
+  },
+  statCardTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  statCardDescription: {
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  statCardValue: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
 
-  s_8: {
-  color: "#f97316"
-},
+  // Metric Item
+  metricItem: {
+    width: "48%",
+    borderRadius: 12,
+    padding: 16,
+  },
+  metricLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  metricValue: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
 
-  s_9: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_10: {
-  color: "#6b7280"
-},
-
-  s_11: {},
-
-  s_12: {
-  width: "100%"
-},
-
-  s_13: {
-  flexDirection: "column",
-  width: "100%"
-},
-
-  s_14: {
-  width: "100%",
-  marginBottom: 16
-},
-
-  s_15: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  borderWidth: 1,
-  borderColor: "#e6edf3"
-},
-
-  s_16: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a",
-  marginBottom: 12
-},
-
-  s_17: {
-  flex: 1,
-  backgroundColor: "#ffffff",
-  justifyContent: "center",
-  alignItems: "center"
-},
-
-  s_18: {
-  color: "#6b7280",
-  marginTop: 16
-},
-
-  s_19: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
-
-  s_20: {
-  backgroundColor: "#ffffff",
-  padding: 16,
-  borderColor: "#e6edf3"
-},
-
-  s_21: {
-  fontSize: 24,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_22: {
-  borderColor: "#e6edf3",
-  backgroundColor: "#ffffff",
-  display: "flex",
-  flexDirection: "row",
-  paddingHorizontal: 16
-},
-
-  s_23: {
-  flex: 1,
-  padding: 16
-},
-
-  s_24: {},
-
-  s_25: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16
-},
-
-  s_26: {
-  fontSize: 18,
-  color: "#ffffff",
-  marginBottom: 12
-},
-
-  s_27: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between"
-},
-
-  s_28: {
-  marginBottom: 12,
-  width: "48%"
-},
-
-  s_29: {
-  color: "#f97316",
-  fontSize: 14
-},
-
-  s_30: {
-  color: "#ffffff",
-  fontSize: 18,
-  fontWeight: "700"
-}
+  // Quick Stats
+  quickStats: {
+    marginHorizontal: 20,
+    marginBottom: 32,
+    borderRadius: 16,
+    padding: 20,
+  },
+  quickStatsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 20,
+  },
+  quickStatsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  quickStatItem: {
+    width: "48%",
+  },
+  quickStatLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  quickStatValue: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  quickStatHealth: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });
+
 export default AdminReports;

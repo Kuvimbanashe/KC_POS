@@ -1,4 +1,4 @@
-// app/(admin)/profile.js
+// app/(admin)/profile.tsx
 import { useState, useEffect } from 'react';
 import { 
   View, 
@@ -7,13 +7,26 @@ import {
   TouchableOpacity, 
   TextInput, 
   Alert,
-  Modal
+  Modal,
+  ActivityIndicator
 } from 'react-native';
-import { StyleSheet } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { updateProfile } from '../../store/slices/authSlice';
 import { updateUser } from '../../store/slices/userManagementSlice';
+
+interface ProfileFormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+interface PasswordFormData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
 
 const AdminProfile = () => {
   const { user } = useAppSelector(state => state.auth);
@@ -24,14 +37,14 @@ const AdminProfile = () => {
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfileForm] = useState<ProfileFormData>({
     name: '',
     email: '',
     phone: '',
     address: '',
   });
   
-  const [passwordForm, setPasswordForm] = useState({
+  const [passwordForm, setPasswordForm] = useState<PasswordFormData>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -50,15 +63,22 @@ const AdminProfile = () => {
 
   if (!user) {
     return (
-      <View style={styles.s_1}>
-        <Text style={styles.s_2}>User not found</Text>
+      <View className="flex-1 bg-background justify-center items-center p-6">
+        <Ionicons name="person-circle-outline" size={64} className="text-muted-foreground mb-4" />
+        <Text className="text-xl font-semibold text-foreground mb-2">User not found</Text>
+        <Text className="text-muted-foreground text-center">Please log in to view your profile</Text>
       </View>
     );
   }
 
   const handleProfileUpdate = async () => {
-    if (!profileForm.name || !profileForm.email) {
+    if (!profileForm.name.trim() || !profileForm.email.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    if (!profileForm.email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
@@ -124,202 +144,227 @@ const AdminProfile = () => {
 
   const profileInfo = [
     {
-      icon: 'person-outline',
+      icon: 'person-outline' as const,
       label: 'Full Name',
       value: user.name,
-      color: 'text-accent',
     },
     {
-      icon: 'mail-outline',
+      icon: 'mail-outline' as const,
       label: 'Email',
       value: user.email,
-      color: 'text-accent',
     },
     {
-      icon: 'call-outline',
+      icon: 'call-outline' as const,
       label: 'Phone',
       value: user.phone || 'Not provided',
-      color: 'text-accent',
     },
     {
-      icon: 'location-outline',
+      icon: 'location-outline' as const,
       label: 'Address',
       value: user.address || 'Not provided',
-      color: 'text-accent',
     },
     {
-      icon: 'shield-checkmark-outline',
+      icon: 'shield-checkmark-outline' as const,
       label: 'Role',
       value: 'Administrator',
-      color: 'text-accent',
     },
     {
-      icon: 'calendar-outline',
+      icon: 'calendar-outline' as const,
       label: 'Member Since',
-      value: new Date().toLocaleDateString(), // Using current date as mock
-      color: 'text-accent',
+      value: new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+    },
+  ];
+
+  const settingsOptions = [
+    {
+      icon: 'create-outline' as const,
+      title: 'Update Profile',
+      description: 'Update your personal information',
+      onPress: () => setIsEditOpen(true),
+    },
+    {
+      icon: 'key-outline' as const,
+      title: 'Change Password',
+      description: 'Update your password',
+      onPress: () => setIsPasswordOpen(true),
+    },
+    {
+      icon: 'shield-checkmark-outline' as const,
+      title: 'Security Settings',
+      description: 'Manage security preferences',
+      onPress: () => Alert.alert('Coming Soon', 'This feature is coming soon'),
+    },
+    {
+      icon: 'notifications-outline' as const,
+      title: 'Notifications',
+      description: 'Configure notification settings',
+      onPress: () => Alert.alert('Coming Soon', 'This feature is coming soon'),
+    },
+  ];
+
+  const stats = [
+    {
+      label: 'Last Login',
+      value: 'Today, 09:30 AM',
+    },
+    {
+      label: 'Account Status',
+      value: 'Active',
+      badge: true,
+      type: 'success' as const,
+    },
+    {
+      label: 'Two-Factor Auth',
+      value: 'Disabled',
+      badge: true,
+      type: 'warning' as const,
+    },
+    {
+      label: 'Login Sessions',
+      value: '1 Active',
     },
   ];
 
   return (
-    <View style={styles.s_3}>
-      <ScrollView style={styles.s_4}>
-        <View style={styles.s_5}>
+    <View className="flex-1 bg-background">
+      <ScrollView className="flex-1">
+        <View className="p-4">
           {/* Header */}
-          <View>
-            <Text style={styles.s_6}>
-              Profile
+          <View className="mb-6">
+            <Text className="text-3xl font-bold text-foreground mb-2">
+              My Profile
             </Text>
-            <Text style={styles.s_7}>
-              View and manage your account
+            <Text className="text-muted-foreground">
+              View and manage your account settings
             </Text>
           </View>
 
-          <View style={styles.s_8}>
-            {/* Account Information Card */}
-            <View style={styles.s_4}>
-              <View style={styles.s_9}>
-                <Text style={styles.s_10}>
-                  Account Information
+          {/* User Profile Card */}
+          <View className="bg-card rounded-2xl border border-border p-6 mb-6">
+            <View className="flex-row items-center mb-6">
+              <View className="w-20 h-20 bg-accent rounded-full items-center justify-center mr-4">
+                <Text className="text-2xl font-bold text-accent-foreground">
+                  {user.name.charAt(0).toUpperCase()}
                 </Text>
-                <Text style={styles.s_11}>
-                  Your personal details
+              </View>
+              <View className="flex-1">
+                <Text className="text-2xl font-bold text-foreground mb-1">
+                  {user.name}
                 </Text>
-                
-                <View style={styles.s_12}>
-                  {profileInfo.map((item, index) => (
-                    <View 
-                      key={index}
-                      style={styles.s_13}
-                    >
-                      <Ionicons 
-                        name={item.icon as keyof typeof Ionicons.glyphMap} 
-                        size={20} 
-                        className={item.color}
-                      />
-                      <View style={styles.s_4}>
-                        <Text style={styles.s_14}>
-                          {item.label}
-                        </Text>
-                        <Text style={styles.s_15}>
-                          {item.value}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+                <Text className="text-muted-foreground mb-2">
+                  {user.email}
+                </Text>
+                <View className="flex-row items-center">
+                  <View className="px-3 py-1 bg-accent/10 rounded-full">
+                    <Text className="text-sm font-medium text-accent">
+                      Administrator
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
 
-            {/* Account Settings Card */}
-            <View style={styles.s_4}>
-              <View style={styles.s_9}>
-                <Text style={styles.s_10}>
-                  Account Settings
-                </Text>
-                <Text style={styles.s_11}>
-                  Manage your preferences
-                </Text>
-                
-                <View style={styles.s_12}>
-                  {/* Update Profile Button */}
-                  <TouchableOpacity
-                    style={styles.s_16}
-                    onPress={() => setIsEditOpen(true)}
-                  >
-                    <Ionicons name="create-outline" size={20} style={styles.s_17} />
-                    <View style={styles.s_4}>
-                      <Text style={styles.s_18}>
-                        Update Profile
-                      </Text>
-                      <Text style={styles.s_19}>
-                        Update your personal information
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
-                  </TouchableOpacity>
-
-                  {/* Change Password Button */}
-                  <TouchableOpacity
-                    style={styles.s_16}
-                    onPress={() => setIsPasswordOpen(true)}
-                  >
-                    <Ionicons name="key-outline" size={20} style={styles.s_17} />
-                    <View style={styles.s_4}>
-                      <Text style={styles.s_18}>
-                        Change Password
-                      </Text>
-                      <Text style={styles.s_19}>
-                        Update your password
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
-                  </TouchableOpacity>
-
-                  {/* Security Settings */}
-                  <TouchableOpacity
-                    style={styles.s_16}
-                  >
-                    <Ionicons name="shield-checkmark-outline" size={20} style={styles.s_17} />
-                    <View style={styles.s_4}>
-                      <Text style={styles.s_18}>
-                        Security Settings
-                      </Text>
-                      <Text style={styles.s_19}>
-                        Manage security preferences
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
-                  </TouchableOpacity>
-
-                  {/* Notification Settings */}
-                  <TouchableOpacity
-                    style={styles.s_16}
-                  >
-                    <Ionicons name="notifications-outline" size={20} style={styles.s_17} />
-                    <View style={styles.s_4}>
-                      <Text style={styles.s_18}>
-                        Notifications
-                      </Text>
-                      <Text style={styles.s_19}>
-                        Configure notification settings
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} style={styles.s_20} />
-                  </TouchableOpacity>
+            {/* Profile Information */}
+            <Text className="text-lg font-semibold text-foreground mb-4">
+              Profile Information
+            </Text>
+            <View className="space-y-3">
+              {profileInfo.map((item, index) => (
+                <View 
+                  key={index}
+                  className="flex-row items-start p-4 bg-secondary/50 rounded-xl"
+                >
+                  <Ionicons 
+                    name={item.icon} 
+                    size={20} 
+                    className="text-muted-foreground mr-4 mt-0.5"
+                  />
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium text-muted-foreground mb-1">
+                      {item.label}
+                    </Text>
+                    <Text className="text-foreground">
+                      {item.value}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              ))}
             </View>
           </View>
 
-          {/* Additional Info Card */}
-          <View style={styles.s_9}>
-            <Text style={styles.s_21}>
+          {/* Account Settings */}
+          <View className="bg-card rounded-2xl border border-border p-6 mb-6">
+            <Text className="text-lg font-semibold text-foreground mb-4">
+              Account Settings
+            </Text>
+            <Text className="text-muted-foreground mb-6">
+              Manage your account preferences
+            </Text>
+            
+            <View className="space-y-3">
+              {settingsOptions.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  className="flex-row items-center p-4 border border-border rounded-xl bg-background"
+                  onPress={option.onPress}
+                  activeOpacity={0.7}
+                >
+                  <View className="w-10 h-10 bg-secondary rounded-lg items-center justify-center mr-4">
+                    <Ionicons name={option.icon} size={20} className="text-foreground" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold text-foreground mb-1">
+                      {option.title}
+                    </Text>
+                    <Text className="text-sm text-muted-foreground">
+                      {option.description}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} className="text-muted-foreground" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Account Statistics */}
+          <View className="bg-card rounded-2xl border border-border p-6">
+            <Text className="text-lg font-semibold text-foreground mb-6">
               Account Statistics
             </Text>
-            <View style={styles.s_22}>
-              <View style={styles.s_23}>
-                <Text style={styles.s_24}>Last Login</Text>
-                <Text style={styles.s_15}>
-                  {new Date().toLocaleString()}
-                </Text>
-              </View>
-              <View style={styles.s_23}>
-                <Text style={styles.s_24}>Account Status</Text>
-                <View style={styles.s_25}>
-                  <Text style={styles.s_26}>Active</Text>
+            <View className="grid grid-cols-2 gap-4">
+              {stats.map((stat, index) => (
+                <View 
+                  key={index} 
+                  className="bg-background p-4 rounded-xl border border-border"
+                >
+                  <Text className="text-sm font-medium text-muted-foreground mb-2">
+                    {stat.label}
+                  </Text>
+                  {stat.badge ? (
+                    <View className={`px-3 py-1 rounded-full self-start ${
+                      stat.type === 'success' 
+                        ? 'bg-green-100' 
+                        : 'bg-yellow-100'
+                    }`}>
+                      <Text className={`text-sm font-medium ${
+                        stat.type === 'success' 
+                          ? 'text-green-800' 
+                          : 'text-yellow-800'
+                      }`}>
+                        {stat.value}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text className="text-lg font-semibold text-foreground">
+                      {stat.value}
+                    </Text>
+                  )}
                 </View>
-              </View>
-              <View style={styles.s_23}>
-                <Text style={styles.s_24}>Two-Factor Auth</Text>
-                <View style={styles.s_27}>
-                  <Text style={styles.s_28}>Disabled</Text>
-                </View>
-              </View>
-              <View style={styles.s_23}>
-                <Text style={styles.s_24}>Login Sessions</Text>
-                <Text style={styles.s_15}>1 Active</Text>
-              </View>
+              ))}
             </View>
           </View>
         </View>
@@ -330,88 +375,103 @@ const AdminProfile = () => {
         visible={isEditOpen}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setIsEditOpen(false)}
       >
-        <View style={styles.s_29}>
-          <View style={styles.s_30}>
-            <Text style={styles.s_31}>Update Profile</Text>
-            <TouchableOpacity onPress={() => setIsEditOpen(false)}>
-              <Ionicons name="close" size={24} style={styles.s_17} />
+        <View className="flex-1 bg-background pt-4">
+          <View className="flex-row justify-between items-center px-6 pb-4 border-b border-border">
+            <Text className="text-2xl font-bold text-foreground">
+              Update Profile
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setIsEditOpen(false)}
+              className="p-2"
+            >
+              <Ionicons name="close" size={24} className="text-foreground" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.s_32}>
-            <View style={styles.s_33}>
+          <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+            <View className="space-y-6">
               <View>
-                <Text style={styles.s_34}>
+                <Text className="text-sm font-semibold text-foreground mb-2">
                   Full Name *
                 </Text>
                 <TextInput
                   value={profileForm.name}
                   onChangeText={(text) => setProfileForm({ ...profileForm, name: text })}
-                  style={styles.s_35}
+                  placeholder="Enter your full name"
+                  className="bg-background border border-input rounded-xl px-4 py-3 text-foreground"
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text style={styles.s_34}>
-                  Email *
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Email Address *
                 </Text>
                 <TextInput
                   value={profileForm.email}
                   onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
+                  placeholder="Enter your email"
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  style={styles.s_35}
+                  className="bg-background border border-input rounded-xl px-4 py-3 text-foreground"
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text style={styles.s_34}>
-                  Phone
+                <Text className="text-sm font-semibold text-foreground mb-2">
+                  Phone Number
                 </Text>
                 <TextInput
                   value={profileForm.phone}
                   onChangeText={(text) => setProfileForm({ ...profileForm, phone: text })}
+                  placeholder="Enter your phone number"
                   keyboardType="phone-pad"
-                  style={styles.s_35}
+                  className="bg-background border border-input rounded-xl px-4 py-3 text-foreground"
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text style={styles.s_34}>
+                <Text className="text-sm font-semibold text-foreground mb-2">
                   Address
                 </Text>
                 <TextInput
                   value={profileForm.address}
                   onChangeText={(text) => setProfileForm({ ...profileForm, address: text })}
+                  placeholder="Enter your address"
                   multiline
                   numberOfLines={3}
-                  style={styles.s_36}
+                  className="bg-background border border-input rounded-xl px-4 py-3 text-foreground min-h-[100px]"
                   placeholderTextColor="#6B7280"
+                  textAlignVertical="top"
                 />
               </View>
             </View>
 
-            <View style={styles.s_37}>
+            <View className="flex-row space-x-3 mt-8">
               <TouchableOpacity
-                style={styles.s_38}
+                className="flex-1 py-4 border border-input rounded-xl"
                 onPress={() => setIsEditOpen(false)}
               >
-                <Text style={styles.s_39}>
+                <Text className="text-center font-semibold text-foreground">
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.s_40}
+                className="flex-1 bg-accent py-4 rounded-xl"
                 onPress={handleProfileUpdate}
                 disabled={loading}
               >
-                <Text style={styles.s_41}>
-                  {loading ? 'Updating...' : 'Update Profile'}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text className="text-center font-semibold text-accent-foreground">
+                    Save Changes
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -423,95 +483,117 @@ const AdminProfile = () => {
         visible={isPasswordOpen}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setIsPasswordOpen(false)}
       >
-        <View style={styles.s_29}>
-          <View style={styles.s_30}>
-            <Text style={styles.s_31}>Change Password</Text>
-            <TouchableOpacity onPress={() => setIsPasswordOpen(false)}>
-              <Ionicons name="close" size={24} style={styles.s_17} />
+        <View className="flex-1 bg-background pt-4">
+          <View className="flex-row justify-between items-center px-6 pb-4 border-b border-border">
+            <Text className="text-2xl font-bold text-foreground">
+              Change Password
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setIsPasswordOpen(false)}
+              className="p-2"
+            >
+              <Ionicons name="close" size={24} className="text-foreground" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.s_32}>
-            <View style={styles.s_33}>
+          <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+            <View className="space-y-6">
               <View>
-                <Text style={styles.s_34}>
+                <Text className="text-sm font-semibold text-foreground mb-2">
                   Current Password *
                 </Text>
                 <TextInput
                   value={passwordForm.currentPassword}
                   onChangeText={(text) => setPasswordForm({ ...passwordForm, currentPassword: text })}
+                  placeholder="Enter current password"
                   secureTextEntry
-                  style={styles.s_35}
+                  className="bg-background border border-input rounded-xl px-4 py-3 text-foreground"
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               <View>
-                <Text style={styles.s_34}>
+                <Text className="text-sm font-semibold text-foreground mb-2">
                   New Password *
                 </Text>
                 <TextInput
                   value={passwordForm.newPassword}
                   onChangeText={(text) => setPasswordForm({ ...passwordForm, newPassword: text })}
+                  placeholder="Enter new password"
                   secureTextEntry
-                  style={styles.s_35}
+                  className="bg-background border border-input rounded-xl px-4 py-3 text-foreground"
                   placeholderTextColor="#6B7280"
                 />
-                <Text style={styles.s_42}>
+                <Text className="text-xs text-muted-foreground mt-2">
                   Password must be at least 6 characters long
                 </Text>
               </View>
 
               <View>
-                <Text style={styles.s_34}>
+                <Text className="text-sm font-semibold text-foreground mb-2">
                   Confirm New Password *
                 </Text>
                 <TextInput
                   value={passwordForm.confirmPassword}
                   onChangeText={(text) => setPasswordForm({ ...passwordForm, confirmPassword: text })}
+                  placeholder="Confirm new password"
                   secureTextEntry
-                  style={styles.s_35}
+                  className="bg-background border border-input rounded-xl px-4 py-3 text-foreground"
                   placeholderTextColor="#6B7280"
                 />
               </View>
 
               {/* Password Requirements */}
-              <View style={styles.s_43}>
-                <Text style={styles.s_44}>
+              <View className="bg-secondary/30 rounded-xl p-4">
+                <Text className="text-sm font-semibold text-foreground mb-3">
                   Password Requirements
                 </Text>
-                <View style={styles.s_45}>
-                  <Text style={styles.s_46}>
-                    • At least 6 characters long
-                  </Text>
-                  <Text style={styles.s_46}>
-                    • Include uppercase and lowercase letters
-                  </Text>
-                  <Text style={styles.s_46}>
-                    • Include numbers and special characters
-                  </Text>
+                <View className="space-y-2">
+                  <View className="flex-row items-center">
+                    <Ionicons name="checkmark-circle" size={16} className="text-green-600 mr-2" />
+                    <Text className="text-sm text-muted-foreground">
+                      At least 6 characters long
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center">
+                    <Ionicons name="checkmark-circle" size={16} className="text-green-600 mr-2" />
+                    <Text className="text-sm text-muted-foreground">
+                      Include uppercase and lowercase letters
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center">
+                    <Ionicons name="checkmark-circle" size={16} className="text-green-600 mr-2" />
+                    <Text className="text-sm text-muted-foreground">
+                      Include numbers and special characters
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
 
-            <View style={styles.s_37}>
+            <View className="flex-row space-x-3 mt-8">
               <TouchableOpacity
-                style={styles.s_38}
+                className="flex-1 py-4 border border-input rounded-xl"
                 onPress={() => setIsPasswordOpen(false)}
               >
-                <Text style={styles.s_39}>
+                <Text className="text-center font-semibold text-foreground">
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.s_40}
+                className="flex-1 bg-accent py-4 rounded-xl"
                 onPress={handlePasswordChange}
                 disabled={loading}
               >
-                <Text style={styles.s_41}>
-                  {loading ? 'Changing...' : 'Change Password'}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text className="text-center font-semibold text-accent-foreground">
+                    Change Password
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -521,261 +603,4 @@ const AdminProfile = () => {
   );
 };
 
-
-
-const styles = StyleSheet.create({
-  s_1: {
-  flex: 1,
-  backgroundColor: "#ffffff",
-  justifyContent: "center",
-  alignItems: "center"
-},
-
-  s_2: {
-  color: "#0f172a",
-  fontSize: 18
-},
-
-  s_3: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
-
-  s_4: {
-  flex: 1
-},
-
-  s_5: {
-  padding: 16
-},
-
-  s_6: {
-  fontSize: 24,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_7: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_8: {
-  flexDirection: "column"
-},
-
-  s_9: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
-  },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1
-},
-
-  s_10: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_11: {
-  fontSize: 14,
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_12: {},
-
-  s_13: {
-  flexDirection: "row",
-  alignItems: "center",
-  padding: 12,
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12
-},
-
-  s_14: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#6b7280"
-},
-
-  s_15: {
-  color: "#0f172a"
-},
-
-  s_16: {
-  flexDirection: "row",
-  alignItems: "center",
-  padding: 12,
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12
-},
-
-  s_17: {
-  color: "#0f172a"
-},
-
-  s_18: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_19: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_20: {
-  color: "#6b7280"
-},
-
-  s_21: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a",
-  marginBottom: 16
-},
-
-  s_22: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_23: {
-  flex: 1
-},
-
-  s_24: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_25: {},
-
-  s_26: {
-  fontSize: 12,
-  fontWeight: "600"
-},
-
-  s_27: {},
-
-  s_28: {
-  fontSize: 12,
-  fontWeight: "600"
-},
-
-  s_29: {
-  flex: 1,
-  backgroundColor: "#ffffff",
-  paddingTop: 16
-},
-
-  s_30: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: 16,
-  paddingBottom: 16,
-  borderColor: "#e6edf3"
-},
-
-  s_31: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_32: {
-  flex: 1,
-  padding: 16
-},
-
-  s_33: {},
-
-  s_34: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_35: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_36: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_37: {
-  flexDirection: "row"
-},
-
-  s_38: {
-  flex: 1,
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingVertical: 12
-},
-
-  s_39: {
-  color: "#0f172a"
-},
-
-  s_40: {
-  flex: 1,
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingVertical: 12
-},
-
-  s_41: {},
-
-  s_42: {
-  fontSize: 12,
-  color: "#6b7280"
-},
-
-  s_43: {
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12,
-  padding: 16
-},
-
-  s_44: {
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_45: {},
-
-  s_46: {
-  fontSize: 12,
-  color: "#6b7280"
-}
-});
 export default AdminProfile;

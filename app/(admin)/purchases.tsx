@@ -1,4 +1,3 @@
-// app/(admin)/purchases.js
 import { useEffect, useState } from 'react';
 import { 
   View, 
@@ -8,27 +7,44 @@ import {
   TextInput, 
   Alert,
   Modal,
-  FlatList
+  FlatList,
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { addPurchase, updateProduct } from '../../store/slices/userSlice';
-import type { PurchaseRecord } from '../../store/types';
-import type { Product } from '../../store/types';
+import type { PurchaseRecord, Product } from '../../store/types';
+
+interface PurchaseFormData {
+  quantity: string;
+  unitCost: string;
+  unitType: 'single' | 'pack';
+  profitMargin: string;
+  supplier: string;
+}
+
+interface StatCard {
+  title: string;
+  value: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}
+
 const AdminPurchases = () => {
   const { purchases, products } = useAppSelector(state => state.user);
   const dispatch = useAppDispatch();
   
   const [filteredPurchases, setFilteredPurchases] = useState<PurchaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseRecord | null>(null);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PurchaseFormData>({
     quantity: '',
     unitCost: '',
     unitType: 'single',
@@ -36,8 +52,8 @@ const AdminPurchases = () => {
     supplier: '',
   });
 
+  // Initialize purchases and simulate loading
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
       setFilteredPurchases(purchases);
@@ -45,6 +61,7 @@ const AdminPurchases = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Filter purchases based on search
   useEffect(() => {
     const filtered = purchases.filter(purchase =>
       purchase.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -54,23 +71,27 @@ const AdminPurchases = () => {
     setFilteredPurchases(filtered);
   }, [searchQuery, purchases]);
 
+  // Handle product selection for purchase
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setIsProductModalOpen(false);
-    setIsDialogOpen(true);
+    setIsPurchaseModalOpen(true);
+    
     // Pre-fill supplier if available
     if (product.supplier) {
       setFormData(prev => ({ ...prev, supplier: product.supplier as string }));
     }
   };
 
+  // Calculate selling price with profit margin
   const calculateSellingPrice = (unitCost: number, margin: number) => {
     return unitCost * (1 + margin / 100);
   };
 
-  const handleSubmit = () => {
+  // Handle purchase submission
+  const handlePurchaseSubmit = () => {
     if (!selectedProduct || !formData.quantity || !formData.unitCost || !formData.supplier) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
@@ -106,12 +127,13 @@ const AdminPurchases = () => {
 
       Alert.alert(
         'Success',
-        `Purchase order created successfully!\n\n` +
-        `Suggested selling price: $${sellingPrice.toFixed(2)} (${margin}% margin)\n` +
+        `Purchase order created!\n\n` +
+        `Suggested price: $${sellingPrice.toFixed(2)}\n` +
         `${actualQuantity} units added to stock`
       );
       
-      setIsDialogOpen(false);
+      // Reset form
+      setIsPurchaseModalOpen(false);
       setSelectedProduct(null);
       setFormData({ 
         quantity: '', 
@@ -126,222 +148,206 @@ const AdminPurchases = () => {
     }
   };
 
+  // Statistics
   const totalCost = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
   const totalQuantity = purchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
 
+  // Form calculations
   const unitCost = formData.unitCost ? parseFloat(formData.unitCost) : 0;
   const margin = formData.profitMargin ? parseFloat(formData.profitMargin) : 0;
   const suggestedPrice = unitCost > 0 ? calculateSellingPrice(unitCost, margin) : 0;
-  const totalFormCost = formData.quantity && formData.unitCost ? 
-    parseFloat(formData.quantity) * parseFloat(formData.unitCost) : 0;
+  const totalFormCost = formData.quantity && formData.unitCost 
+    ? parseFloat(formData.quantity) * parseFloat(formData.unitCost) 
+    : 0;
 
+  // Stat cards configuration
+  const statCards: StatCard[] = [
+    {
+      title: "Total Orders",
+      value: purchases.length.toString(),
+      icon: "receipt-outline",
+      color: "#2563EB",
+    },
+    {
+      title: "Total Cost",
+      value: `$${totalCost.toFixed(2)}`,
+      icon: "cash-outline",
+      color: "#059669",
+    },
+    {
+      title: "Total Units",
+      value: totalQuantity.toString(),
+      icon: "cube-outline",
+      color: "#7C3AED",
+    },
+  ];
+
+  // Render purchase item
   const renderPurchaseItem = ({ item }: { item: PurchaseRecord }) => (
     <TouchableOpacity 
-      style={styles.s_1}
+      style={styles.purchaseCard}
       onPress={() => setSelectedPurchase(item)}
+      activeOpacity={0.7}
     >
-      <View style={styles.s_2}>
-        <View style={styles.s_3}>
-          <Text style={styles.s_4}>{item.productName}</Text>
-          <Text style={styles.s_5}>{item.supplier}</Text>
-        </View>
-        <Text style={styles.s_6}>
-          ${item.total.toFixed(2)}
-        </Text>
+      <View style={styles.purchaseHeader}>
+        <Text style={styles.productName}>{item.productName}</Text>
+        <Text style={styles.purchaseAmount}>${item.total.toFixed(2)}</Text>
       </View>
       
-      <View style={styles.s_7}>
-        <View style={styles.s_8}>
-          <Text style={styles.s_9}>
-            {item.quantity} units
-          </Text>
-          <Text style={styles.s_9}>
-            ${item.unitCost.toFixed(2)}/unit
-          </Text>
+      <View style={styles.purchaseDetails}>
+        <View style={styles.detailRow}>
+          <View style={styles.detailItem}>
+            <Ionicons name="business-outline" size={14} color="#6B7280" />
+            <Text style={styles.detailText}>{item.supplier}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Ionicons name="cube-outline" size={14} color="#6B7280" />
+            <Text style={styles.detailText}>{item.quantity} units</Text>
+          </View>
         </View>
-        <Text style={styles.s_9}>
-          {new Date(item.date).toLocaleDateString()}
-        </Text>
+        
+        <View style={styles.detailRow}>
+          <View style={styles.detailItem}>
+            <Ionicons name="pricetag-outline" size={14} color="#6B7280" />
+            <Text style={styles.detailText}>${item.unitCost.toFixed(2)}/unit</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+            <Text style={styles.detailText}>
+              {new Date(item.date).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
       </View>
     </TouchableOpacity>
   );
 
+  // Render product item
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
-      style={styles.s_1}
+      style={styles.productCard}
       onPress={() => handleProductSelect(item)}
+      activeOpacity={0.7}
     >
-      <View style={styles.s_10}>
-        <Text style={styles.s_11}>{item.name}</Text>
-        <Text style={styles.s_5}>${item.price.toFixed(2)}</Text>
+      <View style={styles.productInfo}>
+        <Text style={styles.productName}>{item.name}</Text>
+        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
       </View>
       
-      <View style={styles.s_7}>
-        <Text style={styles.s_9}>
-          Stock: {item.stock} units
-        </Text>
-        <Text style={styles.s_9}>
-          {item.category}
-        </Text>
+      <View style={styles.productDetails}>
+        <Text style={styles.productDetail}>Stock: {item.stock}</Text>
+        <Text style={styles.productDetail}>{item.category}</Text>
+        {item.supplier && (
+          <Text style={styles.productSupplier}>Supplier: {item.supplier}</Text>
+        )}
       </View>
-      
-      {item.supplier && (
-        <Text style={styles.s_12}>
-          Supplier: {item.supplier}
-        </Text>
-      )}
     </TouchableOpacity>
   );
 
+  // Loading state
   if (isLoading) {
     return (
-      <ScrollView style={styles.s_13}>
-        <View style={styles.s_14}>
-          {/* Header Skeleton */}
-          <View style={styles.s_7}>
-            <View>
-              <View style={styles.s_15} />
-              <View style={styles.s_16} />
-            </View>
-            <View style={styles.s_17} />
-          </View>
-
-          {/* Stats Grid Skeleton */}
-          <View style={styles.s_18}>
-            {[1, 2, 3].map((i) => (
-              <View key={i} style={styles.s_19}>
-                <View style={styles.s_20} />
-                <View style={styles.s_21} />
-              </View>
-            ))}
-          </View>
-
-          {/* Search Skeleton */}
-          <View style={styles.s_22}>
-            <View style={styles.s_23} />
-            <View style={styles.s_24} />
-            <View style={styles.s_25} />
-          </View>
-
-          {/* Table Skeleton */}
-          <View style={styles.s_22}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} style={styles.s_26} />
-            ))}
-          </View>
-        </View>
-      </ScrollView>
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text style={styles.loadingText}>Loading purchases...</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.s_13}>
-      <ScrollView style={styles.s_3}>
-        <View style={styles.s_14}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Purchase Orders</Text>
+          <Text style={styles.subtitle}>Manage inventory purchases</Text>
+        </View>
 
+        {/* Stats Grid */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.statsScroll}
+          contentContainerStyle={styles.statsContent}
+        >
+          {statCards.map((stat, index) => (
+            <View key={index} style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
+                <Ionicons name={stat.icon} size={20} color={stat.color} />
+              </View>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statTitle}>{stat.title}</Text>
+            </View>
+          ))}
+        </ScrollView>
 
-          {/* Stats Cards */}
-          <View style={styles.s_18}>
-            <View style={styles.s_27}>
-              <Text style={styles.s_28}>
-                Total Purchases
-              </Text>
-              <Text style={styles.s_29}>
-                {purchases.length}
-              </Text>
-            </View>
-            <View className="bg-primary rounded-lg p-4 w-full ">
-              <Text style={styles.s_28}>
-                Total Investment
-              </Text>
-              <Text style={styles.s_29}>
-                ${totalCost.toFixed(2)}
-              </Text>
-            </View>
-            <View style={styles.s_19}>
-              <Text style={styles.s_30}>
-                Total Units
-              </Text>
-              <Text style={styles.s_31}>
-                {totalQuantity}
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.s_32}>
-            
+        {/* Actions */}
+        <View style={styles.actionsCard}>
           <TouchableOpacity
-              style={styles.s_33}
-              onPress={() => setIsProductModalOpen(true)}
-            >
-              <Ionicons name="add" size={20} style={styles.s_34} />
-              <Text style={styles.s_35}>New Purchase</Text>
-            </TouchableOpacity>
-            
-            
-          </View>
+            style={styles.newPurchaseButton}
+            onPress={() => setIsProductModalOpen(true)}
+          >
+            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Text style={styles.newPurchaseText}>New Purchase</Text>
+          </TouchableOpacity>
+        </View>
 
-          {/* Search */}
-          <View style={styles.s_36}>
-            <Text style={styles.s_37}>
-              Purchase History
-            </Text>
-            <Text style={styles.s_38}>
-              All inventory purchase orders
-            </Text>
-            
-            <View style={styles.s_39}>
-              <Ionicons 
-                name="search" 
-                size={20} 
-                style={styles.s_40} 
-              />
+        {/* Search Section */}
+        <View style={styles.searchCard}>
+          <Text style={styles.sectionTitle}>Purchase History</Text>
+          <Text style={styles.sectionSubtitle}>
+            {filteredPurchases.length} purchases found
+          </Text>
+          
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={18} color="#6B7280" />
               <TextInput
-                placeholder="Search by product, supplier, or ID..."
+                placeholder="Search purchases..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                style={styles.s_41}
-                placeholderTextColor="#6B7280"
+                style={styles.searchInput}
+                placeholderTextColor="#9CA3AF"
               />
+              {searchQuery && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
+        </View>
 
-          {/* Purchases List */}
-          <View style={styles.s_42}>
-            {filteredPurchases.length === 0 ? (
-              <View style={styles.s_43}>
-                <Ionicons name="cart-outline" size={48} style={styles.s_44} />
-                <Text style={styles.s_45}>
-                  No purchases found
-                </Text>
-                <Text style={styles.s_46}>
-                  {searchQuery 
-                    ? 'Try adjusting your search criteria'
-                    : 'Get started by creating your first purchase order'
-                  }
-                </Text>
-                {searchQuery && (
-                  <TouchableOpacity
-                    style={styles.s_47}
-                    onPress={() => setSearchQuery('')}
-                  >
-                    <Text style={styles.s_48}>
-                      Clear Search
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ) : (
-              <FlatList
-                data={filteredPurchases}
-                renderItem={renderPurchaseItem}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={true}
-                style={styles.s_49}
-              />
+        {/* Purchases List */}
+        {filteredPurchases.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
+            <Text style={styles.emptyTitle}>No purchases found</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery 
+                ? 'Try adjusting your search'
+                : 'Start by creating a purchase order'
+              }
+            </Text>
+            {searchQuery && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <Text style={styles.clearButtonText}>Clear Search</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
+        ) : (
+          <FlatList
+            data={filteredPurchases}
+            renderItem={renderPurchaseItem}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={false}
+            style={styles.purchasesList}
+            contentContainerStyle={styles.purchasesContent}
+          />
+        )}
       </ScrollView>
 
       {/* Product Selection Modal */}
@@ -349,26 +355,23 @@ const AdminPurchases = () => {
         visible={isProductModalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setIsProductModalOpen(false)}
       >
-        <View style={styles.s_50}>
-          <View style={styles.s_51}>
-            <Text style={styles.s_52}>Select Product for Purchase</Text>
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Product</Text>
             <TouchableOpacity onPress={() => setIsProductModalOpen(false)}>
-              <Ionicons name="close" size={24} style={styles.s_53} />
+              <Ionicons name="close" size={24} color="#374151" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.s_54}>
-            <View style={styles.s_39}>
-              <Ionicons 
-                name="search" 
-                size={20} 
-                style={styles.s_40} 
-              />
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={18} color="#6B7280" />
               <TextInput
                 placeholder="Search products..."
-                style={styles.s_41}
-                placeholderTextColor="#6B7280"
+                style={styles.searchInput}
+                placeholderTextColor="#9CA3AF"
               />
             </View>
           </View>
@@ -377,99 +380,107 @@ const AdminPurchases = () => {
             data={products}
             renderItem={renderProductItem}
             keyExtractor={(item) => item.id.toString()}
-            style={styles.s_3}
+            style={styles.productsList}
           />
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* Create Purchase Modal */}
       <Modal
-        visible={isDialogOpen}
+        visible={isPurchaseModalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setIsPurchaseModalOpen(false)}
       >
-        <View style={styles.s_50}>
-          <View style={styles.s_51}>
-            <Text style={styles.s_52}>Create Purchase Order</Text>
-            <TouchableOpacity onPress={() => setIsDialogOpen(false)}>
-              <Ionicons name="close" size={24} style={styles.s_53} />
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>New Purchase</Text>
+            <TouchableOpacity onPress={() => setIsPurchaseModalOpen(false)}>
+              <Ionicons name="close" size={24} color="#374151" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.s_55}>
+          <ScrollView style={styles.modalScroll}>
             {selectedProduct && (
-              <View style={styles.s_56}>
-                <Text style={styles.s_57}>Selected Product</Text>
-                <Text style={styles.s_4}>{selectedProduct.name}</Text>
-                <Text style={styles.s_9}>
-                  Current stock: {selectedProduct.stock} units • ${selectedProduct.price.toFixed(2)} selling price
-                </Text>
+              <View style={styles.selectedProduct}>
+                <Text style={styles.productLabel}>Product</Text>
+                <Text style={styles.productName}>{selectedProduct.name}</Text>
+                <View style={styles.productInfoRow}>
+                  <Text style={styles.productInfoText}>
+                    Stock: {selectedProduct.stock} • ${selectedProduct.price.toFixed(2)}
+                  </Text>
+                </View>
               </View>
             )}
 
-            <View style={styles.s_58}>
+            <View style={styles.formContainer}>
               {/* Supplier */}
-              <View>
-                <Text style={styles.s_59}>Supplier</Text>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Supplier</Text>
                 <TextInput
                   value={formData.supplier}
                   onChangeText={(text) => setFormData({ ...formData, supplier: text })}
                   placeholder="Enter supplier name"
-                  style={styles.s_60}
-                  placeholderTextColor="#6B7280"
+                  style={styles.formInput}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
-              {/* Unit Type (if product supports packs) */}
-              {selectedProduct && (selectedProduct.unitType === 'both' || selectedProduct.unitType === 'pack') && (
-                <View>
-                  <Text style={styles.s_59}>Purchase Unit Type</Text>
-                  <View style={styles.s_61}>
-                    {['single', 'pack'].map((unitType) => (
-                      <TouchableOpacity
-                        key={unitType}
-                        className={`flex-1 px-4 py-3 rounded-lg border ${
-                          formData.unitType === unitType
-                            ? 'bg-accent border-accent'
-                            : 'bg-background border-input'
-                        }`}
-                        onPress={() => setFormData({ ...formData, unitType })}
-                      >
-                        <Text className={
-                          formData.unitType === unitType
-                            ? 'text-accent-foreground font-medium text-center capitalize'
-                            : 'text-foreground text-center capitalize'
-                        }>
-                          {unitType === 'pack' 
-                            ? `Packs (${selectedProduct.packSize || 1} units)` 
-                            : 'Single Units'
-                          }
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+              {/* Unit Type */}
+              {selectedProduct?.packSize && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Purchase Type</Text>
+                  <View style={styles.unitTypeContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.unitTypeButton,
+                        formData.unitType === 'single' && styles.unitTypeButtonActive
+                      ]}
+                      onPress={() => setFormData({ ...formData, unitType: 'single' })}
+                    >
+                      <Text style={[
+                        styles.unitTypeText,
+                        formData.unitType === 'single' && styles.unitTypeTextActive
+                      ]}>
+                        Single Units
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.unitTypeButton,
+                        formData.unitType === 'pack' && styles.unitTypeButtonActive
+                      ]}
+                      onPress={() => setFormData({ ...formData, unitType: 'pack' })}
+                    >
+                      <Text style={[
+                        styles.unitTypeText,
+                        formData.unitType === 'pack' && styles.unitTypeTextActive
+                      ]}>
+                        Packs ({selectedProduct.packSize} units)
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
 
               {/* Quantity */}
-              <View>
-                <Text style={styles.s_59}>
-                  Quantity {formData.unitType === 'pack' && selectedProduct?.packSize && 
-                    `(${selectedProduct.packSize} units/pack)`}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
+                  Quantity {formData.unitType === 'pack' && `(packs)`}
                 </Text>
                 <TextInput
                   value={formData.quantity}
                   onChangeText={(text) => setFormData({ ...formData, quantity: text })}
                   placeholder="Enter quantity"
                   keyboardType="numeric"
-                  style={styles.s_60}
-                  placeholderTextColor="#6B7280"
+                  style={styles.formInput}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
               {/* Unit Cost */}
-              <View>
-                <Text style={styles.s_59}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
                   {formData.unitType === 'pack' ? 'Cost per Pack' : 'Cost per Unit'}
                 </Text>
                 <TextInput
@@ -477,48 +488,41 @@ const AdminPurchases = () => {
                   onChangeText={(text) => setFormData({ ...formData, unitCost: text })}
                   placeholder="0.00"
                   keyboardType="decimal-pad"
-                  style={styles.s_60}
-                  placeholderTextColor="#6B7280"
+                  style={styles.formInput}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
               {/* Profit Margin */}
-              <View>
-                <Text style={styles.s_59}>Profit Margin (%)</Text>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Profit Margin (%)</Text>
                 <TextInput
                   value={formData.profitMargin}
                   onChangeText={(text) => setFormData({ ...formData, profitMargin: text })}
                   placeholder="30"
                   keyboardType="numeric"
-                  style={styles.s_60}
-                  placeholderTextColor="#6B7280"
+                  style={styles.formInput}
+                  placeholderTextColor="#9CA3AF"
                 />
               </View>
 
-              {/* Calculation Summary */}
+              {/* Summary */}
               {formData.quantity && formData.unitCost && (
-                <View style={styles.s_62}>
-                  <Text style={styles.s_63}>Order Summary</Text>
-                  
-                  <View style={styles.s_64}>
-                    <Text style={styles.s_65}>Total Cost</Text>
-                    <Text style={styles.s_66}>
-                      ${totalFormCost.toFixed(2)}
-                    </Text>
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryTitle}>Order Summary</Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Total Cost</Text>
+                    <Text style={styles.summaryValue}>${totalFormCost.toFixed(2)}</Text>
                   </View>
-                  
-                  <View style={styles.s_64}>
-                    <Text style={styles.s_65}>Suggested Selling Price</Text>
-                    <Text style={styles.s_67}>
-                      ${suggestedPrice.toFixed(2)}
-                    </Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Suggested Price</Text>
+                    <Text style={styles.suggestedPrice}>${suggestedPrice.toFixed(2)}</Text>
                   </View>
-                  
                   {formData.unitType === 'pack' && selectedProduct?.packSize && (
-                    <View style={styles.s_68}>
-                      <Text style={styles.s_65}>Total Units to Stock</Text>
-                      <Text style={styles.s_66}>
-                        {parseInt(formData.quantity) * (selectedProduct.packSize || 1)} units
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Units Added</Text>
+                      <Text style={styles.summaryValue}>
+                        {parseInt(formData.quantity) * selectedProduct.packSize}
                       </Text>
                     </View>
                   )}
@@ -528,18 +532,16 @@ const AdminPurchases = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={styles.s_69}
-              onPress={handleSubmit}
+              style={styles.submitButton}
+              onPress={handlePurchaseSubmit}
             >
-              <Text style={styles.s_70}>
-                Create Purchase
-              </Text>
+              <Text style={styles.submitButtonText}>Create Purchase</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
 
-      {/* Purchase Detail Modal */}
+      {/* Purchase Details Modal */}
       <Modal
         visible={!!selectedPurchase}
         animationType="slide"
@@ -547,469 +549,478 @@ const AdminPurchases = () => {
         onRequestClose={() => setSelectedPurchase(null)}
       >
         {selectedPurchase && (
-          <View style={styles.s_50}>
-            <View style={styles.s_51}>
-              <Text style={styles.s_52}>
-                Purchase Details - #{selectedPurchase.id}
-              </Text>
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Order #{selectedPurchase.id}</Text>
               <TouchableOpacity onPress={() => setSelectedPurchase(null)}>
-                <Ionicons name="close" size={24} style={styles.s_53} />
+                <Ionicons name="close" size={24} color="#374151" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.s_55}>
-              <View style={styles.s_71}>
-                <View style={styles.s_72}>
-                  <View style={styles.s_73}>
-                    <Text style={styles.s_57}>Product</Text>
-                    <Text style={styles.s_74}>{selectedPurchase.productName}</Text>
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItemLarge}>
+                    <Text style={styles.detailLabel}>Product</Text>
+                    <Text style={styles.detailValue}>{selectedPurchase.productName}</Text>
                   </View>
-                  <View style={styles.s_73}>
-                    <Text style={styles.s_57}>Supplier</Text>
-                    <Text style={styles.s_74}>{selectedPurchase.supplier}</Text>
+                  <View style={styles.detailItemLarge}>
+                    <Text style={styles.detailLabel}>Supplier</Text>
+                    <Text style={styles.detailValue}>{selectedPurchase.supplier}</Text>
                   </View>
-                  <View style={styles.s_73}>
-                    <Text style={styles.s_57}>Quantity</Text>
-                    <Text style={styles.s_74}>{selectedPurchase.quantity} units</Text>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Quantity</Text>
+                    <Text style={styles.detailValue}>{selectedPurchase.quantity} units</Text>
                   </View>
-                  <View style={styles.s_73}>
-                    <Text style={styles.s_57}>Unit Cost</Text>
-                    <Text style={styles.s_74}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Unit Cost</Text>
+                    <Text style={styles.detailValue}>
                       ${selectedPurchase.unitCost.toFixed(2)}
                     </Text>
                   </View>
-                  <View style={styles.s_73}>
-                    <Text style={styles.s_57}>Total Cost</Text>
-                    <Text style={styles.s_6}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Total Cost</Text>
+                    <Text style={[styles.detailValue, styles.totalCost]}>
                       ${selectedPurchase.total.toFixed(2)}
                     </Text>
                   </View>
-                  <View style={styles.s_73}>
-                    <Text style={styles.s_57}>Purchase Date</Text>
-                    <Text style={styles.s_74}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Date</Text>
+                    <Text style={styles.detailValue}>
                       {new Date(selectedPurchase.date).toLocaleDateString()}
                     </Text>
                   </View>
                 </View>
               </View>
             </ScrollView>
-          </View>
+          </SafeAreaView>
         )}
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  s_1: {
-  borderColor: "#e6edf3",
-  paddingVertical: 12,
-  paddingHorizontal: 16,
-  backgroundColor: "#ffffff"
-},
-
-  s_2: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  marginBottom: 8
-},
-
-  s_3: {
-  flex: 1
-},
-
-  s_4: {
-  color: "#0f172a"
-},
-
-  s_5: {
-  color: "#6b7280",
-  fontSize: 14
-},
-
-  s_6: {
-  fontWeight: "700",
-  color: "#f97316",
-  fontSize: 18
-},
-
-  s_7: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center"
-},
-
-  s_8: {
-  flexDirection: "row",
-  alignItems: "center"
-},
-
-  s_9: {
-  fontSize: 12,
-  color: "#6b7280"
-},
-
-  s_10: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "flex-start"
-},
-
-  s_11: {
-  color: "#0f172a",
-  flex: 1
-},
-
-  s_12: {
-  fontSize: 12,
-  color: "#6b7280"
-},
-
-  s_13: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
-
-  s_14: {
-  padding: 16
-},
-
-  s_15: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_16: {
-  borderRadius: 6
-},
-
-  s_17: {
-  borderRadius: 6
-},
-
-  s_18: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: 16
-},
-
-  s_19: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
+  // Main container
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
   },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1,
-  width: "48%"
-},
-
-  s_20: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_21: {
-  borderRadius: 6
-},
-
-  s_22: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
+  scrollView: {
+    flex: 1,
   },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1
-},
 
-  s_23: {
-  borderRadius: 6,
-  marginBottom: 8
-},
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#6B7280",
+  },
 
-  s_24: {
-  borderRadius: 6,
-  marginBottom: 16
-},
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
 
-  s_25: {
-  borderRadius: 6
-},
+  // Stats
+  statsScroll: {
+    marginBottom: 20,
+  },
+  statsContent: {
+    paddingHorizontal: 20,
+    paddingRight: 40,
+  },
+  statCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+    width: 120,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
 
-  s_26: {
-  borderRadius: 6,
-  marginBottom: 8
-},
+  // Actions
+  actionsCard: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  newPurchaseButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  newPurchaseText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
 
-  s_27: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16,
-  width: "100%"
-},
+  // Search Section
+  searchCard: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 16,
+  },
+  searchContainer: {
+    marginBottom: 4,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#111827",
+    marginLeft: 8,
+  },
 
-  s_28: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#ffffff"
-},
+  // Purchases List
+  purchasesList: {
+    marginHorizontal: 20,
+  },
+  purchasesContent: {
+    paddingBottom: 40,
+  },
+  purchaseCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  purchaseHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    flex: 1,
+  },
+  purchaseAmount: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#059669",
+  },
+  purchaseDetails: {
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  detailText: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginLeft: 4,
+  },
 
-  s_29: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#f97316"
-},
+  // Empty State
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  clearButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  clearButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
-  s_30: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#6b7280"
-},
+  // Modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  modalScroll: {
+    flex: 1,
+    padding: 20,
+  },
 
-  s_31: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#0f172a"
-},
+  // Product Selection Modal
+  productsList: {
+    flex: 1,
+    padding: 20,
+  },
+  productCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  productInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#059669",
+  },
+  productDetails: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  productDetail: {
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  productSupplier: {
+    fontSize: 13,
+    color: "#2563EB",
+    fontWeight: "500",
+  },
 
-  s_32: {
-  width: "100%"
-},
+  // Purchase Form Modal
+  selectedProduct: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  productLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+  productInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  productInfoText: {
+    fontSize: 13,
+    color: "#6B7280",
+  },
 
-  s_33: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "100%"
-},
+  // Form
+  formContainer: {
+    gap: 20,
+  },
+  formGroup: {
+    gap: 8,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  formInput: {
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: "#111827",
+  },
+  unitTypeContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  unitTypeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+  },
+  unitTypeButtonActive: {
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+  },
+  unitTypeText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6B7280",
+  },
+  unitTypeTextActive: {
+    color: "#FFFFFF",
+  },
 
-  s_34: {},
+  // Summary
+  summaryCard: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 16,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  suggestedPrice: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#059669",
+  },
 
-  s_35: {},
+  // Submit Button
+  submitButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
-  s_36: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  borderWidth: 1
-},
-
-  s_37: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_38: {
-  fontSize: 14,
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_39: {},
-
-  s_40: {
-  color: "#6b7280"
-},
-
-  s_41: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingRight: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_42: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12
-},
-
-  s_43: {
-  alignItems: "center"
-},
-
-  s_44: {
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_45: {
-  fontSize: 18,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_46: {
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_47: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingHorizontal: 16
-},
-
-  s_48: {},
-
-  s_49: {},
-
-  s_50: {
-  flex: 1,
-  backgroundColor: "#ffffff",
-  paddingTop: 16
-},
-
-  s_51: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: 16,
-  paddingBottom: 16,
-  borderColor: "#e6edf3"
-},
-
-  s_52: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_53: {
-  color: "#0f172a"
-},
-
-  s_54: {
-  padding: 16,
-  borderColor: "#e6edf3"
-},
-
-  s_55: {
-  flex: 1,
-  padding: 16
-},
-
-  s_56: {
-  marginBottom: 16,
-  padding: 12,
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12
-},
-
-  s_57: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_58: {},
-
-  s_59: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_60: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_61: {
-  flexDirection: "row"
-},
-
-  s_62: {
-  padding: 16,
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12
-},
-
-  s_63: {
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_64: {
-  flexDirection: "row",
-  justifyContent: "space-between"
-},
-
-  s_65: {
-  color: "#6b7280"
-},
-
-  s_66: {
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_67: {
-  fontWeight: "700",
-  color: "#f97316"
-},
-
-  s_68: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  borderColor: "#e6edf3"
-},
-
-  s_69: {
-  backgroundColor: "#f97316",
-  borderRadius: 12
-},
-
-  s_70: {
-  fontSize: 18
-},
-
-  s_71: {},
-
-  s_72: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_73: {
-  width: "48%"
-},
-
-  s_74: {
-  fontWeight: "600",
-  color: "#0f172a"
-}
+  // Details Modal
+  detailsContainer: {
+    marginTop: 12,
+  },
+  detailsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+ 
+  detailItemLarge: {
+    width: "100%",
+    marginBottom: 12,
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  totalCost: {
+    color: "#059669",
+  },
 });
+
 export default AdminPurchases;
-
-
-
-

@@ -7,14 +7,15 @@ import {
   TextInput,
   Modal,
   FlatList,
-  Alert
+  Alert,
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addProduct, updateProduct } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { Product, UnitType } from '../../store/types';
-import type { ListRenderItem } from 'react-native';
 
 interface ProductFormData {
   name: string;
@@ -28,7 +29,14 @@ interface ProductFormData {
   packPrice: string;
   singlePrice: string;
   minStockLevel: string;
-  description?: string;
+}
+
+interface StatCard {
+  title: string;
+  value: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  bgColor: string;
 }
 
 const AdminStock = () => {
@@ -38,7 +46,7 @@ const AdminStock = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   
@@ -56,8 +64,26 @@ const AdminStock = () => {
     minStockLevel: '10',
   });
 
+  // Colors from your tailwind config
+  const COLORS = {
+    primary: '#0f172a', // hsl(220 90% 15%)
+    primaryLight: '#1e293b',
+    accent: '#f97316', // hsl(25 95% 53%)
+    accentLight: '#fb923c',
+    background: '#ffffff',
+    card: '#ffffff',
+    border: '#e2e8f0', // hsl(220 20% 90%)
+    input: '#e2e8f0',
+    destructive: '#ef4444',
+    muted: '#64748b', // hsl(220 30% 45%)
+    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#dc2626',
+  };
+
+  // Simulate loading
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
       setFilteredProducts(products);
@@ -65,6 +91,7 @@ const AdminStock = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Filter products
   useEffect(() => {
     const filtered = products.filter(product =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,6 +101,106 @@ const AdminStock = () => {
     setFilteredProducts(filtered);
   }, [searchQuery, products]);
 
+  // Calculate statistics
+  const lowStockProducts = useMemo(() => 
+    products.filter(p => p.stock < (p.minStockLevel || 10)), 
+    [products]
+  );
+  
+  const outOfStockProducts = useMemo(() => 
+    products.filter(p => p.stock === 0), 
+    [products]
+  );
+  
+  const totalValue = useMemo(() => 
+    products.reduce((sum, p) => sum + (p.price * p.stock), 0), 
+    [products]
+  );
+
+  // Stat cards configuration using your color scheme
+  const statCards: StatCard[] = [
+    {
+      title: "Total Products",
+      value: products.length.toString(),
+      icon: "cube-outline",
+      color: COLORS.primary,
+      bgColor: COLORS.mutedLight,
+    },
+    {
+      title: "Low Stock",
+      value: lowStockProducts.length.toString(),
+      icon: "warning-outline",
+      color: COLORS.warning,
+      bgColor: '#fef3c7',
+    },
+    {
+      title: "Out of Stock",
+      value: outOfStockProducts.length.toString(),
+      icon: "close-circle-outline",
+      color: COLORS.danger,
+      bgColor: '#fee2e2',
+    },
+    {
+      title: "Total Value",
+      value: `$${totalValue.toFixed(2)}`,
+      icon: "cash-outline",
+      color: COLORS.success,
+      bgColor: '#d1fae5',
+    },
+  ];
+
+  // Category options
+  const categoryOptions = [
+    'Electronics',
+    'Clothing',
+    'Food',
+    'Home',
+    'Beauty',
+    'Sports',
+    'Books',
+    'Other'
+  ];
+
+  // Supplier options
+  const supplierOptions = [
+    'TechSuppliers Inc.',
+    'Fashion Distributors',
+    'Food Importers Ltd.',
+    'Home Essentials Co.',
+    'Beauty World',
+    'Global Suppliers',
+  ];
+
+  // Get stock badge styling
+  const getStockBadge = (stock: number, minStockLevel = 10) => {
+    if (stock === 0) {
+      return (
+        <View style={[styles.stockBadge, { backgroundColor: '#fee2e2' }]}>
+          <Text style={[styles.stockBadgeText, { color: COLORS.danger }]}>
+            Out of Stock
+          </Text>
+        </View>
+      );
+    }
+    if (stock < minStockLevel) {
+      return (
+        <View style={[styles.stockBadge, { backgroundColor: '#fef3c7' }]}>
+          <Text style={[styles.stockBadgeText, { color: COLORS.warning }]}>
+            Low Stock
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={[styles.stockBadge, { backgroundColor: '#d1fae5' }]}>
+        <Text style={[styles.stockBadgeText, { color: COLORS.success }]}>
+          In Stock
+        </Text>
+      </View>
+    );
+  };
+
+  // Handle form submission
   const handleSubmit = () => {
     if (!formData.name || !formData.category || !formData.price || !formData.stock || !formData.sku || !formData.supplier) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -81,52 +208,39 @@ const AdminStock = () => {
     }
 
     if (formData.unitType === 'pack' && (!formData.packSize || !formData.packPrice)) {
-      Alert.alert('Error', 'Pack size and pack price are required for pack products');
+      Alert.alert('Error', 'Pack size and pack price are required');
       return;
     }
 
     if (formData.unitType === 'both' && (!formData.packSize || !formData.packPrice || !formData.singlePrice)) {
-      Alert.alert('Error', 'Pack size, pack price and single price are required');
+      Alert.alert('Error', 'All prices are required for both unit types');
       return;
     }
 
     try {
+      const productData = {
+        name: formData.name,
+        category: formData.category,
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock),
+        sku: formData.sku,
+        supplier: formData.supplier,
+        unitType: formData.unitType,
+        packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
+        packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
+        singlePrice: formData.singlePrice ? parseFloat(formData.singlePrice) : undefined,
+        minStockLevel: parseInt(formData.minStockLevel),
+      };
+
       if (isEditMode && selectedProduct) {
-        // Update existing product
-        dispatch(updateProduct({
-          id: selectedProduct.id,
-          name: formData.name,
-          category: formData.category,
-          price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
-          sku: formData.sku,
-          supplier: formData.supplier,
-          unitType: formData.unitType,
-          packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
-          packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
-          singlePrice: formData.singlePrice ? parseFloat(formData.singlePrice) : undefined,
-          minStockLevel: parseInt(formData.minStockLevel),
-        }));
-        Alert.alert('Success', `Product ${formData.name} updated successfully`);
+        dispatch(updateProduct({ id: selectedProduct.id, ...productData }));
+        Alert.alert('Success', `Product "${formData.name}" updated`);
       } else {
-        // Add new product
-        dispatch(addProduct({
-          name: formData.name,
-          category: formData.category,
-          price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
-          sku: formData.sku,
-          supplier: formData.supplier,
-          unitType: formData.unitType,
-          packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
-          packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
-          singlePrice: formData.singlePrice ? parseFloat(formData.singlePrice) : undefined,
-          minStockLevel: parseInt(formData.minStockLevel),
-        }));
-        Alert.alert('Success', `Product ${formData.name} added successfully`);
+        dispatch(addProduct(productData));
+        Alert.alert('Success', `Product "${formData.name}" added`);
       }
 
-      setIsDialogOpen(false);
+      setIsProductModalOpen(false);
       resetForm();
     } catch (error) {
       console.error('Error saving product:', error);
@@ -134,6 +248,7 @@ const AdminStock = () => {
     }
   };
 
+  // Reset form
   const resetForm = () => {
     setFormData({
       name: '',
@@ -152,6 +267,7 @@ const AdminStock = () => {
     setIsEditMode(false);
   };
 
+  // Handle edit product
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
     setIsEditMode(true);
@@ -168,371 +284,313 @@ const AdminStock = () => {
       singlePrice: product.singlePrice ? product.singlePrice.toString() : '',
       minStockLevel: product.minStockLevel ? product.minStockLevel.toString() : '10',
     });
-    setIsDialogOpen(true);
+    setIsProductModalOpen(true);
   };
 
-  const lowStockProducts = products.filter(p => p.stock < (p.minStockLevel || 10));
-  const outOfStockProducts = products.filter(p => p.stock === 0);
-  const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
-
-  const getStockBadge = (stock: number, minStockLevel = 10) => {
-    if (stock === 0) {
-      return (
-        <View style={styles.s_1}>
-          <Text style={styles.s_2}>Out of Stock</Text>
-        </View>
-      );
-    }
-    if (stock < minStockLevel) {
-      return (
-        <View style={styles.s_3}>
-          <Text style={styles.s_4}>Low Stock</Text>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.s_5}>
-        <Text style={styles.s_6}>In Stock</Text>
-      </View>
-    );
-  };
-
-  const categoryOptions = [
-    'Electronics',
-    'Clothing',
-    'Food & Beverages',
-    'Home & Kitchen',
-    'Beauty & Personal Care',
-    'Sports & Outdoors',
-    'Books & Media',
-    'Other'
-  ];
-
-  const supplierOptions = [
-    'TechSuppliers Inc.',
-    'Fashion Distributors',
-    'Food Importers Ltd.',
-    'Home Essentials Co.',
-    'Beauty World',
-    'Global Suppliers',
-    'Local Wholesaler'
-  ];
-
+  // Render product item
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
-      style={styles.s_7}
+      style={[styles.productCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
       onPress={() => setSelectedProduct(item)}
       onLongPress={() => handleEditProduct(item)}
+      activeOpacity={0.7}
     >
-      <View style={styles.s_8}>
-        <View style={styles.s_9}>
-          <Text style={styles.s_10}>{item.name}</Text>
-          <Text style={styles.s_11}>{item.sku}</Text>
+      <View style={styles.productHeader}>
+        <View style={styles.productInfo}>
+          <Text style={[styles.productName, { color: COLORS.primary }]}>{item.name}</Text>
+          <Text style={[styles.productSku, { color: COLORS.muted }]}>{item.sku}</Text>
         </View>
-        <Text style={styles.s_12}>
-          ${item.price?.toFixed(2) ?? '0.00'}
-        </Text>
+        <Text style={[styles.productPrice, { color: COLORS.accent }]}>${item.price.toFixed(2)}</Text>
       </View>
       
-      <View style={styles.s_13}>
-        <View style={styles.s_14}>
-          <Text style={styles.s_15}>
-            Stock: {item.stock ?? 0}
-          </Text>
-          {getStockBadge(item.stock ?? 0, item.minStockLevel ?? 10)}
+      <View style={styles.productDetails}>
+        <View style={styles.detailRow}>
+          <View style={styles.detailItem}>
+            <Ionicons name="cube-outline" size={14} color={COLORS.muted} />
+            <Text style={[styles.detailText, { color: COLORS.muted }]}>Stock: {item.stock}</Text>
+          </View>
+          {getStockBadge(item.stock, item.minStockLevel || 10)}
         </View>
-        <Text style={styles.s_15}>
-          {item.category ?? ''}
-        </Text>
+        
+        <View style={styles.detailRow}>
+          <Text style={[styles.productCategory, { color: COLORS.muted }]}>{item.category}</Text>
+          {item.supplier && (
+            <Text style={[styles.productSupplier, { color: COLORS.primary, opacity: 0.8 }]}>{item.supplier}</Text>
+          )}
+        </View>
       </View>
-      
-      {item.supplier && (
-        <Text style={styles.s_16}>
-          Supplier: {item.supplier ?? ''}
-        </Text>
-      )}
     </TouchableOpacity>
   );
 
+  // Loading state
   if (isLoading) {
     return (
-      <View style={styles.s_17}>
-        <ScrollView style={styles.s_18}>
-          {/* Header Skeleton */}
-          <View style={styles.s_13}>
-            <View>
-              <View style={styles.s_19} />
-              <View style={styles.s_20} />
-            </View>
-            <View style={styles.s_21} />
-          </View>
-
-          {/* Stats Grid Skeleton */}
-          <View style={styles.s_22}>
-            {[1, 2, 3, 4].map((i) => (
-              <View key={i} style={styles.s_23}>
-                <View style={styles.s_24} />
-                <View style={styles.s_25} />
-              </View>
-            ))}
-          </View>
-
-          {/* Search Skeleton */}
-          <View style={styles.s_26}>
-            <View style={styles.s_27} />
-            <View style={styles.s_28} />
-            <View style={styles.s_29} />
-          </View>
-
-          {/* Table Skeleton */}
-          <View style={styles.s_26}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} style={styles.s_30} />
-            ))}
-          </View>
-        </ScrollView>
-      </View>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading inventory...</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.s_17}>
-      <ScrollView style={styles.s_9}>
-        <View style={styles.s_31}>
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
+      <ScrollView style={styles.scrollView}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: COLORS.primary }]}>Inventory</Text>
+          <Text style={[styles.subtitle, { color: COLORS.muted }]}>Manage your product stock</Text>
+        </View>
 
+        {/* Stats Grid */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.statsScroll}
+          contentContainerStyle={styles.statsContent}
+        >
+          {statCards.map((stat, index) => (
+            <View 
+              key={index} 
+              style={[
+                styles.statCard, 
+                { 
+                  backgroundColor: stat.bgColor,
+                  borderColor: COLORS.border 
+                }
+              ]}
+            >
+              <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
+                <Ionicons name={stat.icon} size={20} color={stat.color} />
+              </View>
+              <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
+              <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
+            </View>
+          ))}
+        </ScrollView>
 
-          {/* Stats Cards */}
-          <View style={styles.s_32}>
-            <View style={styles.s_33}>
-              <Text style={styles.s_34}>
-                Total Products
-              </Text>
-              <Text style={styles.s_35}>
-                {products.length}
-              </Text>
-            </View>
-            <View className=" rounded-lg p-4 bg-primary w-full">
-              <Text style={styles.s_34}>
-                Low Stock
-              </Text>
-              <Text style={styles.s_35}>
-                {lowStockProducts.length}
+        {/* Search Section */}
+        <View style={[styles.searchCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+          <View style={styles.searchHeader}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>All Products</Text>
+              <Text style={[styles.sectionSubtitle, { color: COLORS.muted }]}>
+                {filteredProducts.length} products found
               </Text>
             </View>
-            <View className="bg-primary  rounded-lg p-4 text-center w-full ">
-              <Text style={styles.s_34}>
-                Out of Stock
-              </Text>
-              <Text style={styles.s_38}>
-                {outOfStockProducts.length}
-              </Text>
-            </View>
-            <View style={styles.s_33}>
-              <Text style={styles.s_34}>
-                Total Value
-              </Text>
-              <Text style={styles.s_39}>
-                ${totalValue.toFixed(2)}
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: COLORS.accent }]}
+              onPress={() => {
+                resetForm();
+                setIsProductModalOpen(true);
+              }}
+            >
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Add Product</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Search */}
-          <View style={styles.s_26}>
-            <Text style={styles.s_40}>
-              Product Inventory
-            </Text>
-            <Text style={styles.s_41}>
-              All products and stock levels
-            </Text>
-            
-            <View style={styles.s_42}>
-              <Ionicons 
-                name="search" 
-                size={20} 
-                style={styles.s_43} 
-              />
+          
+          <View style={styles.searchContainer}>
+            <View style={[styles.searchBar, { backgroundColor: COLORS.input }]}>
+              <Ionicons name="search" size={18} color={COLORS.muted} />
               <TextInput
-                placeholder="Search by name, SKU, or category..."
+                placeholder="Search products..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                style={styles.s_44}
-                placeholderTextColor="#6B7280"
+                style={[styles.searchInput, { color: COLORS.primary }]}
+                placeholderTextColor={COLORS.muted}
               />
+              {searchQuery && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.muted} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
+        </View>
 
-          {/* Products List */}
-          <View style={styles.s_45}>
-            {filteredProducts.length === 0 ? (
-              <View style={styles.s_46}>
-                <Ionicons name="cube-outline" size={48} style={styles.s_47} />
-                <Text style={styles.s_48}>
-                  No products found
-                </Text>
-                <Text style={styles.s_49}>
-                  {searchQuery 
-                    ? 'Try adjusting your search criteria'
-                    : 'Get started by adding your first product'
-                  }
-                </Text>
-                {searchQuery ? (
-                  <TouchableOpacity
-                    style={styles.s_50}
-                    onPress={() => setSearchQuery('')}
-                  >
-                    <Text style={styles.s_51}>
-                      Clear Search
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.s_50}
-                    onPress={() => {
-                      resetForm();
-                      setIsDialogOpen(true);
-                    }}
-                  >
-                    <Text style={styles.s_51}>
-                      Add First Product
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+        {/* Products List */}
+        {filteredProducts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="cube-outline" size={64} color={COLORS.border} />
+            <Text style={[styles.emptyTitle, { color: COLORS.primary }]}>No products found</Text>
+            <Text style={[styles.emptyText, { color: COLORS.muted }]}>
+              {searchQuery 
+                ? 'Try adjusting your search'
+                : 'Start by adding your first product'
+              }
+            </Text>
+            {searchQuery ? (
+              <TouchableOpacity
+                style={[styles.clearButton, { backgroundColor: COLORS.destructive }]}
+                onPress={() => setSearchQuery('')}
+              >
+                <Text style={styles.clearButtonText}>Clear Search</Text>
+              </TouchableOpacity>
             ) : (
-              <FlatList
-                data={filteredProducts}
-                renderItem={renderProductItem}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={true}
-                style={styles.s_52}
-              />
+              <TouchableOpacity
+                style={[styles.addButtonSmall, { backgroundColor: COLORS.accent }]}
+                onPress={() => {
+                  resetForm();
+                  setIsProductModalOpen(true);
+                }}
+              >
+                <Text style={styles.addButtonText}>Add First Product</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
+        ) : (
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderProductItem}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEnabled={false}
+            style={styles.productsList}
+            contentContainerStyle={styles.productsContent}
+          />
+        )}
       </ScrollView>
 
       {/* Add/Edit Product Modal */}
       <Modal
-        visible={isDialogOpen}
+        visible={isProductModalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => {
+          setIsProductModalOpen(false);
+          resetForm();
+        }}
       >
-        <View style={styles.s_53}>
-          <View style={styles.s_54}>
-            <Text style={styles.s_55}>
-              {isEditMode ? 'Edit Product' : 'Add New Product'}
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
+              {isEditMode ? 'Edit Product' : 'New Product'}
             </Text>
             <TouchableOpacity onPress={() => {
-              setIsDialogOpen(false);
+              setIsProductModalOpen(false);
               resetForm();
             }}>
-              <Ionicons name="close" size={24} style={styles.s_56} />
+              <Ionicons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.s_57}>
-            <View style={styles.s_58}>
-              {/* Basic Information */}
-              <View style={styles.s_22}>
-                <View style={styles.s_59}>
-                  <Text style={styles.s_60}>Product Name *</Text>
-                  <TextInput
-                    value={formData.name}
-                    onChangeText={(text) => setFormData({ ...formData, name: text })}
-                    placeholder="Enter product name"
-                    style={styles.s_61}
-                    placeholderTextColor="#6B7280"
-                  />
-                </View>
-                <View style={styles.s_59}>
-                  <Text style={styles.s_60}>SKU *</Text>
-                  <TextInput
-                    value={formData.sku}
-                    onChangeText={(text) => setFormData({ ...formData, sku: text })}
-                    placeholder="Enter SKU"
-                    style={styles.s_61}
-                    placeholderTextColor="#6B7280"
-                  />
-                </View>
+          <ScrollView style={styles.modalScroll}>
+            <View style={styles.formContainer}>
+              {/* Basic Info */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Product Name *</Text>
+                <TextInput
+                  value={formData.name}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  placeholder="Enter product name"
+                  style={[styles.formInput, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border,
+                    color: COLORS.primary 
+                  }]}
+                  placeholderTextColor={COLORS.muted}
+                />
               </View>
 
-              {/* Category and Supplier */}
-              <View style={styles.s_22}>
-                <View style={styles.s_59}>
-                  <Text style={styles.s_60}>Category *</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.s_62}>
-                      {categoryOptions.map((category) => (
-                        <TouchableOpacity
-                          key={category}
-                          className={`px-3 py-2 rounded-lg border ${
-                            formData.category === category
-                              ? 'bg-accent border-accent'
-                              : 'bg-background border-input'
-                          }`}
-                          onPress={() => setFormData({ ...formData, category })}
-                        >
-                          <Text className={
-                            formData.category === category
-                              ? 'text-accent-foreground font-medium text-xs'
-                              : 'text-foreground text-xs'
-                          }>
-                            {category}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </View>
-                <View style={styles.s_59}>
-                  <Text style={styles.s_60}>Supplier *</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.s_62}>
-                      {supplierOptions.map((supplier) => (
-                        <TouchableOpacity
-                          key={supplier}
-                          className={`px-3 py-2 rounded-lg border ${
-                            formData.supplier === supplier
-                              ? 'bg-accent border-accent'
-                              : 'bg-background border-input'
-                          }`}
-                          onPress={() => setFormData({ ...formData, supplier })}
-                        >
-                          <Text className={
-                            formData.supplier === supplier
-                              ? 'text-accent-foreground font-medium text-xs'
-                              : 'text-foreground text-xs'
-                          }>
-                            {supplier}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </View>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>SKU *</Text>
+                <TextInput
+                  value={formData.sku}
+                  onChangeText={(text) => setFormData({ ...formData, sku: text })}
+                  placeholder="Enter SKU code"
+                  style={[styles.formInput, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border,
+                    color: COLORS.primary 
+                  }]}
+                  placeholderTextColor={COLORS.muted}
+                />
+              </View>
+
+              {/* Category */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Category *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.tagContainer}>
+                    {categoryOptions.map((category) => (
+                      <TouchableOpacity
+                        key={category}
+                        style={[
+                          styles.tag,
+                          { 
+                            backgroundColor: formData.category === category ? COLORS.accent : COLORS.input,
+                            borderColor: formData.category === category ? COLORS.accent : COLORS.border
+                          }
+                        ]}
+                        onPress={() => setFormData({ ...formData, category })}
+                      >
+                        <Text style={[
+                          styles.tagText,
+                          { 
+                            color: formData.category === category ? '#FFFFFF' : COLORS.primary 
+                          }
+                        ]}>
+                          {category}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Supplier */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Supplier *</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.tagContainer}>
+                    {supplierOptions.map((supplier) => (
+                      <TouchableOpacity
+                        key={supplier}
+                        style={[
+                          styles.tag,
+                          { 
+                            backgroundColor: formData.supplier === supplier ? COLORS.primary : COLORS.input,
+                            borderColor: formData.supplier === supplier ? COLORS.primary : COLORS.border
+                          }
+                        ]}
+                        onPress={() => setFormData({ ...formData, supplier })}
+                      >
+                        <Text style={[
+                          styles.tagText,
+                          { 
+                            color: formData.supplier === supplier ? '#FFFFFF' : COLORS.primary 
+                          }
+                        ]}>
+                          {supplier}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
               </View>
 
               {/* Unit Type */}
-              <View>
-                <Text style={styles.s_60}>Unit Type *</Text>
-                <View style={styles.s_62}>
-                  {['single', 'pack', 'both'].map((unitType) => (
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Unit Type *</Text>
+                <View style={styles.unitTypeContainer}>
+                  {(['single', 'pack', 'both'] as const).map((unitType) => (
                     <TouchableOpacity
                       key={unitType}
-                      className={`flex-1 px-3 py-3 rounded-lg border ${
-                        formData.unitType === unitType
-                          ? 'bg-accent border-accent'
-                          : 'bg-background border-input'
-                      }`}
-                      onPress={() => setFormData({ ...formData, unitType: unitType as UnitType })}
+                      style={[
+                        styles.unitTypeButton,
+                        { 
+                          backgroundColor: formData.unitType === unitType ? COLORS.accent : COLORS.input,
+                          borderColor: formData.unitType === unitType ? COLORS.accent : COLORS.border
+                        }
+                      ]}
+                      onPress={() => setFormData({ ...formData, unitType })}
                     >
-                      <Text className={
-                        formData.unitType === unitType
-                          ? 'text-accent-foreground font-medium text-center text-xs capitalize'
-                          : 'text-foreground text-center text-xs capitalize'
-                      }>
-                        {unitType === 'both' ? 'Single & Pack' : unitType}
+                      <Text style={[
+                        styles.unitTypeText,
+                        { 
+                          color: formData.unitType === unitType ? '#FFFFFF' : COLORS.primary 
+                        }
+                      ]}>
+                        {unitType === 'both' ? 'Both' : unitType.charAt(0).toUpperCase() + unitType.slice(1)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -540,54 +598,70 @@ const AdminStock = () => {
               </View>
 
               {/* Stock and Price */}
-              <View style={styles.s_22}>
-                <View style={styles.s_59}>
-                  <Text style={styles.s_60}>Initial Stock *</Text>
-                  <TextInput  
+              <View style={styles.formRow}>
+                <View style={[styles.formGroup, styles.formGroupHalf]}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Stock *</Text>
+                  <TextInput
                     value={formData.stock}
                     onChangeText={(text) => setFormData({ ...formData, stock: text })}
                     placeholder="0"
                     keyboardType="numeric"
-                    style={styles.s_61}
-                    placeholderTextColor="#6B7280"
+                    style={[styles.formInput, { 
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary 
+                    }]}
+                    placeholderTextColor={COLORS.muted}
                   />
                 </View>
-                <View style={styles.s_59}>
-                  <Text style={styles.s_60}>Price *</Text>
+                <View style={[styles.formGroup, styles.formGroupHalf]}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Price *</Text>
                   <TextInput
                     value={formData.price}
                     onChangeText={(text) => setFormData({ ...formData, price: text })}
                     placeholder="0.00"
                     keyboardType="decimal-pad"
-                    style={styles.s_61}
-                    placeholderTextColor="#6B7280"
+                    style={[styles.formInput, { 
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary 
+                    }]}
+                    placeholderTextColor={COLORS.muted}
                   />
                 </View>
               </View>
 
               {/* Pack Configuration */}
               {(formData.unitType === 'pack' || formData.unitType === 'both') && (
-                <View style={styles.s_22}>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_60}>Pack Size *</Text>
+                <View style={styles.formRow}>
+                  <View style={[styles.formGroup, styles.formGroupHalf]}>
+                    <Text style={[styles.formLabel, { color: COLORS.primary }]}>Pack Size *</Text>
                     <TextInput
                       value={formData.packSize}
                       onChangeText={(text) => setFormData({ ...formData, packSize: text })}
                       placeholder="Units per pack"
                       keyboardType="numeric"
-                      style={styles.s_61}
-                      placeholderTextColor="#6B7280"
+                      style={[styles.formInput, { 
+                        backgroundColor: COLORS.input,
+                        borderColor: COLORS.border,
+                        color: COLORS.primary 
+                      }]}
+                      placeholderTextColor={COLORS.muted}
                     />
                   </View>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_60}>Pack Price *</Text>
+                  <View style={[styles.formGroup, styles.formGroupHalf]}>
+                    <Text style={[styles.formLabel, { color: COLORS.primary }]}>Pack Price *</Text>
                     <TextInput
                       value={formData.packPrice}
                       onChangeText={(text) => setFormData({ ...formData, packPrice: text })}
                       placeholder="0.00"
                       keyboardType="decimal-pad"
-                      style={styles.s_61}
-                      placeholderTextColor="#6B7280"
+                      style={[styles.formInput, { 
+                        backgroundColor: COLORS.input,
+                        borderColor: COLORS.border,
+                        color: COLORS.primary 
+                      }]}
+                      placeholderTextColor={COLORS.muted}
                     />
                   </View>
                 </View>
@@ -595,47 +669,55 @@ const AdminStock = () => {
 
               {/* Single Price for Both */}
               {formData.unitType === 'both' && (
-                <View>
-                  <Text style={styles.s_60}>Single Unit Price *</Text>
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Single Unit Price *</Text>
                   <TextInput
                     value={formData.singlePrice}
                     onChangeText={(text) => setFormData({ ...formData, singlePrice: text })}
                     placeholder="0.00"
                     keyboardType="decimal-pad"
-                    style={styles.s_61}
-                    placeholderTextColor="#6B7280"
+                    style={[styles.formInput, { 
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary 
+                    }]}
+                    placeholderTextColor={COLORS.muted}
                   />
                 </View>
               )}
 
               {/* Minimum Stock Level */}
-              <View>
-                <Text style={styles.s_60}>Minimum Stock Level</Text>
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Min Stock Level</Text>
                 <TextInput
                   value={formData.minStockLevel}
                   onChangeText={(text) => setFormData({ ...formData, minStockLevel: text })}
                   placeholder="10"
                   keyboardType="numeric"
-                  style={styles.s_61}
-                  placeholderTextColor="#6B7280"
+                  style={[styles.formInput, { 
+                    backgroundColor: COLORS.input,
+                    borderColor: COLORS.border,
+                    color: COLORS.primary 
+                  }]}
+                  placeholderTextColor={COLORS.muted}
                 />
               </View>
             </View>
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={styles.s_63}
+              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
               onPress={handleSubmit}
             >
-              <Text style={styles.s_64}>
+              <Text style={styles.submitButtonText}>
                 {isEditMode ? 'Update Product' : 'Add Product'}
               </Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
 
-      {/* Product Detail Modal */}
+      {/* Product Details Modal */}
       <Modal
         visible={!!selectedProduct}
         animationType="slide"
@@ -643,494 +725,485 @@ const AdminStock = () => {
         onRequestClose={() => setSelectedProduct(null)}
       >
         {selectedProduct && (
-          <View style={styles.s_53}>
-            <View style={styles.s_54}>
-              <Text style={styles.s_55}>
-                Product Details - {selectedProduct.sku ?? ''}
-              </Text>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Product Details</Text>
               <TouchableOpacity onPress={() => setSelectedProduct(null)}>
-                <Ionicons name="close" size={24} style={styles.s_56} />
+                <Ionicons name="close" size={24} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.s_57}>
-              <View style={styles.s_65}>
-                <View style={styles.s_22}>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>Name</Text>
-                    <Text style={styles.s_67}>{selectedProduct.name ?? ''}</Text>
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.detailsContainer}>
+                {/* Product Info */}
+                <View style={styles.detailsSection}>
+                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Name</Text>
+                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.name}</Text>
+                </View>
+
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>SKU</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.sku}</Text>
                   </View>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>Category</Text>
-                    <Text style={styles.s_67}>{selectedProduct.category ?? ''}</Text>
-                  </View>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>SKU</Text>
-                    <Text style={styles.s_67}>{selectedProduct.sku ?? ''}</Text>
-                  </View>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>Supplier</Text>
-                    <Text style={styles.s_67}>{selectedProduct.supplier ?? ''}</Text>
-                  </View>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>Price</Text>
-                    <Text style={styles.s_12}>${selectedProduct.price?.toFixed(2) ?? '0.00'}</Text>
-                  </View>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>Stock</Text>
-                    <View style={styles.s_68}>
-                      <Text style={styles.s_69}>{selectedProduct.stock ?? 0}</Text>
-                      {getStockBadge(selectedProduct.stock ?? 0, selectedProduct.minStockLevel ?? 10)}
-                    </View>
-                  </View>
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>Unit Type</Text>
-                    <Text style={styles.s_70}>{selectedProduct.unitType ?? ''}</Text>
-                  </View>
-                  {selectedProduct.packSize && (
-                    <View style={styles.s_59}>
-                      <Text style={styles.s_66}>Pack Size</Text>
-                      <Text style={styles.s_67}>{selectedProduct.packSize ?? 0} units</Text>
-                    </View>
-                  )}
-                  {selectedProduct.packPrice && (
-                    <View style={styles.s_59}>
-                      <Text style={styles.s_66}>Pack Price</Text>
-                      <Text style={styles.s_67}>${selectedProduct.packPrice.toFixed(2)}</Text>
-                    </View>
-                  )}
-                  {selectedProduct.singlePrice && (
-                    <View style={styles.s_59}>
-                      <Text style={styles.s_66}>Single Price</Text>
-                      <Text style={styles.s_67}>${selectedProduct.singlePrice.toFixed(2)}</Text>
-                    </View>
-                  )}
-                  <View style={styles.s_59}>
-                    <Text style={styles.s_66}>Min Stock Level</Text>
-                    <Text style={styles.s_67}>{selectedProduct.minStockLevel || 10}</Text>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.category}</Text>
                   </View>
                 </View>
 
-                {/* Action Buttons */}
-                <View style={styles.s_71}>
-                  <TouchableOpacity 
-                    style={styles.s_72}
-                    onPress={() => {
-                      handleEditProduct(selectedProduct);
-                      setSelectedProduct(null);
-                    }}
-                  >
-                    <Text style={styles.s_73}>
-                      Edit Product
-                    </Text>
-                  </TouchableOpacity>
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Price</Text>
+                    <Text style={[styles.detailPrice, { color: COLORS.accent }]}>${selectedProduct.price.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Stock</Text>
+                    <View style={styles.stockContainer}>
+                      <Text style={[styles.detailStock, { color: COLORS.primary }]}>{selectedProduct.stock}</Text>
+                      {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
+                    </View>
+                  </View>
                 </View>
+
+                <View style={styles.detailsSection}>
+                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Supplier</Text>
+                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                    {selectedProduct.supplier || 'Not specified'}
+                  </Text>
+                </View>
+
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Unit Type</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                      {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Min Stock</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                      {selectedProduct.minStockLevel || 10}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Pack Info if available */}
+                {(selectedProduct.packSize || selectedProduct.packPrice) && (
+                  <View style={styles.detailsSection}>
+                    <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Pack Information</Text>
+                    <View style={styles.detailsGrid}>
+                      {selectedProduct.packSize && (
+                        <View style={styles.detailItem}>
+                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Size</Text>
+                          <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                            {selectedProduct.packSize} units
+                          </Text>
+                        </View>
+                      )}
+                      {selectedProduct.packPrice && (
+                        <View style={styles.detailItem}>
+                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Price</Text>
+                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
+                            ${selectedProduct.packPrice.toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedProduct.singlePrice && (
+                        <View style={styles.detailItem}>
+                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Single Price</Text>
+                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
+                            ${selectedProduct.singlePrice.toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Action Button */}
+                <TouchableOpacity
+                  style={[styles.editButton, { backgroundColor: COLORS.accent }]}
+                  onPress={() => {
+                    handleEditProduct(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                >
+                  <Text style={styles.editButtonText}>Edit Product</Text>
+                </TouchableOpacity>
               </View>
             </ScrollView>
-          </View>
+          </SafeAreaView>
         )}
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  s_1: {},
-
-  s_2: {
-  fontSize: 12,
-  fontWeight: "600"
-},
-
-  s_3: {},
-
-  s_4: {
-  fontSize: 12,
-  fontWeight: "600"
-},
-
-  s_5: {},
-
-  s_6: {
-  fontSize: 12,
-  fontWeight: "600"
-},
-
-  s_7: {
-  borderColor: "#e6edf3",
-  paddingVertical: 12,
-  paddingHorizontal: 16,
-  backgroundColor: "#ffffff"
-},
-
-  s_8: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  marginBottom: 8
-},
-
-  s_9: {
-  flex: 1
-},
-
-  s_10: {
-  color: "#0f172a"
-},
-
-  s_11: {
-  color: "#6b7280",
-  fontSize: 14
-},
-
-  s_12: {
-  fontWeight: "700",
-  color: "#f97316",
-  fontSize: 18
-},
-
-  s_13: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center"
-},
-
-  s_14: {
-  flexDirection: "row",
-  alignItems: "center"
-},
-
-  s_15: {
-  fontSize: 12,
-  color: "#6b7280"
-},
-
-  s_16: {
-  fontSize: 12,
-  color: "#6b7280"
-},
-
-  s_17: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
-
-  s_18: {
-  flex: 1,
-  padding: 16
-},
-
-  s_19: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_20: {
-  borderRadius: 6
-},
-
-  s_21: {
-  borderRadius: 6
-},
-
-  s_22: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_23: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
+  // Main container
+  container: {
+    flex: 1,
   },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1,
-  width: "48%"
-},
-
-  s_24: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_25: {
-  borderRadius: 6
-},
-
-  s_26: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
+  scrollView: {
+    flex: 1,
   },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1
-},
 
-  s_27: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_28: {
-  borderRadius: 6,
-  marginBottom: 16
-},
-
-  s_29: {
-  borderRadius: 6
-},
-
-  s_30: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_31: {
-  padding: 16
-},
-
-  s_32: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  gap: 16
-},
-
-  s_33: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16,
-  width: "100%"
-},
-
-  s_34: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#ffffff"
-},
-
-  s_35: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#f97316"
-},
-
-  s_36: {
-  borderRadius: 12,
-  padding: 16,
-  backgroundColor: "#0f172a",
-  width: "100%"
-},
-
-  s_37: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16,
-  width: "100%"
-},
-
-  s_38: {
-  fontSize: 20,
-  fontWeight: "700"
-},
-
-  s_39: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#f97316"
-},
-
-  s_40: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_41: {
-  fontSize: 14,
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_42: {},
-
-  s_43: {
-  color: "#6b7280"
-},
-
-  s_44: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingRight: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_45: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  shadowColor: "#000",
-  shadowOffset: {
-    width: 0,
-    height: 1
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-  elevation: 1
-},
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
 
-  s_46: {
-  alignItems: "center"
-},
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+  },
 
-  s_47: {
-  color: "#6b7280",
-  marginBottom: 16
-},
+  // Stats
+  statsScroll: {
+    marginBottom: 20,
+  },
+  statsContent: {
+    paddingHorizontal: 20,
+    paddingRight: 40,
+  },
+  statCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+    width: 120,
+    borderWidth: 1,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 12,
+  },
 
-  s_48: {
-  fontSize: 18,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
+  // Search Section
+  searchCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+  },
+  searchHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  addButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  addButtonSmall: {
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
 
-  s_49: {
-  color: "#6b7280",
-  marginBottom: 16
-},
+  // Search
+  searchContainer: {
+    marginBottom: 4,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 8,
+    marginRight: 8,
+  },
 
-  s_50: {
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingHorizontal: 16
-},
+  // Products List
+  productsList: {
+    marginHorizontal: 20,
+  },
+  productsContent: {
+    paddingBottom: 40,
+  },
+  productCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  productHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  productInfo: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  productSku: {
+    fontSize: 13,
+  },
+  productPrice: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  productDetails: {
+    gap: 8,
+  },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  detailText: {
+    fontSize: 13,
+    marginLeft: 4,
+  },
+  productCategory: {
+    fontSize: 13,
+  },
+  productSupplier: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
 
-  s_51: {},
+  // Stock Badges
+  stockBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  stockBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
 
-  s_52: {},
+  // Empty State
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  clearButton: {
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  clearButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
-  s_53: {
-  flex: 1,
-  backgroundColor: "#ffffff",
-  paddingTop: 16
-},
+  // Modal
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  modalScroll: {
+    flex: 1,
+    padding: 20,
+  },
 
-  s_54: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: 16,
-  paddingBottom: 16,
-  borderColor: "#e6edf3"
-},
+  // Form
+  formContainer: {
+    gap: 20,
+  },
+  formGroup: {
+    gap: 8,
+  },
+  formRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  formGroupHalf: {
+    flex: 1,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  formInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
 
-  s_55: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#0f172a"
-},
+  // Tags
+  tagContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tagText: {
+    fontSize: 12,
+  },
 
-  s_56: {
-  color: "#0f172a"
-},
+  // Unit Type
+  unitTypeContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  unitTypeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  unitTypeText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
 
-  s_57: {
-  flex: 1,
-  padding: 16
-},
+  // Submit Button
+  submitButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
-  s_58: {},
+  // Details Modal
+  detailsContainer: {
+    gap: 24,
+  },
+  detailsSection: {
+    gap: 8,
+  },
+  detailsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+ 
+  detailLabel: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  detailPrice: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  stockContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  detailStock: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
 
-  s_59: {
-  width: "48%"
-},
-
-  s_60: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#0f172a",
-  marginBottom: 8
-},
-
-  s_61: {
-  backgroundColor: "#ffffff",
-  borderWidth: 1,
-  borderColor: "#e6edf3",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  color: "#0f172a"
-},
-
-  s_62: {
-  flexDirection: "row"
-},
-
-  s_63: {
-  backgroundColor: "#f97316",
-  borderRadius: 12
-},
-
-  s_64: {
-  fontSize: 18
-},
-
-  s_65: {},
-
-  s_66: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_67: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_68: {
-  flexDirection: "row",
-  alignItems: "center"
-},
-
-  s_69: {
-  fontWeight: "700",
-  color: "#0f172a",
-  fontSize: 18
-},
-
-  s_70: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_71: {
-  flexDirection: "row",
-  paddingTop: 16
-},
-
-  s_72: {
-  flex: 1,
-  backgroundColor: "#f97316",
-  borderRadius: 12,
-  paddingVertical: 12
-},
-
-  s_73: {}
+  // Edit Button
+  editButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  editButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
+
 export default AdminStock;

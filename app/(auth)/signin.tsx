@@ -1,98 +1,15 @@
 // app/(auth)/signin.js
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
 import Feather from '@expo/vector-icons/Feather';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { UserProfile } from '../../store/types';
+import { Ionicons } from '@expo/vector-icons';
 
 
 
-const styles = StyleSheet.create({
-  s_1: {
-  backgroundColor: "#ffffff",
-  width: "100%",
-  height: "100%",
-  display: "flex",
-  justifyContent: "center",
-  flexDirection: "column",
-  alignItems: "center"
-},
-
-  s_2: {
-  width: "100%"
-},
-
-  s_3: {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center"
-},
-
-  s_4: {},
-
-  s_5: {},
-
-  s_6: {
-  borderWidth: 1,
-  width: "100%"
-},
-
-  s_7: {
-  fontWeight: "700",
-  marginBottom: 8
-},
-
-  s_8: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_9: {
-  width: "100%",
-  marginBottom: 16
-},
-
-  s_10: {
-  marginBottom: 8
-},
-
-  s_11: {
-  marginBottom: 16
-},
-
-  s_12: {
-  display: "flex",
-  alignItems: "flex-end",
-  justifyContent: "flex-end",
-  marginBottom: 16
-},
-
-  s_13: {
-  width: "100%",
-  paddingVertical: 12,
-  backgroundColor: "#0f172a"
-},
-
-  s_14: {},
-
-  s_15: {},
-
-  s_16: {
-  color: "#6b7280"
-},
-
-  s_17: {
-  backgroundColor: "#f3f4f6",
-  width: "100%"
-},
-
-  s_18: {},
-
-  s_19: {}
-});
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -132,118 +49,175 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={styles.s_1}>
-      
-      <View className="mb-10 w-full  ">
-        <Link href="/" style={styles.s_3}>
-          <Feather name="arrow-left" size={22} className="text-primary " />
-          <Text style={styles.s_5}>
-            Back
-          </Text>
-        </Link>
-      </View>
-      
-      
- <View style={styles.s_6}>
-        
-     <Text style={styles.s_7}>
-              
-        Sign In
-      </Text>
-      
-      <Text style={styles.s_8} >
-        Enter your credentials to access your account
-      </Text>
-
-      <View className="w-full mb-4 " >
-        
-        <Text style={styles.s_10}>
-          Email
-        </Text>
-        <TextInput style={styles.s_11}
-          style={{ 
-            borderWidth: 1, 
-            borderColor: '#D1D5DB', 
-            borderRadius: 6, 
-            padding: 14, 
-            color: '#1E3A8A' 
-          }}
-          placeholder="you@example.com"
-          placeholderTextColor="#9CA3AF"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        
-         <Text style={styles.s_10}>
-          Password
-        </Text>
-        <TextInput 
-          style={{ 
-            borderWidth: 1, 
-            borderColor: '#D1D5DB', 
-            borderRadius: 6, 
-            padding: 14, 
-            color: '#1E3A8A' 
-          }}
-          placeholder=".........."
-          placeholderTextColor="#9CA3AF"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-      </View> 
-      <View style={styles.s_12}>
-          <Link href="/forgot-password" asChild>
-          <TouchableOpacity>
-            <Text style={{ color: '#FB923C' }}>Forgot Password?</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-      <TouchableOpacity 
-        style={styles.s_13}
-        onPress={handleSignIn}
-      >
-        <Text style={styles.s_14} >
-          Sign In
-        </Text>
-      </TouchableOpacity>
-
-      <View style={{ 
-        flexDirection: 'row', 
-        justifyContent: 'center' 
-      }}>
-      
-        
-        <Link href="/signup"  style={styles.s_15}>
-         
-            <Text className="text-muted-foreground ">
-              {"Don't have an account? "}
-            </Text>
-            <Text style={{ color: '#FB923C' }}> Sign Up</Text>
+    <View style={styles.container}>
+      <View style={styles.backRow}>
+        <Link href="/" style={styles.backLink}>
+          <Feather name="arrow-left-circle" size={30} color="#0f172a" />
           
         </Link>
       </View>
-        
-        
-        
+
+      <View style={styles.card}>
+        <Text style={styles.title}>Sign In</Text>
+        <Text style={styles.subtitle}>Enter your credentials to access your account</Text>
+
+        <View style={styles.formBlock}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="you@example.com"
+            placeholderTextColor="#9CA3AF"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <Text style={styles.label}>Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder=".........."
+            placeholderTextColor="#9CA3AF"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
+
+        <View style={styles.linkRowEnd}>
+          <Link href="/forgot-password" asChild>
+            <TouchableOpacity>
+              <Text style={styles.accentText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+
+        <TouchableOpacity style={styles.primaryButton} onPress={handleSignIn}>
+          <Text style={styles.primaryButtonText}>Sign In</Text>
+        </TouchableOpacity>
+
+        <View style={styles.inlineRow}>
+          <Text style={styles.mutedText}>{"Don't have an account? "}</Text>
+          <Link href="/signup" asChild>
+            <TouchableOpacity>
+              <Text style={styles.accentText}>Sign Up</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
       </View>
-      
-<View className=" rounded-md bg-secondary w-full p-5 mt-6 space-y-4">
-        
-        <Text className="text-primary font-semibold ">
-          Demo Credentials
-        </Text>
-         <Text className="text-primary f ">
-          {"Admin : admin@shop.com / admin123"}
-        </Text>       
-        <Text className="text-primary  ">
-           {"Cashier : cashier@shop.com / cashier123"}
-        </Text>        
+
+      <View style={styles.demoCard}>
+        <Text style={styles.demoTitle}>Demo Credentials</Text>
+        <Text style={styles.demoText}>Admin : admin@shop.com / admin123</Text>
+        <Text style={styles.demoText}>Cashier : cashier@shop.com / cashier123</Text>
       </View>
-      
- 
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 20,
+    justifyContent: "center",
+  },
+  backRow: {
+    marginBottom: 32,
+    width: "100%",
+    display:"none"
+  },
+  backLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  backText: {
+    color: "#0f172a",
+    fontWeight: "600",
+  },
+  card: {
+    width: "100%",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+    gap: 12,
+  },
+  title: {
+    fontWeight: "700",
+    fontSize: 22,
+    color: "#0f172a",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  formBlock: {
+    width: "100%",
+    gap: 8,
+    marginTop: 4,
+  },
+  label: {
+    marginTop: 8,
+    marginBottom: 4,
+    color: "#0f172a",
+    fontWeight: "600",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    padding: 14,
+    color: "#0f172a",
+    backgroundColor: "#f8fafc",
+  },
+  linkRowEnd: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 8,
+  },
+  primaryButton: {
+    backgroundColor: "#0f172a",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  primaryButtonText: {
+    color: "#ffffff",
+    fontWeight: "700",
+  },
+  inlineRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 8,
+  },
+  mutedText: {
+    color: "#6b7280",
+  },
+  accentText: {
+    color: "#FB923C",
+    fontWeight: "600",
+  },
+  demoCard: {
+    marginTop: 24,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 12,
+    padding: 16,
+    gap: 6,
+  },
+  demoTitle: {
+    color: "#0f172a",
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  demoText: {
+    color: "#0f172a",
+    fontWeight: "500",
+  },
+});
