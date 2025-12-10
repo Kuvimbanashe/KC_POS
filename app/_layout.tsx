@@ -1,5 +1,4 @@
-// app/_layout.js
-
+// app/_layout.tsx
 import '../global.css';
 import '../polyfills/url-can-parse';
 import { Stack } from 'expo-router';
@@ -11,7 +10,7 @@ import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import type { UserProfile, UserRole } from '../store/types';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
   const dispatch = useAppDispatch();
@@ -50,14 +49,14 @@ function RootLayoutNav() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0d1938' }}>
+      <View className="flex-1 justify-center items-center bg-background">
         <ActivityIndicator size="large" color="#FB923C" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View className="flex-1 bg-background">
       <Stack screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="(auth)" />
@@ -67,7 +66,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(cashier)" />
         )}
       </Stack>
-    </SafeAreaView>
+    </View>
   );
 }
 
