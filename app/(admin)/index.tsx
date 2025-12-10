@@ -1,12 +1,50 @@
-// app/(admin)/index.js
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  ActivityIndicator,
+  SafeAreaView,
+  TouchableOpacity
+} from 'react-native';
 import { StyleSheet } from 'react-native';
 import { useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 
+interface DashboardStats {
+  todaySales: number;
+  todayRevenue: number;
+  lowStockItems: number;
+  totalProducts: number;
+}
+
+interface StatCard {
+  title: string;
+  value: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconBg: string;
+}
+
+interface RecentActivity {
+  id: number;
+  type: 'sale' | 'stock' | 'purchase';
+  title: string;
+  description: string;
+  time: string;
+  amount?: string;
+}
+
+interface QuickAction {
+  id: number;
+  title: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  action: () => void;
+}
+
 const AdminHome = () => {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     todaySales: 0,
     todayRevenue: 0,
     lowStockItems: 0,
@@ -17,7 +55,7 @@ const AdminHome = () => {
   const { sales, products } = useAppSelector((state) => state.user);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = () => {
       try {
         const today = new Date().toDateString();
         const todaySales = sales.filter(
@@ -43,377 +81,394 @@ const AdminHome = () => {
     fetchDashboardData();
   }, [sales, products]);
 
-  const statCards = [
+  // Stat cards configuration - clean color scheme
+  const statCards: StatCard[] = [
     {
       title: "Today's Sales",
       value: stats.todaySales.toString(),
-      description: 'Number of transactions',
+      description: 'Transactions',
       icon: 'cart-outline',
-      color: 'text-accent',
+      iconBg: '#E8F4FD',
     },
     {
       title: "Today's Revenue",
       value: `$${stats.todayRevenue.toFixed(2)}`,
-      description: 'Total earnings today',
+      description: 'Total earnings',
       icon: 'cash-outline',
-      color: 'text-accent',
+      iconBg: '#E6F7EF',
     },
     {
       title: 'Total Products',
       value: stats.totalProducts.toString(),
-      description: 'Items in inventory',
+      description: 'In inventory',
       icon: 'cube-outline',
-      color: 'text-accent',
+      iconBg: '#F2F0FF',
     },
     {
       title: 'Low Stock Alert',
       value: stats.lowStockItems.toString(),
       description: 'Items below 10 units',
       icon: 'warning-outline',
-      color: 'text-destructive',
+      iconBg: '#FEEBEB',
+    },
+  ];
+
+  // Quick actions configuration
+  const quickActions: QuickAction[] = [
+    {
+      id: 1,
+      title: 'Sales Report',
+      description: 'View transactions',
+      icon: 'bar-chart-outline',
+      action: () => console.log('Sales Report'),
+    },
+    {
+      id: 2,
+      title: 'Manage Inventory',
+      description: 'Update stock',
+      icon: 'cube-outline',
+      action: () => console.log('Manage Inventory'),
+    },
+    {
+      id: 3,
+      title: 'Add Expense',
+      description: 'Record costs',
+      icon: 'add-circle-outline',
+      action: () => console.log('Add Expense'),
+    },
+    {
+      id: 4,
+      title: 'Add Product',
+      description: 'New item',
+      icon: 'add-outline',
+      action: () => console.log('Add Product'),
+    },
+  ];
+
+  // Recent activity data
+  const recentActivities: RecentActivity[] = [
+    {
+      id: 1,
+      type: 'sale',
+      title: 'Sale completed',
+      description: 'Customer purchase',
+      time: '2 min ago',
+      amount: '$349.99',
+    },
+    {
+      id: 2,
+      type: 'stock',
+      title: 'Stock updated',
+      description: 'Inventory replenished',
+      time: '15 min ago',
+      amount: '+50 units',
+    },
+    {
+      id: 3,
+      type: 'purchase',
+      title: 'Purchase order',
+      description: 'Supplier order',
+      time: '1 hr ago',
+      amount: '20 items',
     },
   ];
 
   if (isLoading) {
     return (
-      <ScrollView style={styles.s_1}>
-        <View style={styles.s_2}>
-          {/* Header Skeleton */}
-          <View>
-            <View style={styles.s_3} />
-            <View style={styles.s_4} />
-          </View>
-
-          {/* Stats Grid Skeleton */}
-          <View style={styles.s_5}>
-            {[1, 2, 3, 4].map((i) => (
-              <View key={i} style={styles.s_6}>
-                <View style={styles.s_7}>
-                  <View style={styles.s_8} />
-                  <View style={styles.s_9} />
-                </View>
-                <View style={styles.s_10} />
-                <View style={styles.s_11} />
-              </View>
-            ))}
-          </View>
-
-          {/* Content Skeleton */}
-          <View style={styles.s_5}>
-            <View style={styles.s_12}>
-              <View style={styles.s_13} />
-              <View style={styles.s_14} />
-              {[1, 2, 3].map((i) => (
-                <View key={i} style={styles.s_15}>
-                  <View style={styles.s_16} />
-                  <View style={styles.s_17} />
-                </View>
-              ))}
-            </View>
-            <View style={styles.s_12}>
-              <View style={styles.s_13} />
-              <View style={styles.s_14} />
-              {[1, 2, 3].map((i) => (
-                <View key={i} style={styles.s_15}>
-                  <View style={styles.s_16} />
-                  <View style={styles.s_11} />
-                </View>
-              ))}
-            </View>
-          </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563EB" />
+          <Text style={styles.loadingText}>Loading dashboard...</Text>
         </View>
-      </ScrollView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={styles.s_1}>
-      <View style={styles.s_2}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
-        <View style={styles.s_18}>
-          
-          <Text style={styles.s_19}>
-            Welcome to your shop management system
+        <View style={styles.header}>
+          <Text style={styles.greeting}>Dashboard</Text>
+          <Text style={styles.subtitle}>
+            Overview of your store performance
           </Text>
         </View>
 
-        {/* Stats Cards */}
-        <View style={styles.s_20}>
-          {statCards.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <View key={stat.title} style={styles.s_21}>  
-                <View style={styles.s_7}>
-                  <Text style={styles.s_22}>{stat.title}</Text>
-                  <Ionicons name={stat.icon as any} size={16} className={stat.color} />
+        {/* Stats Grid - 2x2 layout */}
+        <View style={styles.statsGrid}>
+          {statCards.map((stat, index) => (
+            <View key={stat.title} style={styles.statCardWrapper}>
+              <View style={styles.statCard}>
+                <View style={[styles.statIconContainer, { backgroundColor: stat.iconBg }]}>
+                  <Ionicons 
+                    name={stat.icon} 
+                    size={20} 
+                    color="#374151" 
+                  />
                 </View>
-                <Text style={styles.s_23}>{stat.value}</Text>
-                <Text style={styles.s_24}>{stat.description}</Text>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Quick Actions and Recent Activity */}
-        <View style={styles.s_25}>
-          {/* Quick Actions */}
-          <View style={styles.s_26}>
-            <Text style={styles.s_27}>Quick Actions</Text>
-            <Text style={styles.s_28}>
-              Common tasks for shop management
-            </Text>
-            
-            <View style={styles.s_29}>
-              <View style={styles.s_30}>
-                <Text style={styles.s_31}>View Sales Report</Text>
-                <Text style={styles.s_32}>Check today's transactions</Text>
-              </View>
-              <View style={styles.s_30}>
-                <Text style={styles.s_31}>Manage Inventory</Text>
-                <Text style={styles.s_32}>Update stock levels</Text>
-              </View>
-              <View style={styles.s_30}>
-                <Text style={styles.s_31}>Add Expense</Text>
-                <Text style={styles.s_32}>Record business expenses</Text>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statTitle}>{stat.title}</Text>
+                <Text style={styles.statDescription}>{stat.description}</Text>
               </View>
             </View>
-          </View>
+          ))}
+        </View>
 
-          {/* Recent Activity */}
-          <View style={styles.s_26}>
-            <Text style={styles.s_27}>Recent Activity</Text>
-            <Text style={styles.s_28}>
-              Latest transactions and updates
-            </Text>
-            <View style={styles.s_33}>
-              <View style={styles.s_34}>
-                <View style={styles.s_35}>
-                  <Text style={styles.s_36}>Sale completed</Text>
-                  <Text style={styles.s_24}>2 minutes ago</Text>
+        {/* Quick Actions Grid - 2x2 layout */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.actionsGrid}>
+            {quickActions.map((action) => (
+              <TouchableOpacity
+                key={action.id}
+                style={styles.actionCard}
+                onPress={action.action}
+               
+              >
+                <View style={styles.actionIconContainer}>
+                  <Ionicons 
+                    name={action.icon} 
+                    size={24} 
+                    color="#2563EB" 
+                  />
                 </View>
-                <Text style={styles.s_37}>$349.99</Text>
-              </View>
-              <View style={styles.s_34}>
-                <View style={styles.s_35}>
-                  <Text style={styles.s_36}>Stock updated</Text>
-                  <Text style={styles.s_24}>15 minutes ago</Text>
-                </View>
-                <Text style={styles.s_36}>+50 units</Text>
-              </View>
-              <View style={styles.s_34}>
-                <View style={styles.s_35}>
-                  <Text style={styles.s_36}>New purchase order</Text>
-                  <Text style={styles.s_24}>1 hour ago</Text>
-                </View>
-                <Text style={styles.s_36}>20 items</Text>
-              </View>
-            </View>
+                <Text style={styles.actionTitle}>{action.title}</Text>
+                <Text style={styles.actionDescription}>{action.description}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-      </View>
-    </ScrollView>
+
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={styles.activitiesList}>
+            {recentActivities.map((activity) => (
+              <View key={activity.id} style={styles.activityItem}>
+                <View style={styles.activityIconContainer}>
+                  <Ionicons 
+                    name={
+                      activity.type === 'sale' ? 'cart' : 
+                      activity.type === 'stock' ? 'cube' : 'document-text'
+                    } 
+                    size={18} 
+                    color="#4B5563" 
+                  />
+                </View>
+                <View style={styles.activityContent}>
+                  <View style={styles.activityHeader}>
+                    <Text style={styles.activityTitle}>{activity.title}</Text>
+                    <Text style={styles.activityTime}>{activity.time}</Text>
+                  </View>
+                  <Text style={styles.activityDescription}>{activity.description}</Text>
+                </View>
+                {activity.amount && (
+                  <Text style={styles.activityAmount}>
+                    {activity.amount}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
-
-
 const styles = StyleSheet.create({
-  s_1: {
-  flex: 1,
-  backgroundColor: "#ffffff"
-},
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  greeting: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  
+  // Stats Grid - 2x2 layout
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    marginBottom: 32,
+  },
+  statCardWrapper: {
+    width: '50%',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  statCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 2,
+  },
+  statDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  
+  // Section
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  
+  // Quick Actions Grid - 2x2 layout
+  actionsGrid: {
+    
+    flexWrap: 'wrap',
+  },
+  actionCard: {
+    width: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    flexDirection:"row",
+    alignItems:"center",
+    
+    gap:7,
 
-  s_2: {
-  padding: 16
-},
-
-  s_3: {
-  borderRadius: 6,
-  marginBottom: 8
-},
-
-  s_4: {
-  borderRadius: 6
-},
-
-  s_5: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: 16
-},
-
-  s_6: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  width: "48%"
-},
-
-  s_7: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 8
-},
-
-  s_8: {
-  borderRadius: 6
-},
-
-  s_9: {
-  borderRadius: 6
-},
-
-  s_10: {
-  borderRadius: 6
-},
-
-  s_11: {
-  borderRadius: 6
-},
-
-  s_12: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  width: "48%"
-},
-
-  s_13: {
-  borderRadius: 6
-},
-
-  s_14: {
-  borderRadius: 6,
-  marginBottom: 16
-},
-
-  s_15: {
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12,
-  padding: 12,
-  marginBottom: 8
-},
-
-  s_16: {
-  borderRadius: 6
-},
-
-  s_17: {
-  borderRadius: 6
-},
-
-  s_18: {
-  width: "100%"
-},
-
-  s_19: {
-  fontSize: 18,
-  color: "#6b7280"
-},
-
-  s_20: {
-  flexDirection: "row",
-  flexWrap: "wrap",
- 
-  width: "100%",
-  gap: 14
-},
-
-  s_21: {
-  backgroundColor: "#0f172a",
-  borderRadius: 12,
-  padding: 16,
-  width: "48%"
-},
-
-  s_22: {
-  fontSize: 14,
-  fontWeight: "600"
-},
-
-  s_23: {
-  fontSize: 20,
-  fontWeight: "700",
-  color: "#ffffff"
-},
-
-  s_24: {
-  fontSize: 12,
-  color: "#6b7280"
-},
-
-  s_25: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: 16,
-  width: "100%"
-},
-
-  s_26: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 16,
-  width: "100%"
-},
-
-  s_27: {
-  fontSize: 18,
-  fontWeight: "700",
-  color: "#0f172a"
-},
-
-  s_28: {
-  fontSize: 14,
-  color: "#6b7280",
-  marginBottom: 16
-},
-
-  s_29: {},
-
-  s_30: {
-  padding: 12,
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12
-},
-
-  s_31: {
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_32: {
-  fontSize: 14,
-  color: "#6b7280"
-},
-
-  s_33: {},
-
-  s_34: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: 8,
-  backgroundColor: "#f3f4f6",
-  borderRadius: 12
-},
-
-  s_35: {
-  flex: 1
-},
-
-  s_36: {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#0f172a"
-},
-
-  s_37: {
-  fontSize: 14,
-  fontWeight: "700",
-  color: "#f97316"
-}
+  },
+  actionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  
+  // Recent Activity
+  activitiesList: {
+    gap: 12,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  activityIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  activityDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  activityAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#059669',
+    marginLeft: 8,
+  },
+  
+  // Bottom spacing
+  bottomSpacing: {
+    height: 24,
+  },
 });
+
 export default AdminHome;
