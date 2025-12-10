@@ -21,54 +21,104 @@ interface SignUpFormData {
 
 
 const styles = StyleSheet.create({
-  s_1: {
-  flex: 1,
-  padding: 24
-},
-
-  s_2: {
-  fontWeight: "700",
-  marginBottom: 8
-},
-
-  s_3: {
-  color: "#6b7280"
-},
-
-  s_4: {},
-
-  s_5: {
-  borderWidth: 1,
-  borderRadius: 12,
-  padding: 12
-},
-
-  s_6: {
-  borderWidth: 1,
-  borderRadius: 12,
-  padding: 12
-},
-
-  s_7: {
-  marginBottom: 8
-},
-
-  s_8: {
-  flexDirection: "row"
-},
-
-  s_9: {},
-
-  s_10: {
-  flexDirection: "row",
-  justifyContent: "center"
-},
-
-  s_11: {
-  color: "#6b7280"
-},
-
-  s_12: {}
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    padding: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 24,
+  },
+  formContainer: {
+    gap: 16,
+    marginBottom: 24,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+  },
+  accountTypeContainer: {
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+  },
+  accountTypeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 12,
+  },
+  accountTypeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  accountTypeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+  },
+  accountTypeButtonActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  accountTypeText: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  accountTypeTextActive: {
+    color: '#f97316',
+  },
+  submitButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#0f172a',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signInContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  signInText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  signInLink: {
+    fontSize: 14,
+    color: '#f97316',
+    fontWeight: '600',
+  },
 });
 export default function SignUpScreen() {
   const [formData, setFormData] = useState<SignUpFormData>({
@@ -151,25 +201,27 @@ export default function SignUpScreen() {
   };
 
   return (
-    <ScrollView style={styles.s_1}>
-      <Text style={styles.s_2}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }}>
+      <Text style={styles.title}>
         Create Account
       </Text>
-      <Text style={styles.s_3}>
+      <Text style={styles.subtitle}>
         Join our shop management system
       </Text>
 
-      <View style={styles.s_4}>
+      <View style={styles.formContainer}>
         <TextInput
-          style={styles.s_5}
+          style={styles.input}
           placeholder="Full Name *"
+          placeholderTextColor="#9ca3af"
           value={formData.name}
           onChangeText={(text) => setFormData({...formData, name: text})}
         />
         
         <TextInput
-          style={styles.s_5}
+          style={styles.input}
           placeholder="Email Address *"
+          placeholderTextColor="#9ca3af"
           value={formData.email}
           onChangeText={(text) => setFormData({...formData, email: text})}
           autoCapitalize="none"
@@ -177,40 +229,38 @@ export default function SignUpScreen() {
         />
         
         <TextInput
-          style={styles.s_5}
+          style={styles.input}
           placeholder="Phone Number"
+          placeholderTextColor="#9ca3af"
           value={formData.phone}
           onChangeText={(text) => setFormData({...formData, phone: text})}
           keyboardType="phone-pad"
         />
         
         <TextInput
-          style={styles.s_5}
+          style={styles.input}
           placeholder="Address"
+          placeholderTextColor="#9ca3af"
           value={formData.address}
           onChangeText={(text) => setFormData({...formData, address: text})}
         />
 
-        <View style={styles.s_6}>
-          <Text style={styles.s_7}>Account Type</Text>
-          <View style={styles.s_8}>
+        <View style={styles.accountTypeContainer}>
+          <Text style={styles.accountTypeLabel}>Account Type</Text>
+          <View style={styles.accountTypeRow}>
             {(['cashier', 'admin'] as UserRole[]).map((type) => (
               <TouchableOpacity
                 key={type}
-                className={`flex-1 py-2 rounded-lg ${
-                  formData.userType === type 
-                    ? 'bg-primary text-orange-400' 
-                    : 'bg-gray-200'
-                }`}
+                style={[
+                  styles.accountTypeButton,
+                  formData.userType === type && styles.accountTypeButtonActive,
+                ]}
                 onPress={() => setFormData({...formData, userType: type})}
               >
-                <Text className={
-                  `text-center font-semibold ${
-                    formData.userType === type 
-                      ? 'text-orange-400' 
-                      : 'text-gray-600'
-                  }`
-                }>
+                <Text style={[
+                  styles.accountTypeText,
+                  formData.userType === type && styles.accountTypeTextActive,
+                ]}>
                   {type.charAt(0).toUpperCase() + type.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -219,16 +269,18 @@ export default function SignUpScreen() {
         </View>
         
         <TextInput
-          style={styles.s_5}
+          style={styles.input}
           placeholder="Password *"
+          placeholderTextColor="#9ca3af"
           value={formData.password}
           onChangeText={(text) => setFormData({...formData, password: text})}
           secureTextEntry
         />
         
         <TextInput
-          style={styles.s_5}
+          style={styles.input}
           placeholder="Confirm Password *"
+          placeholderTextColor="#9ca3af"
           value={formData.confirmPassword}
           onChangeText={(text) => setFormData({...formData, confirmPassword: text})}
           secureTextEntry
@@ -236,26 +288,24 @@ export default function SignUpScreen() {
       </View>
 
       <TouchableOpacity 
-        className={`py-3 rounded-lg mb-4 ${
-          isLoading ? 'bg-gray-400' : 'bg-primary text-muted'
-        }`}
+        style={[
+          styles.submitButton,
+          isLoading && styles.submitButtonDisabled,
+        ]}
         onPress={handleSignUp}
         disabled={isLoading}
       >
-        <Text className="text-muted text-center  ">
+        <Text style={styles.submitButtonText}>
           {isLoading ? 'Creating Account...' : 'Create Account'}
         </Text>
       </TouchableOpacity>
 
-      <View style={styles.s_10}>
-        <Text style={styles.s_11}>Already have an account? </Text>
+      <View style={styles.signInContainer}>
+        <Text style={styles.signInText}>Already have an account? </Text>
         <Link href="/signin" asChild>
-
-          <Text style={styles.s_12}
-          style={{ color: '#FB923C' }}
-          >Sign In</Text>
-       
-       
+          <TouchableOpacity>
+            <Text style={styles.signInLink}>Sign In</Text>
+          </TouchableOpacity>
         </Link>
       </View>
     </ScrollView>
