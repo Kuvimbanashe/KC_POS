@@ -7,6 +7,7 @@ import { setCredentials } from '../../store/slices/authSlice';
 import { addUser } from '../../store/slices/userManagementSlice';
 import { useAppDispatch } from '../../store/hooks';
 import type { UserProfile, UserRole } from '../../store/types';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SignUpFormData {
   name: string;
@@ -20,106 +21,7 @@ interface SignUpFormData {
 
 
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 24,
-  },
-  formContainer: {
-    gap: 16,
-    marginBottom: 24,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
-  },
-  accountTypeContainer: {
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: '#f8fafc',
-  },
-  accountTypeLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 12,
-  },
-  accountTypeRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  accountTypeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-  },
-  accountTypeButtonActive: {
-    backgroundColor: '#0f172a',
-    borderColor: '#0f172a',
-  },
-  accountTypeText: {
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  accountTypeTextActive: {
-    color: '#f97316',
-  },
-  submitButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: '#0f172a',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  signInContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  signInText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  signInLink: {
-    fontSize: 14,
-    color: '#f97316',
-    fontWeight: '600',
-  },
-});
+
 export default function SignUpScreen() {
   const [formData, setFormData] = useState<SignUpFormData>({
     name: '',
@@ -201,7 +103,8 @@ export default function SignUpScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 24 }}>
+   <SafeAreaView style={styles.container}>
+     <ScrollView  contentContainerStyle={{ paddingBottom: 24 }}>
       <Text style={styles.title}>
         Create Account
       </Text>
@@ -309,5 +212,107 @@ export default function SignUpScreen() {
         </Link>
       </View>
     </ScrollView>
+   </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fcfcfc",
+    padding: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 24,
+  },
+  formContainer: {
+    gap: 16,
+    marginBottom: 24,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+  },
+  accountTypeContainer: {
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+  },
+  accountTypeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 12,
+  },
+  accountTypeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  accountTypeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e6edf3',
+  },
+  accountTypeButtonActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  accountTypeText: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  accountTypeTextActive: {
+    color: '#f97316',
+  },
+  submitButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#0f172a',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signInContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  signInText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  signInLink: {
+    fontSize: 14,
+    color: '#f97316',
+    fontWeight: '600',
+  },
+});
