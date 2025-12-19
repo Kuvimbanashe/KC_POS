@@ -40,30 +40,28 @@ const CashierHome = () => {
       <View
         style={[
           styles.statCard,
-          isAccent && styles.statCardAccent,
-          isDark && styles.statCardDark
         ]}
       >
         <View style={styles.statCardHeader}>
-          <Text style={[styles.statTitle, (isAccent || isDark) && styles.statTextLight]}>
+          <Text style={[styles.statTitle]}>
             {title}
           </Text>
 
           <Ionicons
             name={icon as IoniconName}
             size={20}
-            color={isAccent || isDark ? '#fff' : '#6b7280'}
+            color={'#6b7280'}
           />
         </View>
 
-        <Text style={[styles.statValue, (isAccent || isDark) && styles.statTextLight]}>
+        <Text style={[styles.statValue,]}>
           {value}
         </Text>
 
         <Text
           style={[
             styles.statDescription,
-            (isAccent || isDark) && styles.statDescriptionLight
+
           ]}
         >
           {description}
@@ -113,14 +111,19 @@ const CashierHome = () => {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
 
-        {/* Header */}
-        <View>
-          <Text style={styles.headerTitle}>Welcome, {user?.name}!</Text>
-          <Text style={styles.headerSubtitle}>Today's Activity</Text>
-        </View>
+
 
         {/* Quick Stats */}
-        <View style={styles.statsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            marginTop: 16,
+            marginBottom: 16,
+            gap: 10,
+            
+          }}
+        >
           <StatCard
             title="Receipts Today"
             value={String(todayReceiptsCount)}
@@ -128,6 +131,7 @@ const CashierHome = () => {
             icon="receipt"
             variant="accent"
           />
+
           <StatCard
             title="Sales Amount"
             value={`$${todaySalesAmount.toFixed(2)}`}
@@ -135,16 +139,20 @@ const CashierHome = () => {
             icon="cash"
             variant="dark"
           />
-        </View>
+        </ScrollView>
+
 
         {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActionsRow}>
           {quickActions.map((action, i) => (
             <TouchableOpacity key={i} style={styles.quickActionCard}>
-              <Ionicons name={action.icon as IoniconName} size={32} color="#f97316" />
-              <Text style={styles.quickActionTitle}>{action.title}</Text>
-              <Text style={styles.quickActionDescription}>{action.description}</Text>
+
+              <Text style={styles.quickActionTitle}>{action.description}</Text>
+              {/* <Text style={styles.quickActionDescription}>{action.description}</Text> */}
+              <Ionicons name='chevron-forward-outline' size={24} style={{
+                 color: '#0f172a',
+              }}/>
             </TouchableOpacity>
           ))}
         </View>
@@ -185,45 +193,7 @@ const CashierHome = () => {
           )}
         </View>
 
-        {/* Performance Summary */}
-        <View style={styles.performanceCard}>
-          <Text style={styles.performanceTitle}>Today's Performance</Text>
-
-          <View style={styles.performanceRow}>
-            <Text style={styles.performanceLabel}>Transactions</Text>
-            <Text style={styles.performanceValue}>{todayReceiptsCount}</Text>
-          </View>
-
-          <View style={styles.performanceRow}>
-            <Text style={styles.performanceLabel}>Total Revenue</Text>
-            <Text style={styles.performanceValue}>${todaySalesAmount.toFixed(2)}</Text>
-          </View>
-
-          <View style={styles.performanceRow}>
-            <Text style={styles.performanceLabel}>Average Sale</Text>
-            <Text style={styles.performanceValue}>
-              ${todayReceiptsCount ? (todaySalesAmount / todayReceiptsCount).toFixed(2) : '0.00'}
-            </Text>
-          </View>
-
-          <View style={styles.performanceRow}>
-            <Text style={styles.performanceLabel}>Performance</Text>
-            <Text
-              style={[
-                styles.performanceBadge,
-                todaySalesAmount > 500 && styles.perfExcellent,
-                todaySalesAmount > 200 && todaySalesAmount <= 500 && styles.perfGood,
-                todaySalesAmount <= 200 && styles.perfLow
-              ]}
-            >
-              {todaySalesAmount > 500
-                ? 'Excellent'
-                : todaySalesAmount > 200
-                ? 'Good'
-                : 'Getting Started'}
-            </Text>
-          </View>
-        </View>
+        
 
         {/* Recent Activity */}
         <View style={styles.recentCard}>
@@ -284,28 +254,21 @@ const styles = StyleSheet.create({
 
   /* -------- Stats -------- */
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: 16,
-    marginBottom: 16
+    marginBottom: 16,
+    gap: 10,
+    flex: 1
   },
 
   statCard: {
-    width: '48%',
+    width: 280,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e6edf3'
   },
-  statCardAccent: {
-    backgroundColor: '#f97316',
-    borderColor: '#f97316'
-  },
-  statCardDark: {
-    backgroundColor: '#0f172a',
-    borderColor: '#0f172a'
-  },
+
 
   statCardHeader: {
     flexDirection: 'row',
@@ -347,18 +310,19 @@ const styles = StyleSheet.create({
 
   /* -------- Quick Actions -------- */
   quickActionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between'
+
   },
   quickActionCard: {
-    width: '48%',
+    width: '100%',
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
     borderColor: '#e6edf3',
-    marginBottom: 12
+    marginBottom: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between'
   },
   quickActionTitle: {
     fontSize: 14,
