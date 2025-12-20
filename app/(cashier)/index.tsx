@@ -8,6 +8,14 @@ import type { SaleRecord } from '../../store/types';
 // Correct Ionicon type
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
+interface StatCardProps {
+  title: string;
+  value: string;
+  description: string;
+  icon: IoniconName;
+  variant: 'dark' | 'accent';
+}
+
 const CashierHome = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { sales, products } = useAppSelector((state) => state.user);
@@ -32,7 +40,7 @@ const CashierHome = () => {
     { title: 'View Products', description: 'Check product availability', icon: 'cube', screen: 'products' }
   ];
 
-  const StatCard = ({ title, value, description, icon, variant }) => {
+  const StatCard = ({ title, value, description, icon, variant }: StatCardProps) => {
     const isDark = variant === 'dark';
     const isAccent = variant === 'accent';
 
