@@ -261,7 +261,7 @@ const CashierSell = () => {
           items: saleItems,
           total,
           cashier: user.name,
-          paymentMethod: "cash",
+          paymentMethod: paymentMethodLabel as any,
         }),
       );
       
@@ -285,7 +285,7 @@ const CashierSell = () => {
         items: cart,
         total,
         date: new Date(),
-        paymentMethod: paymentMethodLabel,
+        paymentMethod: paymentMethodLabel as any,
         cashier: user.name,
       });
       setShowReceipt(true);
