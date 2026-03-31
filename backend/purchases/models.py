@@ -4,6 +4,7 @@ from django.db import models
 class Purchase(models.Model):
     STATUS_CHOICES = (('Completed', 'Completed'), ('Pending', 'Pending'))
 
+    business = models.ForeignKey('businesses.Business', on_delete=models.CASCADE, related_name='purchases', null=True, blank=True)
     product = models.ForeignKey('products.Product', on_delete=models.PROTECT)
     product_name = models.CharField(max_length=255)
     quantity = models.IntegerField()

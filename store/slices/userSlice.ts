@@ -201,7 +201,7 @@ type AddProductPayload = {
   category: string;
   price: number;
   stock?: number;
-  sku: string;
+  sku?: string;
   barcode?: string;
   supplier?: string;
   unitType: Product['unitType'];
@@ -222,6 +222,15 @@ type UpdatePurchasePayload = { id: number } & Partial<PurchaseRecord>;
 type UpdateExpensePayload = { id: number } & Partial<ExpenseRecord>;
 
 type UpdateStorePayload = Partial<UserState['currentStore']>;
+
+
+type HydrateOperationalPayload = {
+  users: UserProfile[];
+  products: Product[];
+  sales: SaleRecord[];
+  purchases: PurchaseRecord[];
+  expenses: ExpenseRecord[];
+};
 
 type AdjustStockPayload = {
   productId: number;
@@ -337,7 +346,7 @@ const userSlice = createSlice({
         price: action.payload.price,
         cost,
         stock: action.payload.stock ?? 0,
-        sku: action.payload.sku,
+        sku: action.payload.sku ?? `SKU-LOCAL-${nextId.toString().padStart(5, '0')}`,
         barcode: action.payload.barcode,
         supplier: action.payload.supplier,
         unitType: action.payload.unitType,
@@ -400,6 +409,14 @@ const userSlice = createSlice({
         product.stock = Math.max(0, product.stock + adjustment);
       }
     },
+
+    hydrateOperationalData: (state, action: PayloadAction<HydrateOperationalPayload>) => {
+      state.users = action.payload.users;
+      state.products = action.payload.products;
+      state.sales = action.payload.sales;
+      state.purchases = action.payload.purchases;
+      state.expenses = action.payload.expenses;
+    },
   },
 });
 
@@ -416,7 +433,8 @@ export const {
   updateExpense,
   updateStoreInfo,
   bulkUpdateProducts,
-  adjustStock
+  adjustStock,
+  hydrateOperationalData
 } = userSlice.actions;
 
 export default userSlice.reducer;

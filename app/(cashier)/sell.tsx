@@ -263,7 +263,7 @@ const CashierSell = () => {
     }
 
     try {
-      const apiProduct = await apiClient.lookupProductByBarcode(data);
+      const apiProduct = await apiClient.lookupProductByBarcode(data, user?.businessId);
       if (apiProduct) {
         handleProductSelect(apiProduct);
       } else {
@@ -333,6 +333,7 @@ const CashierSell = () => {
           paymentMethod: paymentMethodLabel as PaymentMethod,
           invoiceNumber: `INV${receiptSuffix}`,
           items: saleItems,
+          businessId: user.businessId,
         });
       } catch (apiError) {
         console.warn('Backend sale sync failed', apiError);

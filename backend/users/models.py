@@ -5,6 +5,7 @@ class StaffUser(models.Model):
     ROLE_CHOICES = (('admin', 'Admin'), ('cashier', 'Cashier'))
     STATUS_CHOICES = (('active', 'Active'), ('inactive', 'Inactive'))
 
+    business = models.ForeignKey('businesses.Business', on_delete=models.CASCADE, related_name='users', null=True, blank=True)
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
     password = models.CharField(max_length=255)

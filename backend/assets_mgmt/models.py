@@ -9,6 +9,7 @@ class Asset(models.Model):
         ('poor', 'Poor'),
     )
 
+    business = models.ForeignKey('businesses.Business', on_delete=models.CASCADE, related_name='assets', null=True, blank=True)
     name = models.CharField(max_length=255)
     category = models.CharField(max_length=100)
     purchase_value = models.DecimalField(max_digits=12, decimal_places=2)
