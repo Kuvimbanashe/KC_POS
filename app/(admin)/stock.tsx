@@ -260,8 +260,13 @@ const AdminStock = () => {
       const productData = {
         name: formData.name,
         category: formData.category,
+<<<<<<< codex/create-django-backend-for-shop-management-app-a576bh
         price: parsedPrice,
         stock: parsedStock,
+=======
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock),
+>>>>>>> main
         barcode: formData.barcode || undefined,
         supplier: formData.supplier,
         unitType: formData.unitType,

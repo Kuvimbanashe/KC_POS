@@ -331,7 +331,11 @@ const CashierSell = () => {
           cashier: user.name,
           total,
           paymentMethod: paymentMethodLabel as PaymentMethod,
+<<<<<<< codex/create-django-backend-for-shop-management-app-a576bh
           invoiceNumber: `INV-${receiptSuffix}`,
+=======
+          invoiceNumber: `INV${receiptSuffix}`,
+>>>>>>> main
           items: saleItems,
           businessId: user.businessId,
         });
