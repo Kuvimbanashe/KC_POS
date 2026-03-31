@@ -341,7 +341,6 @@ const CashierSell = () => {
         } catch (apiError) {
           console.warn('Backend sale sync failed', apiError);
         }
-         
       }
 
       setLastSale({

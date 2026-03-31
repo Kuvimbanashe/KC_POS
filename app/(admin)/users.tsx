@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -13,17 +13,33 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { addUser, deleteUser, updateUser } from '../../store/slices/userManagementSlice';
+import { addUser, deleteUser, setManagedUsers, updateUser } from '../../store/slices/userManagementSlice';
 import type { UserProfile, UserRole } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 const AdminUsers = () => {
   const dispatch = useAppDispatch();
   const users = useAppSelector((state) => state.userManagement.users);
+  const authUser = useAppSelector((state) => state.auth.user);
 
   const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', password: '', type: 'cashier' as UserRole });
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      if (!authUser?.businessId) return;
+      try {
+        const remoteUsers = await apiClient.fetchUsers(authUser.businessId);
+        dispatch(setManagedUsers(remoteUsers));
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+    };
+    loadUsers();
+  }, [authUser?.businessId, dispatch]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -54,18 +70,68 @@ const AdminUsers = () => {
     setModalOpen(true);
   };
 
-  const saveUser = () => {
+  const saveUser = async () => {
     if (!form.name || !form.email || !form.password) {
       Alert.alert('Missing fields', 'Name, email and password are required.');
       return;
     }
 
-    if (editing) {
-      dispatch(updateUser({ id: editing.id, ...form }));
-    } else {
-      dispatch(addUser({ ...form }));
+    if (!authUser?.businessId) {
+      Alert.alert('Error', 'Business context is missing. Please sign in again.');
+      return;
     }
-    setModalOpen(false);
+
+    setSubmitting(true);
+    try {
+      if (editing) {
+        const updated = await apiClient.updateUser(editing.id, {
+          businessId: authUser.businessId,
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          role: form.type,
+          phone: form.phone,
+          address: form.address,
+        });
+        dispatch(updateUser({ id: editing.id, ...updated }));
+      } else {
+        const created = await apiClient.createUser({
+          businessId: authUser.businessId,
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          role: form.type,
+          phone: form.phone,
+          address: form.address,
+        });
+        dispatch(addUser({ ...created }));
+      }
+      setModalOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save user';
+      Alert.alert('Error', message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    Alert.alert('Delete User', 'Are you sure you want to delete this user?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiClient.deleteUser(id);
+            dispatch(deleteUser(id));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to delete user';
+            Alert.alert('Error', message);
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -101,7 +167,7 @@ const AdminUsers = () => {
                 <Text>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => dispatch(deleteUser(item.id))}
+                onPress={() => handleDelete(item.id)}
                 style={[styles.actionBtn, { borderColor: '#ef4444' }]}
               >
                 <Text style={{ color: '#ef4444' }}>Delete</Text>
@@ -132,8 +198,10 @@ const AdminUsers = () => {
             ))}
           </View>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={saveUser}>
-            <Text style={{ color: '#fff', fontWeight: '700' }}>{editing ? 'Update User' : 'Create User'}</Text>
+          <TouchableOpacity style={styles.saveBtn} onPress={saveUser} disabled={submitting}>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>
+              {submitting ? 'Saving...' : editing ? 'Update User' : 'Create User'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalOpen(false)}>

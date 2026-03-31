@@ -28,6 +28,16 @@ interface RegisterBusinessPayload {
   role: 'admin' | 'cashier';
 }
 
+interface SaveUserPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'cashier';
+  phone?: string;
+  address?: string;
+  businessId: number;
+}
+
 interface BackendUser {
   id: number;
   email: string;
@@ -407,6 +417,47 @@ export const apiClient = {
   async fetchUsers(businessId?: number | null): Promise<UserProfile[]> {
     const data = await request<PagedResponse<BackendUser> | BackendUser[]>(appendBusinessId('/users/', businessId));
     return unwrapResults(data).map(mapUser);
+  },
+  async createUser(payload: SaveUserPayload): Promise<UserProfile> {
+    const data = await request<BackendUser>('/users/', {
+      method: 'POST',
+      body: JSON.stringify({
+        business: payload.businessId,
+        name: payload.name,
+        email: payload.email,
+        password: payload.password,
+        role: payload.role,
+        phone: payload.phone ?? '',
+        address: payload.address ?? '',
+        status: 'active',
+      }),
+    });
+    return mapUser(data);
+  },
+  async updateUser(userId: number, payload: Partial<SaveUserPayload>): Promise<UserProfile> {
+    const data = await request<BackendUser>(`/users/${userId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        business: payload.businessId,
+        name: payload.name,
+        email: payload.email,
+        password: payload.password,
+        role: payload.role,
+        phone: payload.phone,
+        address: payload.address,
+      }),
+    });
+    return mapUser(data);
+  },
+  async deleteUser(userId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/`, {
+      method: 'DELETE',
+      headers: jsonHeaders,
+    });
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Request failed: ${response.status} /users/${userId}/ ${errorBody}`);
+    }
   },
   async fetchSales(businessId?: number | null): Promise<SaleRecord[]> {
     const data = await request<PagedResponse<BackendSale> | BackendSale[]>(appendBusinessId('/sales/', businessId));
