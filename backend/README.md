@@ -1,13 +1,22 @@
-# POS Django Backend
+# POS Django Backend (Modular Apps)
 
-## Features implemented
-- Full REST API for users, products, sales (+line items), purchases, expenses, and assets.
-- Barcode lookup endpoint for cashier scanning flow:
-  - `GET /api/products/lookup-by-barcode/?barcode=<code>`
-- Stock updates integrated in backend business logic:
-  - Sale creation decreases stock.
-  - Purchase creation increases stock and updates last known cost.
-- CORS enabled for Expo app integration.
+## App structure
+Each entity is split into its own Django app (no single bundled app):
+- `users` → staff users
+- `products` → catalog + barcode lookup
+- `sales` → sales + sale items + stock decrement logic
+- `purchases` → purchases + stock increment logic
+- `expenses` → expenses
+- `assets_mgmt` → fixed assets
+
+## REST endpoints
+- `/api/users/`
+- `/api/products/`
+- `/api/products/lookup-by-barcode/?barcode=<code>`
+- `/api/sales/`
+- `/api/purchases/`
+- `/api/expenses/`
+- `/api/assets/`
 
 ## Setup
 ```bash
