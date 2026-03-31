@@ -13,9 +13,11 @@ import {
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { addSale, updateProductStock } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { PaymentMethod, Product, SaleItem, UnitType } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 // Types
 type PaymentMethodOption = 'cash' | 'card' | 'mobile';
@@ -55,7 +57,7 @@ interface UnitTypeOption {
 
 const CashierSell = () => {
   const dispatch = useAppDispatch();
-  const { products, sales } = useAppSelector((state) => state.user);
+  const { products } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -70,6 +72,10 @@ const CashierSell = () => {
   const [lastSale, setLastSale] = useState<ReceiptDetails | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
+
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
 
   // Payment method configuration
   const paymentMethodConfig: PaymentMethodConfig[] = useMemo(
@@ -111,7 +117,9 @@ const CashierSell = () => {
   const filteredProducts = useMemo(() => 
     availableProducts.filter(product =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase())
+      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.barcode ?? '').toLowerCase().includes(searchQuery.toLowerCase())
     ),
     [availableProducts, searchQuery]
   );
@@ -229,6 +237,44 @@ const CashierSell = () => {
     setIsQuantityModalOpen(false);
   };
 
+
+  const handleScanPress = async () => {
+    if (!permission?.granted) {
+      const result = await requestPermission();
+      if (!result.granted) {
+        Alert.alert('Camera Permission Needed', 'Allow camera access to scan product barcodes.');
+        return;
+      }
+    }
+
+    setScanned(false);
+    setScannerOpen(true);
+  };
+
+  const handleBarcodeScanned = async ({ data }: { data: string }) => {
+    if (scanned) return;
+    setScanned(true);
+    setScannerOpen(false);
+
+    const localProduct = products.find((product) => product.barcode === data || product.sku === data);
+    if (localProduct) {
+      handleProductSelect(localProduct);
+      return;
+    }
+
+    try {
+      const apiProduct = await apiClient.lookupProductByBarcode(data, user?.businessId);
+      if (apiProduct) {
+        handleProductSelect(apiProduct);
+      } else {
+        Alert.alert('Not Found', `No product found for barcode: ${data}`);
+      }
+    } catch (error) {
+      console.error('Barcode lookup failed', error);
+      Alert.alert('Lookup Failed', 'Could not lookup barcode on backend.');
+    }
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) {
       Alert.alert('Empty Cart', 'Add items to cart before checkout');
@@ -252,7 +298,7 @@ const CashierSell = () => {
         packSize: item.packSize,
       }));
       
-      const receiptSuffix = (1000 + sales.length).toString().padStart(4, '0');
+      const receiptSuffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const paymentMethodLabel = paymentMethodConfig.find(m => m.value === paymentMethod)?.label || 'Cash';
 
       // Dispatch sales and update stock
@@ -261,7 +307,7 @@ const CashierSell = () => {
           items: saleItems,
           total,
           cashier: user.name,
-          paymentMethod: paymentMethodLabel as any,
+          paymentMethod: paymentMethodLabel as PaymentMethod,
         }),
       );
       
@@ -280,12 +326,25 @@ const CashierSell = () => {
         );
       });
 
+      try {
+        await apiClient.createSale({
+          cashier: user.name,
+          total,
+          paymentMethod: paymentMethodLabel as PaymentMethod,
+          invoiceNumber: `INV-${receiptSuffix}`,
+          items: saleItems,
+          businessId: user.businessId,
+        });
+      } catch (apiError) {
+        console.warn('Backend sale sync failed', apiError);
+      }
+
       setLastSale({
-        receiptNumber: `INV${receiptSuffix}`,
+        receiptNumber: `INV-${receiptSuffix}`,
         items: cart,
         total,
         date: new Date(),
-        paymentMethod: paymentMethodLabel as any,
+        paymentMethod: paymentMethodLabel as PaymentMethod,
         cashier: user.name,
       });
       setShowReceipt(true);
@@ -467,6 +526,14 @@ const CashierSell = () => {
             <Ionicons name="add-circle" size={20} color="#3B82F6" />
             <Text style={styles.addItemButtonText}>Add Item</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.addItemButton}
+            onPress={handleScanPress}
+          >
+            <Ionicons name="barcode" size={20} color="#3B82F6" />
+            <Text style={styles.addItemButtonText}>Scan Barcode</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -509,6 +576,33 @@ const CashierSell = () => {
           )}
         </View>
       </ScrollView>
+
+
+      <Modal
+        visible={scannerOpen}
+        animationType="slide"
+        onRequestClose={() => setScannerOpen(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Scan Barcode</Text>
+            <TouchableOpacity onPress={() => setScannerOpen(false)} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#1F2937" />
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1, borderRadius: 12, overflow: 'hidden', margin: 16 }}>
+            <CameraView
+              style={{ flex: 1 }}
+              facing="back"
+              barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'qr'] }}
+              onBarcodeScanned={handleBarcodeScanned}
+            />
+          </View>
+          <Text style={{ textAlign: 'center', color: '#6B7280', marginBottom: 16 }}>
+            Align the barcode inside the camera frame.
+          </Text>
+        </SafeAreaView>
+      </Modal>
 
       {/* Product Search Modal */}
       <Modal
