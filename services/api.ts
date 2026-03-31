@@ -217,6 +217,49 @@ export const apiClient = {
     });
   },
 
+
+  async saveProduct(
+    payload: {
+      name: string;
+      category: string;
+      price: number;
+      stock: number;
+      supplier?: string;
+      unitType: Product['unitType'];
+      packSize?: number;
+      packPrice?: number;
+      singlePrice?: number;
+      minStockLevel?: number;
+      barcode?: string;
+      description?: string;
+      cost?: number;
+    },
+    businessId?: number | null,
+    productId?: number,
+  ): Promise<Product> {
+    const body = {
+      business: businessId,
+      name: payload.name,
+      category: payload.category,
+      price: payload.price,
+      cost: payload.cost ?? payload.price * 0.6,
+      stock: payload.stock,
+      supplier: payload.supplier ?? '',
+      unit_type: payload.unitType,
+      pack_size: payload.packSize,
+      pack_price: payload.packPrice,
+      single_price: payload.singlePrice,
+      min_stock_level: payload.minStockLevel ?? 10,
+      barcode: payload.barcode,
+      description: payload.description ?? '',
+    };
+
+    const path = productId ? `/products/${productId}/` : '/products/';
+    const method = productId ? 'PUT' : 'POST';
+    const data = await request(path, { method, body: JSON.stringify(body) });
+    return mapProduct(data);
+  },
+
   async fetchProducts(businessId?: number | null): Promise<Product[]> {
     const data = await request(appendBusinessId('/products/', businessId));
     return (data.results ?? data).map(mapProduct);

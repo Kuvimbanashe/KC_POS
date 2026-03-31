@@ -201,7 +201,7 @@ type AddProductPayload = {
   category: string;
   price: number;
   stock?: number;
-  sku: string;
+  sku?: string;
   barcode?: string;
   supplier?: string;
   unitType: Product['unitType'];
@@ -346,7 +346,7 @@ const userSlice = createSlice({
         price: action.payload.price,
         cost,
         stock: action.payload.stock ?? 0,
-        sku: action.payload.sku,
+        sku: action.payload.sku ?? `SKU-LOCAL-${nextId.toString().padStart(5, '0')}`,
         barcode: action.payload.barcode,
         supplier: action.payload.supplier,
         unitType: action.payload.unitType,
