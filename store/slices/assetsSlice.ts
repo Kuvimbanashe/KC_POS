@@ -41,6 +41,12 @@ const assetsSlice = createSlice({
     setAssets: (state, action: PayloadAction<AssetRecord[]>) => {
       state.assets = action.payload;
     },
+    addAsset: (state, action: PayloadAction<AssetRecord>) => {
+      state.assets.unshift(action.payload);
+    },
+    deleteAsset: (state, action: PayloadAction<number>) => {
+      state.assets = state.assets.filter((asset) => asset.id !== action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchAssets.fulfilled, (state, action) => {
@@ -49,5 +55,5 @@ const assetsSlice = createSlice({
   },
 });
 
-export const { setAssets } = assetsSlice.actions;
+export const { setAssets, addAsset, deleteAsset } = assetsSlice.actions;
 export default assetsSlice.reducer;
