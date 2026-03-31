@@ -326,21 +326,22 @@ const CashierSell = () => {
         );
       });
 
-      try {
-        await apiClient.createSale({
-          cashier: user.name,
-          total,
-          paymentMethod: paymentMethodLabel as PaymentMethod,
-<<<<<<< codex/create-django-backend-for-shop-management-app-a576bh
-          invoiceNumber: `INV-${receiptSuffix}`,
-=======
-          invoiceNumber: `INV${receiptSuffix}`,
->>>>>>> main
-          items: saleItems,
-          businessId: user.businessId,
-        });
-      } catch (apiError) {
-        console.warn('Backend sale sync failed', apiError);
+      if (!user.businessId) {
+        console.warn('Backend sale sync skipped: missing business id');
+      } else {
+        try {
+          await apiClient.createSale({
+            cashier: user.name,
+            total,
+            paymentMethod: paymentMethodLabel as PaymentMethod,
+            invoiceNumber: `INV-${receiptSuffix}`,
+            items: saleItems,
+            businessId: user.businessId,
+          });
+        } catch (apiError) {
+          console.warn('Backend sale sync failed', apiError);
+        }
+         
       }
 
       setLastSale({

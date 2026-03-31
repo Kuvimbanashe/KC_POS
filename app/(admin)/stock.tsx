@@ -244,6 +244,11 @@ const AdminStock = () => {
       return;
     }
 
+    if (!user?.businessId) {
+      Alert.alert('Error', 'Business context is missing. Please sign in again.');
+      return;
+    }
+
     try {
       const parsedPrice = Number.parseFloat(formData.price);
       const parsedStock = Number.parseInt(formData.stock, 10);
@@ -260,13 +265,8 @@ const AdminStock = () => {
       const productData = {
         name: formData.name,
         category: formData.category,
-<<<<<<< codex/create-django-backend-for-shop-management-app-a576bh
         price: parsedPrice,
         stock: parsedStock,
-=======
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock),
->>>>>>> main
         barcode: formData.barcode || undefined,
         supplier: formData.supplier,
         unitType: formData.unitType,
@@ -276,7 +276,7 @@ const AdminStock = () => {
         minStockLevel: parsedMinStockLevel,
       };
 
-      const savedProduct = await apiClient.saveProduct(productData, user?.businessId, isEditMode ? selectedProduct?.id : undefined);
+      const savedProduct = await apiClient.saveProduct(productData, user.businessId, isEditMode ? selectedProduct?.id : undefined);
 
       if (isEditMode && selectedProduct) {
         dispatch(updateProduct({ id: selectedProduct.id, ...savedProduct }));
@@ -305,7 +305,8 @@ const AdminStock = () => {
       resetForm();
     } catch (error) {
       console.error('Error saving product:', error);
-      Alert.alert('Error', 'Failed to save product');
+      const message = error instanceof Error ? error.message : 'Failed to save product';
+      Alert.alert('Error', message);
     }
   };
 

@@ -178,6 +178,11 @@ const AdminAssets = () => {
       return;
     }
 
+    if (!user?.businessId) {
+      Alert.alert('Error', 'Business context is missing. Please sign in again.');
+      return;
+    }
+
     try {
       const createdAsset = await apiClient.createAsset(
         {
@@ -189,7 +194,7 @@ const AdminAssets = () => {
           condition: formData.condition,
           location: formData.location,
         },
-        user?.businessId,
+        user.businessId,
       );
 
       dispatch(addAsset(createdAsset));
@@ -207,7 +212,8 @@ const AdminAssets = () => {
       });
     } catch (error) {
       console.error('Error creating asset:', error);
-      Alert.alert('Error', 'Failed to add asset');
+      const message = error instanceof Error ? error.message : 'Failed to add asset';
+      Alert.alert('Error', message);
     }
   };
 
@@ -229,7 +235,8 @@ const AdminAssets = () => {
               setSelectedAsset(null);
             } catch (error) {
               console.error('Error deleting asset:', error);
-              Alert.alert('Error', 'Failed to delete asset');
+              const message = error instanceof Error ? error.message : 'Failed to delete asset';
+              Alert.alert('Error', message);
             }
           }
         },
