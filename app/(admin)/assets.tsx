@@ -14,6 +14,7 @@ import {
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addAsset, deleteAsset } from '../../store/slices/assetsSlice';
+import { fetchAssets } from '../../store/slices/assetsSlice';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { AssetRecord } from '../../store/types';
@@ -42,6 +43,11 @@ const AdminAssets = () => {
   const { assets } = useAppSelector((state) => state.assets);
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchAssets(user.businessId));
+  }, [dispatch, user?.businessId]);
   
   const [filteredAssets, setFilteredAssets] = useState<AssetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);

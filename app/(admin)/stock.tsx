@@ -14,7 +14,7 @@ import {
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { addProduct, updateProduct } from '../../store/slices/userSlice';
+import { addProduct, fetchOperationalData, updateProduct } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { Product, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
@@ -45,6 +45,11 @@ const AdminStock = () => {
   const { products } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
   
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

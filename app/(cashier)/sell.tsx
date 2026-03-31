@@ -15,6 +15,7 @@ import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { addSale, updateProductStock } from '../../store/slices/userSlice';
+import { fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { PaymentMethod, Product, SaleItem, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
@@ -59,6 +60,11 @@ const CashierSell = () => {
   const dispatch = useAppDispatch();
   const { products } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
