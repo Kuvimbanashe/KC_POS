@@ -139,7 +139,8 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status} ${path}`);
+    const errorBody = await response.text();
+    throw new Error(`Request failed: ${response.status} ${path} ${errorBody}`);
   }
 
   return response.json() as Promise<T>;
@@ -355,9 +356,48 @@ export const apiClient = {
     };
 
     const path = productId ? `/products/${productId}/` : '/products/';
-    const method = productId ? 'PUT' : 'POST';
+    const method = productId ? 'PATCH' : 'POST';
     const data = await request<BackendProduct>(path, { method, body: JSON.stringify(body) });
     return mapProduct(data);
+  },
+
+  async createAsset(
+    payload: {
+      name: string;
+      category: string;
+      purchaseValue: number;
+      currentValue: number;
+      purchaseDate: string;
+      condition: AssetRecord['condition'];
+      location: string;
+    },
+    businessId?: number | null,
+  ): Promise<AssetRecord> {
+    const data = await request<BackendAsset>('/assets/', {
+      method: 'POST',
+      body: JSON.stringify({
+        business: businessId,
+        name: payload.name,
+        category: payload.category,
+        purchase_value: payload.purchaseValue,
+        current_value: payload.currentValue,
+        purchase_date: payload.purchaseDate,
+        condition: payload.condition,
+        location: payload.location,
+      }),
+    });
+    return mapAsset(data);
+  },
+
+  async deleteAsset(assetId: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/assets/${assetId}/`, {
+      method: 'DELETE',
+      headers: jsonHeaders,
+    });
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Request failed: ${response.status} /assets/${assetId}/ ${errorBody}`);
+    }
   },
 
   async fetchProducts(businessId?: number | null): Promise<Product[]> {

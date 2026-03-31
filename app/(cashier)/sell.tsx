@@ -57,7 +57,7 @@ interface UnitTypeOption {
 
 const CashierSell = () => {
   const dispatch = useAppDispatch();
-  const { products, sales } = useAppSelector((state) => state.user);
+  const { products } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -298,7 +298,7 @@ const CashierSell = () => {
         packSize: item.packSize,
       }));
       
-      const receiptSuffix = (1000 + sales.length).toString().padStart(4, '0');
+      const receiptSuffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const paymentMethodLabel = paymentMethodConfig.find(m => m.value === paymentMethod)?.label || 'Cash';
 
       // Dispatch sales and update stock
@@ -331,7 +331,11 @@ const CashierSell = () => {
           cashier: user.name,
           total,
           paymentMethod: paymentMethodLabel as PaymentMethod,
+<<<<<<< codex/create-django-backend-for-shop-management-app-a576bh
+          invoiceNumber: `INV-${receiptSuffix}`,
+=======
           invoiceNumber: `INV${receiptSuffix}`,
+>>>>>>> main
           items: saleItems,
           businessId: user.businessId,
         });
@@ -340,7 +344,7 @@ const CashierSell = () => {
       }
 
       setLastSale({
-        receiptNumber: `INV${receiptSuffix}`,
+        receiptNumber: `INV-${receiptSuffix}`,
         items: cart,
         total,
         date: new Date(),

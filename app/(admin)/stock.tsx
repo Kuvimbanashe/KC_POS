@@ -245,18 +245,35 @@ const AdminStock = () => {
     }
 
     try {
+      const parsedPrice = Number.parseFloat(formData.price);
+      const parsedStock = Number.parseInt(formData.stock, 10);
+      const parsedPackSize = formData.packSize ? Number.parseInt(formData.packSize, 10) : undefined;
+      const parsedPackPrice = formData.packPrice ? Number.parseFloat(formData.packPrice) : undefined;
+      const parsedSinglePrice = formData.singlePrice ? Number.parseFloat(formData.singlePrice) : undefined;
+      const parsedMinStockLevel = Number.parseInt(formData.minStockLevel, 10);
+
+      if (!Number.isFinite(parsedPrice) || !Number.isInteger(parsedStock) || !Number.isInteger(parsedMinStockLevel)) {
+        Alert.alert('Error', 'Please enter valid numeric values.');
+        return;
+      }
+
       const productData = {
         name: formData.name,
         category: formData.category,
+<<<<<<< codex/create-django-backend-for-shop-management-app-a576bh
+        price: parsedPrice,
+        stock: parsedStock,
+=======
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
+>>>>>>> main
         barcode: formData.barcode || undefined,
         supplier: formData.supplier,
         unitType: formData.unitType,
-        packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
-        packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
-        singlePrice: formData.singlePrice ? parseFloat(formData.singlePrice) : undefined,
-        minStockLevel: parseInt(formData.minStockLevel),
+        packSize: parsedPackSize,
+        packPrice: parsedPackPrice,
+        singlePrice: parsedSinglePrice,
+        minStockLevel: parsedMinStockLevel,
       };
 
       const savedProduct = await apiClient.saveProduct(productData, user?.businessId, isEditMode ? selectedProduct?.id : undefined);
