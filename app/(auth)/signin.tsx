@@ -4,8 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'reac
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
 import Feather from '@expo/vector-icons/Feather';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import type { UserProfile } from '../../store/types';
+import { useAppDispatch } from '../../store/hooks';
 import { apiClient } from '../../services/api';
 
 
@@ -14,7 +13,6 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const users = useAppSelector((state) => state.userManagement.users);
 
   const handleSignIn = async () => {
     try {
@@ -27,39 +25,7 @@ export default function SignInScreen() {
         }),
       );
       router.replace(response.user.type === 'admin' ? '/(admin)' : '/(cashier)');
-      return;
     } catch (_apiError) {
-      // fallback to local mock users for offline/dev mode
-    }
-
-    const user = users.find((u) => u.email === email && u.password === password);
-
-    if (user) {
-      const authUser: UserProfile = {
-        id: user.id,
-        email: user.email,
-        password: user.password,
-        name: user.name,
-        phone: user.phone,
-        address: user.address,
-        type: user.type,
-        permissions: user.permissions,
-        status: user.status,
-        lastLogin: user.lastLogin,
-        joinDate: user.joinDate,
-        businessId: user.businessId,
-        businessName: user.businessName,
-      };
-
-      dispatch(
-        setCredentials({
-          user: authUser,
-          token: 'mock-jwt-token',
-          userType: user.type,
-        }),
-      );
-      router.replace(user.type === 'admin' ? '/(admin)' : '/(cashier)');
-    } else {
       Alert.alert('Error', 'Invalid email or password');
     }
   };
@@ -120,12 +86,6 @@ export default function SignInScreen() {
             </TouchableOpacity>
           </Link>
         </View>
-      </View>
-
-      <View style={styles.demoCard}>
-        <Text style={styles.demoTitle}>Demo Credentials</Text>
-        <Text style={styles.demoText}>Admin : admin@shop.com / admin123</Text>
-        <Text style={styles.demoText}>Cashier : cashier@shop.com / cashier123</Text>
       </View>
     </View>
   );
@@ -219,21 +179,5 @@ const styles = StyleSheet.create({
   accentText: {
     color: "#FB923C",
     fontWeight: "600",
-  },
-  demoCard: {
-    marginTop: 24,
-    backgroundColor: "#f1f5f9",
-    borderRadius: 12,
-    padding: 16,
-    gap: 6,
-  },
-  demoTitle: {
-    color: "#0f172a",
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  demoText: {
-    color: "#0f172a",
-    fontWeight: "500",
   },
 });

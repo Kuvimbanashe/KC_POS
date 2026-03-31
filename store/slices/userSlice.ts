@@ -159,14 +159,6 @@ const userSlice = createSlice({
       state.purchases = action.payload.purchases;
       state.expenses = action.payload.expenses;
     },
-
-    hydrateOperationalData: (state, action: PayloadAction<HydrateOperationalPayload>) => {
-      state.users = action.payload.users;
-      state.products = action.payload.products;
-      state.sales = action.payload.sales;
-      state.purchases = action.payload.purchases;
-      state.expenses = action.payload.expenses;
-    },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchOperationalData.fulfilled, (state, action) => {

@@ -20,6 +20,7 @@ function RootLayoutNav() {
   const checkAuthState = useCallback(async () => {
     try {
       const userData = await AsyncStorage.getItem('userData');
+      const authToken = await AsyncStorage.getItem('authToken');
 
       if (userData) {
         const parsed = JSON.parse(userData) as Partial<{
@@ -27,11 +28,11 @@ function RootLayoutNav() {
           userType: UserRole;
         }>;
 
-        if (parsed?.user && parsed?.userType) {
+        if (parsed?.user && parsed?.userType && authToken) {
           dispatch(
             setCredentials({
               user: parsed.user,
-              token: 'mock-token',
+              token: authToken,
               userType: parsed.userType,
             }),
           );

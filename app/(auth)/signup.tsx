@@ -5,7 +5,6 @@ import { StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
 import { apiClient } from '../../services/api';
-import { addUser } from '../../store/slices/userManagementSlice';
 import { useAppDispatch } from '../../store/hooks';
 import type { UserRole } from '../../store/types';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -79,19 +78,6 @@ export default function SignUpScreen() {
         password: formData.password,
         role: formData.userType,
       });
-
-      dispatch(
-        addUser({
-          name: response.user.name,
-          email: response.user.email,
-          phone: response.user.phone,
-          address: response.user.address,
-          password: response.user.password,
-          type: response.user.type,
-          businessId: response.user.businessId,
-          businessName: response.user.businessName,
-        }),
-      );
 
       dispatch(
         setCredentials({
