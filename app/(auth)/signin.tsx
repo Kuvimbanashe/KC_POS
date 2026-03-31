@@ -6,8 +6,7 @@ import { setCredentials } from '../../store/slices/authSlice';
 import Feather from '@expo/vector-icons/Feather';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { UserProfile } from '../../store/types';
-import { Ionicons } from '@expo/vector-icons';
-
+import { apiClient } from '../../services/api';
 
 
 export default function SignInScreen() {
@@ -17,9 +16,24 @@ export default function SignInScreen() {
   const router = useRouter();
   const users = useAppSelector((state) => state.userManagement.users);
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
+    try {
+      const response = await apiClient.login(email, password);
+      dispatch(
+        setCredentials({
+          user: response.user,
+          token: response.token,
+          userType: response.user.type,
+        }),
+      );
+      router.replace(response.user.type === 'admin' ? '/(admin)' : '/(cashier)');
+      return;
+    } catch (_apiError) {
+      // fallback to local mock users for offline/dev mode
+    }
+
     const user = users.find((u) => u.email === email && u.password === password);
-    
+
     if (user) {
       const authUser: UserProfile = {
         id: user.id,
@@ -33,6 +47,8 @@ export default function SignInScreen() {
         status: user.status,
         lastLogin: user.lastLogin,
         joinDate: user.joinDate,
+        businessId: user.businessId,
+        businessName: user.businessName,
       };
 
       dispatch(

@@ -11,10 +11,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import type { UserProfile, UserRole } from '../store/types';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { syncWholeAppFromBackend } from '../services/bootstrapSync';
 
 function RootLayoutNav() {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, userType, isLoading } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, userType, isLoading, user } = useAppSelector((state) => state.auth);
 
   const checkAuthState = useCallback(async () => {
     try {
@@ -46,6 +47,17 @@ function RootLayoutNav() {
   useEffect(() => {
     checkAuthState();
   }, [checkAuthState]);
+
+
+  useEffect(() => {
+    if (process.env.EXPO_PUBLIC_ENABLE_BACKEND_SYNC !== 'true') return;
+    if (!user?.businessId) return;
+
+    syncWholeAppFromBackend(dispatch, user.businessId).catch((error) => {
+      console.log('Backend bootstrap sync failed:', error);
+    });
+  }, [dispatch, user?.businessId]);
+
 
   if (isLoading) {
     return (

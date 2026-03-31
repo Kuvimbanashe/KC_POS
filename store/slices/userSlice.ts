@@ -50,6 +50,7 @@ const mockProducts: Product[] = Array.from({ length: 25 }, (_, i) => {
     cost: Math.floor(Math.random() * 500) + 5, // Added cost for profit calculation
     stock: Math.floor(Math.random() * 100) + 10,
     sku: `SKU${(1000 + i).toString().padStart(4, '0')}`,
+    barcode: `8900000${(1000 + i).toString().padStart(6, '0')}`,
     supplier: ['TechSuppliers Inc.', 'Fashion Distributors', 'Food Importers Ltd.', 'Home Essentials Co.', 'Beauty World'][i % 5],
     unitType: ['single', 'pack', 'both'][i % 3] as UnitType,
     packSize: [6, 12, 24, 48, 100][i % 5],
@@ -201,6 +202,7 @@ type AddProductPayload = {
   price: number;
   stock?: number;
   sku: string;
+  barcode?: string;
   supplier?: string;
   unitType: Product['unitType'];
   packSize?: number;
@@ -220,6 +222,15 @@ type UpdatePurchasePayload = { id: number } & Partial<PurchaseRecord>;
 type UpdateExpensePayload = { id: number } & Partial<ExpenseRecord>;
 
 type UpdateStorePayload = Partial<UserState['currentStore']>;
+
+
+type HydrateOperationalPayload = {
+  users: UserProfile[];
+  products: Product[];
+  sales: SaleRecord[];
+  purchases: PurchaseRecord[];
+  expenses: ExpenseRecord[];
+};
 
 type AdjustStockPayload = {
   productId: number;
@@ -336,6 +347,7 @@ const userSlice = createSlice({
         cost,
         stock: action.payload.stock ?? 0,
         sku: action.payload.sku,
+        barcode: action.payload.barcode,
         supplier: action.payload.supplier,
         unitType: action.payload.unitType,
         packSize: action.payload.packSize,
@@ -397,6 +409,14 @@ const userSlice = createSlice({
         product.stock = Math.max(0, product.stock + adjustment);
       }
     },
+
+    hydrateOperationalData: (state, action: PayloadAction<HydrateOperationalPayload>) => {
+      state.users = action.payload.users;
+      state.products = action.payload.products;
+      state.sales = action.payload.sales;
+      state.purchases = action.payload.purchases;
+      state.expenses = action.payload.expenses;
+    },
   },
 });
 
@@ -413,7 +433,8 @@ export const {
   updateExpense,
   updateStoreInfo,
   bulkUpdateProducts,
-  adjustStock
+  adjustStock,
+  hydrateOperationalData
 } = userSlice.actions;
 
 export default userSlice.reducer;
