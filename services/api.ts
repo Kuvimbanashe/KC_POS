@@ -28,12 +28,111 @@ interface RegisterBusinessPayload {
   role: 'admin' | 'cashier';
 }
 
+interface BackendUser {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  role: 'admin' | 'cashier';
+  phone?: string;
+  address?: string;
+  join_date?: string;
+  status?: 'active' | 'inactive';
+  permissions?: UserProfile['permissions'];
+  last_login_at?: string | null;
+  business?: number;
+  business_name?: string;
+}
+
+interface BackendProduct {
+  id: number;
+  name: string;
+  category: string;
+  price: string | number;
+  cost: string | number;
+  stock: number;
+  sku: string;
+  barcode?: string | null;
+  supplier?: string;
+  unit_type: Product['unitType'];
+  pack_size?: number;
+  pack_price?: string | number | null;
+  single_price?: string | number | null;
+  min_stock_level?: number;
+  description?: string;
+  created_at: string;
+}
+
+interface BackendSaleItem {
+  product: number;
+  product_name: string;
+  quantity: number;
+  price: string | number;
+  subtotal: string | number;
+  unit_type: Product['unitType'];
+  pack_size?: number;
+}
+
+interface BackendSale {
+  id: number;
+  date: string;
+  cashier: string;
+  total: string | number;
+  payment_method: SaleRecord['paymentMethod'];
+  invoice_number: string;
+  customer?: string;
+  items?: BackendSaleItem[];
+}
+
+interface BackendPurchase {
+  id: number;
+  product: number;
+  product_name: string;
+  quantity: number;
+  unit_cost: string | number;
+  total: string | number;
+  date: string;
+  supplier: string;
+  order_number: string;
+  status: PurchaseRecord['status'];
+  delivery_date: string;
+  created_at: string;
+}
+
+interface BackendExpense {
+  id: number;
+  category: string;
+  amount: string | number;
+  date: string;
+  description: string;
+  payment_method: ExpenseRecord['paymentMethod'];
+  vendor: string;
+  status: ExpenseRecord['status'];
+  receipt_number: string;
+}
+
+interface BackendAsset {
+  id: number;
+  name: string;
+  category: string;
+  purchase_value: string | number;
+  current_value: string | number;
+  purchase_date: string;
+  condition: AssetRecord['condition'];
+  location: string;
+  created_at: string;
+}
+
+interface PagedResponse<T> {
+  results?: T[];
+}
+
 const jsonHeaders = {
   Accept: 'application/json',
   'Content-Type': 'application/json',
 };
 
-const request = async (path: string, init?: RequestInit) => {
+const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: jsonHeaders,
     ...init,
@@ -43,7 +142,7 @@ const request = async (path: string, init?: RequestInit) => {
     throw new Error(`Request failed: ${response.status} ${path}`);
   }
 
-  return response.json();
+  return response.json() as Promise<T>;
 };
 
 const appendBusinessId = (path: string, businessId?: number | null) => {
@@ -52,7 +151,7 @@ const appendBusinessId = (path: string, businessId?: number | null) => {
   return `${path}${separator}business_id=${businessId}`;
 };
 
-const mapUser = (data: any): UserProfile => ({
+const mapUser = (data: BackendUser): UserProfile => ({
   id: data.id,
   email: data.email,
   password: data.password,
@@ -68,7 +167,7 @@ const mapUser = (data: any): UserProfile => ({
   businessName: data.business_name,
 });
 
-const mapProduct = (data: any): Product => ({
+const mapProduct = (data: BackendProduct): Product => ({
   id: data.id,
   name: data.name,
   category: data.category,
@@ -87,7 +186,7 @@ const mapProduct = (data: any): Product => ({
   createdAt: data.created_at,
 });
 
-const mapSale = (data: any): SaleRecord => ({
+const mapSale = (data: BackendSale): SaleRecord => ({
   id: data.id,
   date: data.date,
   cashier: data.cashier,
@@ -95,7 +194,7 @@ const mapSale = (data: any): SaleRecord => ({
   paymentMethod: data.payment_method,
   invoiceNumber: data.invoice_number,
   customer: data.customer,
-  items: (data.items ?? []).map((item: any) => ({
+  items: (data.items ?? []).map((item: BackendSaleItem) => ({
     productId: item.product,
     productName: item.product_name,
     quantity: item.quantity,
@@ -106,7 +205,7 @@ const mapSale = (data: any): SaleRecord => ({
   })),
 });
 
-const mapPurchase = (data: any): PurchaseRecord => ({
+const mapPurchase = (data: BackendPurchase): PurchaseRecord => ({
   id: data.id,
   productId: data.product,
   productName: data.product_name,
@@ -121,7 +220,7 @@ const mapPurchase = (data: any): PurchaseRecord => ({
   createdAt: data.created_at,
 });
 
-const mapExpense = (data: any): ExpenseRecord => ({
+const mapExpense = (data: BackendExpense): ExpenseRecord => ({
   id: data.id,
   category: data.category,
   amount: Number(data.amount),
@@ -133,7 +232,7 @@ const mapExpense = (data: any): ExpenseRecord => ({
   receiptNumber: data.receipt_number,
 });
 
-const mapAsset = (data: any): AssetRecord => ({
+const mapAsset = (data: BackendAsset): AssetRecord => ({
   id: data.id,
   name: data.name,
   category: data.category,
@@ -145,9 +244,11 @@ const mapAsset = (data: any): AssetRecord => ({
   createdAt: data.created_at,
 });
 
+const unwrapResults = <T>(data: PagedResponse<T> | T[]): T[] => (Array.isArray(data) ? data : (data.results ?? []));
+
 export const apiClient = {
   async registerBusinessOwner(payload: RegisterBusinessPayload) {
-    const data = await request('/auth/register-business/', {
+    const data = await request<{ token: string; user: BackendUser; business?: { id: number; name: string } }>('/auth/register-business/', {
       method: 'POST',
       body: JSON.stringify({
         business_name: payload.businessName,
@@ -174,7 +275,7 @@ export const apiClient = {
   },
 
   async login(email: string, password: string) {
-    const data = await request('/auth/login/', {
+    const data = await request<{ token: string; user: BackendUser; business?: { id: number; name: string } }>('/auth/login/', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -191,7 +292,7 @@ export const apiClient = {
     const response = await fetch(`${API_BASE_URL}${path}`, { headers: jsonHeaders });
     if (response.status === 404) return null;
     if (!response.ok) throw new Error(`Lookup failed with status ${response.status}`);
-    return mapProduct(await response.json());
+    return mapProduct((await response.json()) as BackendProduct);
   },
 
   async createSale(payload: CreateSalePayload): Promise<void> {
@@ -216,7 +317,6 @@ export const apiClient = {
       }),
     });
   },
-
 
   async saveProduct(
     payload: {
@@ -256,33 +356,33 @@ export const apiClient = {
 
     const path = productId ? `/products/${productId}/` : '/products/';
     const method = productId ? 'PUT' : 'POST';
-    const data = await request(path, { method, body: JSON.stringify(body) });
+    const data = await request<BackendProduct>(path, { method, body: JSON.stringify(body) });
     return mapProduct(data);
   },
 
   async fetchProducts(businessId?: number | null): Promise<Product[]> {
-    const data = await request(appendBusinessId('/products/', businessId));
-    return (data.results ?? data).map(mapProduct);
+    const data = await request<PagedResponse<BackendProduct> | BackendProduct[]>(appendBusinessId('/products/', businessId));
+    return unwrapResults(data).map(mapProduct);
   },
   async fetchUsers(businessId?: number | null): Promise<UserProfile[]> {
-    const data = await request(appendBusinessId('/users/', businessId));
-    return (data.results ?? data).map(mapUser);
+    const data = await request<PagedResponse<BackendUser> | BackendUser[]>(appendBusinessId('/users/', businessId));
+    return unwrapResults(data).map(mapUser);
   },
   async fetchSales(businessId?: number | null): Promise<SaleRecord[]> {
-    const data = await request(appendBusinessId('/sales/', businessId));
-    return (data.results ?? data).map(mapSale);
+    const data = await request<PagedResponse<BackendSale> | BackendSale[]>(appendBusinessId('/sales/', businessId));
+    return unwrapResults(data).map(mapSale);
   },
   async fetchPurchases(businessId?: number | null): Promise<PurchaseRecord[]> {
-    const data = await request(appendBusinessId('/purchases/', businessId));
-    return (data.results ?? data).map(mapPurchase);
+    const data = await request<PagedResponse<BackendPurchase> | BackendPurchase[]>(appendBusinessId('/purchases/', businessId));
+    return unwrapResults(data).map(mapPurchase);
   },
   async fetchExpenses(businessId?: number | null): Promise<ExpenseRecord[]> {
-    const data = await request(appendBusinessId('/expenses/', businessId));
-    return (data.results ?? data).map(mapExpense);
+    const data = await request<PagedResponse<BackendExpense> | BackendExpense[]>(appendBusinessId('/expenses/', businessId));
+    return unwrapResults(data).map(mapExpense);
   },
   async fetchAssets(businessId?: number | null): Promise<AssetRecord[]> {
-    const data = await request(appendBusinessId('/assets/', businessId));
-    return (data.results ?? data).map(mapAsset);
+    const data = await request<PagedResponse<BackendAsset> | BackendAsset[]>(appendBusinessId('/assets/', businessId));
+    return unwrapResults(data).map(mapAsset);
   },
 
   async fetchReports(start?: string, end?: string, businessId?: number | null) {
@@ -293,11 +393,11 @@ export const apiClient = {
     const suffix = query.toString() ? `?${query.toString()}` : '';
 
     const [dashboard, sales, inventory, expenses, profitLoss] = await Promise.all([
-      request(`/reports/dashboard/${suffix}`),
-      request(`/reports/sales/${suffix}`),
-      request(`/reports/inventory/${suffix}`),
-      request(`/reports/expenses/${suffix}`),
-      request(`/reports/profit-loss/${suffix}`),
+      request<Record<string, unknown>>(`/reports/dashboard/${suffix}`),
+      request<Record<string, unknown>>(`/reports/sales/${suffix}`),
+      request<Record<string, unknown>>(`/reports/inventory/${suffix}`),
+      request<Record<string, unknown>>(`/reports/expenses/${suffix}`),
+      request<Record<string, unknown>>(`/reports/profit-loss/${suffix}`),
     ]);
     return { dashboard, sales, inventory, expenses, profitLoss };
   },

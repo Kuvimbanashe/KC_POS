@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
   roleRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   roleBtn: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14 },
-  roleBtnActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
-  saveBtn: { backgroundColor: '#0f172a', borderRadius: 10, alignItems: 'center', paddingVertical: 12, marginBottom: 10 },
+  roleBtnActive: { backgroundColor: '#f97316', borderColor: '#0f172a' },
+  saveBtn: { backgroundColor: '#f97316', borderRadius: 10, alignItems: 'center', paddingVertical: 12, marginBottom: 10 },
   cancelBtn: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, alignItems: 'center', paddingVertical: 12 },
 });
 

@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '700' },
   meta: { fontSize: 14, color: '#64748b', marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 10 },
-  btn: { marginTop: 14, backgroundColor: '#0f172a', borderRadius: 10, alignItems: 'center', paddingVertical: 12 },
+  btn: { marginTop: 14, backgroundColor: '#f97316', borderRadius: 10, alignItems: 'center', paddingVertical: 12 },
   btnText: { color: '#fff', fontWeight: '700' },
   logout: { backgroundColor: '#ef4444' },
   cancel: { backgroundColor: '#f1f5f9' },
