@@ -14,7 +14,7 @@ import {
 import { StyleSheet } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
-import { addPurchase, updateProduct } from '../../store/slices/userSlice';
+import { addPurchase, fetchOperationalData, updateProduct } from '../../store/slices/userSlice';
 import type { PurchaseRecord, Product } from '../../store/types';
 
 interface PurchaseFormData {
@@ -34,7 +34,13 @@ interface StatCard {
 
 const AdminPurchases = () => {
   const { purchases, products } = useAppSelector(state => state.user);
+  const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
   
   const [filteredPurchases, setFilteredPurchases] = useState<PurchaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);

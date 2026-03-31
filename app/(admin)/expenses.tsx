@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { addExpense } from '../../store/slices/userSlice';
+import { addExpense, fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { ExpenseRecord } from '../../store/types';
 
@@ -48,7 +48,13 @@ interface StatCard {
 
 const AdminExpenses = () => {
   const { expenses } = useAppSelector((state) => state.user);
+  const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
   
   const [filteredExpenses, setFilteredExpenses] = useState<ExpenseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
