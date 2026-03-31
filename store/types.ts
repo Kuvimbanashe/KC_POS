@@ -49,6 +49,7 @@ export interface Product {
   cost: number;
   stock: number;
   sku: string;
+  barcode?: string;
   supplier?: string;
   unitType: UnitType;
   packSize?: number;
