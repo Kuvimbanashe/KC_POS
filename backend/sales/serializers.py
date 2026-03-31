@@ -7,6 +7,9 @@ class SaleItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaleItem
         fields = '__all__'
+        extra_kwargs = {
+            'sale': {'read_only': True, 'required': False},
+        }
 
 
 class SaleSerializer(serializers.ModelSerializer):

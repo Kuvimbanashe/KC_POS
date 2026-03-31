@@ -8,10 +8,10 @@ import {
   Modal,
   FlatList,
   Alert,
-  SafeAreaView,
   ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { addProduct, fetchOperationalData, updateProduct } from '../../store/slices/userSlice';
@@ -281,13 +281,16 @@ const AdminStock = () => {
         minStockLevel: parsedMinStockLevel,
       };
 
-      const savedProduct = await apiClient.saveProduct(productData, user.businessId, isEditMode ? selectedProduct?.id : undefined);
+      const editingProductId = selectedProduct?.id;
+      const savedProduct = await apiClient.saveProduct(productData, user.businessId, editingProductId);
 
-      if (isEditMode && selectedProduct) {
+      if (editingProductId) {
         dispatch(updateProduct({ id: selectedProduct.id, ...savedProduct }));
         Alert.alert('Success', `Product "${savedProduct.name}" updated`);
       } else {
         dispatch(addProduct({
+          id: savedProduct.id,
+          createdAt: savedProduct.createdAt,
           name: savedProduct.name,
           category: savedProduct.category,
           price: savedProduct.price,

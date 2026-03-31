@@ -8,12 +8,12 @@ import {
   Modal,
   FlatList,
   Alert,
-  SafeAreaView,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { addSale, updateProductStock } from '../../store/slices/userSlice';
 import { fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -56,6 +56,13 @@ interface UnitTypeOption {
   description: string;
 }
 
+const getUnitPrice = (product: Product, unitType: UnitType): number => {
+  if (unitType === 'pack') {
+    return product.packPrice ?? product.price;
+  }
+  return product.singlePrice ?? product.price;
+};
+
 const CashierSell = () => {
   const dispatch = useAppDispatch();
   const { products } = useAppSelector((state) => state.user);
@@ -86,9 +93,9 @@ const CashierSell = () => {
   // Payment method configuration
   const paymentMethodConfig: PaymentMethodConfig[] = useMemo(
     () => [
-      { value: 'cash', label: 'Cash', icon: 'cash', color: '#10B981' },
-      { value: 'card', label: 'Card', icon: 'card', color: '#3B82F6' },
-      { value: 'mobile', label: 'Mobile', icon: 'phone-portrait', color: '#8B5CF6' },
+      { value: 'cash', label: 'Cash', icon: 'cash', color: '#FB923C' },
+      { value: 'card', label: 'Card', icon: 'card', color: '#FB923C' },
+      { value: 'mobile', label: 'Mobile', icon: 'phone-portrait', color: '#FB923C' },
     ],
     []
   );
@@ -131,10 +138,12 @@ const CashierSell = () => {
   );
 
   // Selected product calculations
-  const selectedProductPrice = selectedProduct ? selectedProduct.price.toFixed(2) : '0.00';
+  const selectedProductPrice = selectedProduct
+    ? getUnitPrice(selectedProduct, selectedUnitType).toFixed(2)
+    : '0.00';
   const quantityValue = Number.parseInt(quantity, 10) || 1;
   const selectedProductSubtotal = selectedProduct
-    ? (selectedProduct.price * quantityValue).toFixed(2)
+    ? (getUnitPrice(selectedProduct, selectedUnitType) * quantityValue).toFixed(2)
     : '0.00';
 
   const handleProductSelect = (product: Product) => {
@@ -157,6 +166,7 @@ const CashierSell = () => {
     }
 
     const qty = parsedQuantity;
+    const unitPrice = getUnitPrice(selectedProduct, selectedUnitType);
     let requiredStock = qty;
 
     // Adjust for pack sales
@@ -183,7 +193,8 @@ const CashierSell = () => {
                     ? ` (Pack of ${selectedProduct.packSize})`
                     : ''
                 }`,
-                subtotal: selectedProduct.price * qty,
+                price: unitPrice,
+                subtotal: unitPrice * qty,
                 packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1,
               }
             : item,
@@ -212,7 +223,8 @@ const CashierSell = () => {
               ? { 
                   ...item, 
                   quantity: newQuantity, 
-                  subtotal: selectedProduct.price * newQuantity 
+                  price: unitPrice,
+                  subtotal: unitPrice * newQuantity 
                 }
               : item,
           ),
@@ -226,8 +238,8 @@ const CashierSell = () => {
           productId: cartKey,
           productName: `${selectedProduct.name}${packInfo}`,
           quantity: qty,
-          price: selectedProduct.price,
-          subtotal: selectedProduct.price * qty,
+          price: unitPrice,
+          subtotal: unitPrice * qty,
           unitType: selectedUnitType,
           originalProductId: selectedProduct.id,
           packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1,
@@ -517,23 +529,11 @@ const CashierSell = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            onPress={handleCheckout}
-            style={[
-              styles.checkoutButton,
-              cart.length === 0 && styles.checkoutButtonDisabled,
-            ]}
-            disabled={cart.length === 0}
-          >
-            <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-            <Text style={styles.checkoutButtonText}>Checkout</Text>
-          </TouchableOpacity>
-          
           <TouchableOpacity 
             style={styles.addItemButton}
             onPress={() => setIsProductModalOpen(true)}
           >
-            <Ionicons name="add-circle" size={20} color="#3B82F6" />
+            <Ionicons name="add-circle" size={20} color="#FB923C" />
             <Text style={styles.addItemButtonText}>Add Item</Text>
           </TouchableOpacity>
 
@@ -541,7 +541,7 @@ const CashierSell = () => {
             style={styles.addItemButton}
             onPress={handleScanPress}
           >
-            <Ionicons name="barcode" size={20} color="#3B82F6" />
+            <Ionicons name="barcode" size={20} color="#FB923C" />
             <Text style={styles.addItemButtonText}>Scan Barcode</Text>
           </TouchableOpacity>
         </View>
@@ -586,6 +586,20 @@ const CashierSell = () => {
           )}
         </View>
       </ScrollView>
+
+      <View style={styles.bottomCheckoutBar}>
+        <TouchableOpacity
+          onPress={handleCheckout}
+          style={[
+            styles.checkoutButton,
+            cart.length === 0 && styles.checkoutButtonDisabled,
+          ]}
+          disabled={cart.length === 0}
+        >
+          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+          <Text style={styles.checkoutButtonText}>Checkout</Text>
+        </TouchableOpacity>
+      </View>
 
 
       <Modal
@@ -962,7 +976,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   paymentOptionActive: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#0F172A',
     borderWidth: 1,
   },
   paymentOptionText: {
@@ -979,17 +993,17 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 8,
   },
   checkoutButton: {
-    flex: 1,
+    width: '100%',
     flexDirection: 'row',
-    backgroundColor: '#10B981',
+    backgroundColor: '#0F172A',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
   },
   checkoutButtonDisabled: {
     backgroundColor: '#9CA3AF',
@@ -1003,18 +1017,17 @@ const styles = StyleSheet.create({
   addItemButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#FFF7ED',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
     borderWidth: 1,
-    borderColor: '#3B82F6',
+    borderColor: '#FB923C',
   },
   addItemButtonText: {
-    color: '#3B82F6',
+    color: '#FB923C',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -1023,6 +1036,14 @@ const styles = StyleSheet.create({
   // Main Content
   mainContent: {
     flex: 1,
+  },
+  bottomCheckoutBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   cartSection: {
     backgroundColor: '#FFFFFF',

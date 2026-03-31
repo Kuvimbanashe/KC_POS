@@ -103,7 +103,13 @@ type AddSalePayload = {
 };
 
 type UpdateStockPayload = { productId: number; quantity: number };
-type AddProductPayload = Omit<Product, 'id' | 'createdAt'> & { stock?: number; minStockLevel?: number; sku?: string };
+type AddProductPayload = Omit<Product, 'id' | 'createdAt'> & {
+  id?: number;
+  createdAt?: string;
+  stock?: number;
+  minStockLevel?: number;
+  sku?: string;
+};
 type UpdateProductPayload = { id: number } & Partial<Omit<Product, 'id'>>;
 
 const userSlice = createSlice({
@@ -131,8 +137,8 @@ const userSlice = createSlice({
     addProduct: (state, action: PayloadAction<AddProductPayload>) => {
       const nextId = state.products.length > 0 ? Math.max(...state.products.map((p) => p.id)) + 1 : 1;
       state.products.unshift({
-        id: nextId,
-        createdAt: new Date().toISOString(),
+        id: action.payload.id ?? nextId,
+        createdAt: action.payload.createdAt ?? new Date().toISOString(),
         ...action.payload,
         stock: action.payload.stock ?? 0,
         sku: action.payload.sku ?? `SKU-LOCAL-${nextId.toString().padStart(5, '0')}`,
