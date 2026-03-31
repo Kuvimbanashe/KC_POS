@@ -14,9 +14,11 @@ import {
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addAsset, deleteAsset } from '../../store/slices/assetsSlice';
+import { fetchAssets } from '../../store/slices/assetsSlice';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { AssetRecord } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 type ConditionFilter = 'all' | AssetRecord['condition'];
 
@@ -39,7 +41,13 @@ interface StatCard {
 
 const AdminAssets = () => {
   const { assets } = useAppSelector((state) => state.assets);
+  const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchAssets(user.businessId));
+  }, [dispatch, user?.businessId]);
   
   const [filteredAssets, setFilteredAssets] = useState<AssetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -170,22 +178,32 @@ const AdminAssets = () => {
   };
 
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.category || !formData.purchaseValue || !formData.currentValue || !formData.location) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
+    if (!user?.businessId) {
+      Alert.alert('Error', 'Business context is missing. Please sign in again.');
+      return;
+    }
+
     try {
-      dispatch(addAsset({
-        name: formData.name,
-        category: formData.category,
-        purchaseValue: parseFloat(formData.purchaseValue),
-        currentValue: parseFloat(formData.currentValue),
-        purchaseDate: formData.purchaseDate.toISOString().split('T')[0],
-        condition: formData.condition,
-        location: formData.location,
-      }));
+      const createdAsset = await apiClient.createAsset(
+        {
+          name: formData.name,
+          category: formData.category,
+          purchaseValue: parseFloat(formData.purchaseValue),
+          currentValue: parseFloat(formData.currentValue),
+          purchaseDate: formData.purchaseDate.toISOString().split('T')[0],
+          condition: formData.condition,
+          location: formData.location,
+        },
+        user.businessId,
+      );
+
+      dispatch(addAsset(createdAsset));
 
       Alert.alert('Success', 'Asset added successfully');
       setIsAssetModalOpen(false);
@@ -200,7 +218,8 @@ const AdminAssets = () => {
       });
     } catch (error) {
       console.error('Error creating asset:', error);
-      Alert.alert('Error', 'Failed to add asset');
+      const message = error instanceof Error ? error.message : 'Failed to add asset';
+      Alert.alert('Error', message);
     }
   };
 
@@ -214,10 +233,17 @@ const AdminAssets = () => {
         { 
           text: 'Delete', 
           style: 'destructive',
-          onPress: () => {
-            dispatch(deleteAsset(asset.id));
-            Alert.alert('Success', 'Asset deleted successfully');
-            setSelectedAsset(null);
+          onPress: async () => {
+            try {
+              await apiClient.deleteAsset(asset.id);
+              dispatch(deleteAsset(asset.id));
+              Alert.alert('Success', 'Asset deleted successfully');
+              setSelectedAsset(null);
+            } catch (error) {
+              console.error('Error deleting asset:', error);
+              const message = error instanceof Error ? error.message : 'Failed to delete asset';
+              Alert.alert('Error', message);
+            }
           }
         },
       ]

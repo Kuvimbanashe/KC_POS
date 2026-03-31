@@ -8,8 +8,10 @@ import {
   SafeAreaView
 } from 'react-native';
 import { StyleSheet } from 'react-native';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
+import { fetchAssets } from '../../store/slices/assetsSlice';
+import { fetchOperationalData } from '../../store/slices/userSlice';
 
 interface StatCardProps {
   title: string;
@@ -33,12 +35,20 @@ interface SectionHeaderProps {
 }
 
 const AdminReports = () => {
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
   const { sales, purchases, expenses, products } = useAppSelector(state => state.user);
   const { assets } = useAppSelector(state => state.assets);
   const { financialReports } = useAppSelector(state => state.accounting);
   
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('income');
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+    dispatch(fetchAssets(user.businessId));
+  }, [dispatch, user?.businessId]);
 
   // Colors based on your Tailwind config
   const COLORS = {
