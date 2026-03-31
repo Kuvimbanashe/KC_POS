@@ -105,6 +105,8 @@ type AddUserPayload = {
   permissions?: Permission[];
   status?: UserStatus;
   joinDate?: string;
+  businessId?: number | null;
+  businessName?: string | null;
 };
 
 type UpdateUserPayload = { id: number } & Partial<UserProfile>;
@@ -161,6 +163,10 @@ const userManagementSlice = createSlice({
         user.lastLogin = new Date().toISOString();
       }
     },
+
+    setManagedUsers: (state, action: PayloadAction<UserProfile[]>) => {
+      state.users = action.payload;
+    },
   },
 });
 
@@ -170,7 +176,8 @@ export const {
   deleteUser, 
   toggleUserStatus, 
   updateUserPermissions,
-  updateLastLogin 
+  updateLastLogin,
+  setManagedUsers 
 } = userManagementSlice.actions;
 export default userManagementSlice.reducer;
 

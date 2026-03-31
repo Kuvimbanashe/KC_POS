@@ -13,16 +13,18 @@ import {
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { addProduct, updateProduct } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { Product, UnitType } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 interface ProductFormData {
   name: string;
   category: string;
   price: string;
   stock: string;
-  sku: string;
+  barcode: string;
   supplier: string;
   unitType: UnitType;
   packSize: string;
@@ -41,6 +43,7 @@ interface StatCard {
 
 const AdminStock = () => {
   const { products } = useAppSelector((state) => state.user);
+  const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -49,13 +52,16 @@ const AdminStock = () => {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerHandled, setScannerHandled] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     category: '',
     price: '',
     stock: '',
-    sku: '',
+    barcode: '',
     supplier: '',
     unitType: 'single',
     packSize: '',
@@ -96,6 +102,7 @@ const AdminStock = () => {
     const filtered = products.filter(product =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.barcode ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredProducts(filtered);
@@ -200,9 +207,29 @@ const AdminStock = () => {
     );
   };
 
+
+  const openBarcodeScanner = async () => {
+    if (!cameraPermission?.granted) {
+      const granted = await requestCameraPermission();
+      if (!granted.granted) {
+        Alert.alert('Camera Permission', 'Please enable camera permission to scan barcodes.');
+        return;
+      }
+    }
+    setScannerHandled(false);
+    setScannerOpen(true);
+  };
+
+  const onBarcodeScanned = ({ data }: { data: string }) => {
+    if (scannerHandled) return;
+    setScannerHandled(true);
+    setFormData((prev) => ({ ...prev, barcode: data }));
+    setScannerOpen(false);
+  };
+
   // Handle form submission
-  const handleSubmit = () => {
-    if (!formData.name || !formData.category || !formData.price || !formData.stock || !formData.sku || !formData.supplier) {
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.category || !formData.price || !formData.stock || !formData.supplier) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -223,7 +250,7 @@ const AdminStock = () => {
         category: formData.category,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
-        sku: formData.sku,
+        barcode: formData.barcode || undefined,
         supplier: formData.supplier,
         unitType: formData.unitType,
         packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
@@ -232,12 +259,29 @@ const AdminStock = () => {
         minStockLevel: parseInt(formData.minStockLevel),
       };
 
+      const savedProduct = await apiClient.saveProduct(productData, user?.businessId, isEditMode ? selectedProduct?.id : undefined);
+
       if (isEditMode && selectedProduct) {
-        dispatch(updateProduct({ id: selectedProduct.id, ...productData }));
-        Alert.alert('Success', `Product "${formData.name}" updated`);
+        dispatch(updateProduct({ id: selectedProduct.id, ...savedProduct }));
+        Alert.alert('Success', `Product "${savedProduct.name}" updated`);
       } else {
-        dispatch(addProduct(productData));
-        Alert.alert('Success', `Product "${formData.name}" added`);
+        dispatch(addProduct({
+          name: savedProduct.name,
+          category: savedProduct.category,
+          price: savedProduct.price,
+          stock: savedProduct.stock,
+          sku: savedProduct.sku,
+          barcode: savedProduct.barcode,
+          supplier: savedProduct.supplier,
+          unitType: savedProduct.unitType,
+          packSize: savedProduct.packSize,
+          packPrice: savedProduct.packPrice,
+          singlePrice: savedProduct.singlePrice,
+          minStockLevel: savedProduct.minStockLevel,
+          cost: savedProduct.cost,
+          description: savedProduct.description,
+        }));
+        Alert.alert('Success', `Product "${savedProduct.name}" added`);
       }
 
       setIsProductModalOpen(false);
@@ -255,7 +299,7 @@ const AdminStock = () => {
       category: '',
       price: '',
       stock: '',
-      sku: '',
+      barcode: '',
       supplier: '',
       unitType: 'single',
       packSize: '',
@@ -276,7 +320,7 @@ const AdminStock = () => {
       category: product.category,
       price: product.price.toString(),
       stock: product.stock.toString(),
-      sku: product.sku,
+      barcode: product.barcode || '',
       supplier: product.supplier || '',
       unitType: product.unitType || 'single',
       packSize: product.packSize ? product.packSize.toString() : '',
@@ -492,18 +536,27 @@ const AdminStock = () => {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: COLORS.primary }]}>SKU *</Text>
-                <TextInput
-                  value={formData.sku}
-                  onChangeText={(text) => setFormData({ ...formData, sku: text })}
-                  placeholder="Enter SKU code"
-                  style={[styles.formInput, { 
-                    backgroundColor: COLORS.input,
-                    borderColor: COLORS.border,
-                    color: COLORS.primary 
-                  }]}
-                  placeholderTextColor={COLORS.muted}
-                />
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Barcode (optional)</Text>
+                <View style={styles.barcodeRow}>
+                  <TextInput
+                    value={formData.barcode}
+                    onChangeText={(text) => setFormData({ ...formData, barcode: text })}
+                    placeholder="Scan or enter barcode"
+                    style={[styles.formInput, styles.barcodeInput, { 
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary 
+                    }]}
+                    placeholderTextColor={COLORS.muted}
+                  />
+                  <TouchableOpacity
+                    style={[styles.scanButton, { backgroundColor: COLORS.primary }]}
+                    onPress={openBarcodeScanner}
+                  >
+                    <Ionicons name="barcode" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.helperText, { color: COLORS.muted }]}>SKU is generated automatically by backend.</Text>
               </View>
 
               {/* Category */}
@@ -717,6 +770,30 @@ const AdminStock = () => {
         </SafeAreaView>
       </Modal>
 
+
+      <Modal
+        visible={scannerOpen}
+        animationType="slide"
+        onRequestClose={() => setScannerOpen(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Scan Barcode</Text>
+            <TouchableOpacity onPress={() => setScannerOpen(false)}>
+              <Ionicons name="close" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1, margin: 16, borderRadius: 12, overflow: 'hidden' }}>
+            <CameraView
+              style={{ flex: 1 }}
+              facing="back"
+              barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'qr'] }}
+              onBarcodeScanned={onBarcodeScanned}
+            />
+          </View>
+        </SafeAreaView>
+      </Modal>
+
       {/* Product Details Modal */}
       <Modal
         visible={!!selectedProduct}
@@ -745,6 +822,7 @@ const AdminStock = () => {
                   <View style={styles.detailItem}>
                     <Text style={[styles.detailLabel, { color: COLORS.muted }]}>SKU</Text>
                     <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.sku}</Text>
+                    <Text style={[styles.detailSubValue, { color: COLORS.muted }]}>Barcode: {selectedProduct.barcode || 'N/A'}</Text>
                   </View>
                   <View style={styles.detailItem}>
                     <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
@@ -1102,6 +1180,25 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  barcodeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  barcodeInput: {
+    flex: 1,
+  },
+  scanButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helperText: {
+    marginTop: 6,
+    fontSize: 12,
   },
   formInput: {
     borderWidth: 1,
