@@ -8,6 +8,8 @@ import {
   Modal,
   FlatList,
   Alert,
+  Platform,
+  Share,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
@@ -82,6 +84,36 @@ const CashierSell = () => {
   const [selectedUnitType, setSelectedUnitType] = useState<UnitType>('single');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodOption>('cash');
   const [showReceipt, setShowReceipt] = useState(false);
+
+  const buildReceiptText = (receipt: ReceiptDetails) => {
+    const lines = [
+      `Receipt ${receipt.receiptNumber}`,
+      `Cashier: ${receipt.cashier}`,
+      `Date: ${receipt.date.toLocaleString()}`,
+      `Payment: ${receipt.paymentMethod}`,
+      '',
+      'Items:'
+    ];
+    receipt.items.forEach((item) => {
+      lines.push(`- ${item.productName}: ${item.quantity} ${item.unitType} - $${item.subtotal.toFixed(2)}`);
+    });
+    lines.push('', `Total: $${receipt.total.toFixed(2)}`);
+    return lines.join('\n');
+  };
+
+  const printReceipt = async (receipt: ReceiptDetails) => {
+    const text = buildReceiptText(receipt);
+    if (Platform.OS === 'web') {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${text}</pre>`);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      return;
+    }
+    await Share.share({ title: receipt.receiptNumber, message: text });
+  };
   const [lastSale, setLastSale] = useState<ReceiptDetails | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
@@ -361,16 +393,18 @@ const CashierSell = () => {
         }
       }
 
-      setLastSale({
+      const completedSale: ReceiptDetails = {
         receiptNumber: `INV-${receiptSuffix}`,
         items: cart,
         total,
         date: new Date(),
         paymentMethod: paymentMethodLabel as PaymentMethod,
         cashier: user.name,
-      });
+      };
+      setLastSale(completedSale);
       setShowReceipt(true);
       setCart([]);
+      await printReceipt(completedSale);
     } catch (error) {
       console.error('Checkout error:', error);
       Alert.alert('Checkout Failed', 'An error occurred during checkout');
@@ -886,6 +920,15 @@ const CashierSell = () => {
                   We appreciate your business and look forward to serving you again.
                 </Text>
               </View>
+
+              <TouchableOpacity
+                style={styles.printReceiptButton}
+                onPress={() => printReceipt(lastSale)}
+              >
+                <Text style={styles.printReceiptButtonText}>
+                  Print Receipt
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.newSaleButton}
@@ -1496,6 +1539,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  printReceiptButton: {
+    marginTop: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  printReceiptButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
 

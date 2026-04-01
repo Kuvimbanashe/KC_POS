@@ -29,11 +29,6 @@ const CashierHome = () => {
     dispatch(fetchOperationalData(user.businessId));
   }, [dispatch, user?.businessId]);
 
-  useEffect(() => {
-    if (!user?.businessId) return;
-    dispatch(fetchOperationalData(user.businessId));
-  }, [dispatch, user?.businessId]);
-
   const today = new Date().toDateString();
 
   // Filter today's sales by cashier
@@ -103,7 +98,7 @@ const CashierHome = () => {
       <TouchableOpacity key={sale.id} style={styles.saleItem} onPress={() => setSelectedReceipt(sale)}>
         <View style={styles.saleHeader}>
           <View>
-            <Text style={styles.receiptId}>Receipt #{sale.id}</Text>
+            <Text style={styles.receiptId}>{sale.invoiceNumber || `Receipt #${sale.id}`}</Text>
             <Text style={styles.receiptTime}>
               {new Date(sale.date).toLocaleTimeString()}
             </Text>
@@ -130,46 +125,45 @@ const CashierHome = () => {
   };
 
   const buildReceiptText = (sale: SaleRecord) => {
-    const lines = [
-      `Receipt #${sale.id}`,
+    const lines = sale.items?.length
+      ? sale.items
+      : [{
+        productId: sale.productId ?? 0,
+        productName: sale.productName ?? 'Item',
+        quantity: sale.quantity ?? 0,
+        price: sale.price ?? 0,
+        subtotal: sale.total ?? 0,
+        unitType: 'single' as const,
+        packSize: undefined,
+      }];
+    const itemRows = lines
+      .map((line) => `- ${line.productName} (${line.quantity}) = $${(line.subtotal ?? line.quantity * line.price).toFixed(2)}`)
+      .join('\n');
+    return [
+      sale.invoiceNumber || `Receipt #${sale.id}`,
       `Date: ${new Date(sale.date).toLocaleString()}`,
       `Cashier: ${sale.cashier ?? user?.name ?? 'Unknown'}`,
       `Payment: ${sale.paymentMethod}`,
       '',
-      'Items:'
-    ];
-
-    if (sale.items?.length) {
-      sale.items.forEach((line) => {
-        const lineQty = Number(line.quantity ?? 0);
-        const linePrice = Number(line.price ?? 0);
-        lines.push(`- ${lineQty}x ${line.productName} @ $${linePrice.toFixed(2)} = $${Number(line.subtotal ?? lineQty * linePrice).toFixed(2)}`);
-      });
-    } else {
-      const qty = Number(sale.quantity ?? 0);
-      const price = Number(sale.price ?? 0);
-      lines.push(`- ${qty}x ${sale.productName ?? 'Item'} @ $${price.toFixed(2)} = $${Number(qty * price).toFixed(2)}`);
-    }
-
-    lines.push('', `Total: $${sale.total.toFixed(2)}`);
-    return lines.join('\n');
+      'Items:',
+      itemRows,
+      '',
+      `Total: $${sale.total.toFixed(2)}`,
+    ].join('\n');
   };
 
   const handlePrintReceipt = async (sale: SaleRecord) => {
-    const receiptText = buildReceiptText(sale);
+    const text = buildReceiptText(sale);
     if (Platform.OS === 'web') {
       const printWindow = window.open('', '_blank');
       if (!printWindow) return;
-      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${receiptText}</pre>`);
+      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${text}</pre>`);
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();
       return;
     }
-    await Share.share({
-      title: `Receipt #${sale.id}`,
-      message: receiptText
-    });
+    await Share.share({ title: sale.invoiceNumber || `Receipt #${sale.id}`, message: text });
   };
 
   return (
@@ -272,7 +266,7 @@ const CashierHome = () => {
                 </View>
 
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.recentSaleId}>Sale #{sale.id}</Text>
+                  <Text style={styles.recentSaleId}>{sale.invoiceNumber || `Sale #${sale.id}`}</Text>
                   <Text style={styles.recentMeta}>
                     {new Date(sale.date).toLocaleTimeString()} • {sale.paymentMethod}
                   </Text>
@@ -301,10 +295,30 @@ const CashierHome = () => {
             <Text style={styles.ticketsTitle}>Receipt Details</Text>
             {selectedReceipt && (
               <>
-                <Text style={styles.receiptMeta}>ID: {selectedReceipt.id}</Text>
+                <Text style={styles.receiptMeta}>Invoice: {selectedReceipt.invoiceNumber || selectedReceipt.id}</Text>
                 <Text style={styles.receiptMeta}>Date: {new Date(selectedReceipt.date).toLocaleString()}</Text>
+                <Text style={styles.receiptMeta}>Cashier: {selectedReceipt.cashier}</Text>
                 <Text style={styles.receiptMeta}>Payment: {selectedReceipt.paymentMethod}</Text>
                 <Text style={styles.receiptMeta}>Total: ${selectedReceipt.total.toFixed(2)}</Text>
+                <View style={styles.itemsWrapper}>
+                  <Text style={styles.itemsTitle}>Items</Text>
+                  {(selectedReceipt.items?.length ? selectedReceipt.items : [{
+                    productId: selectedReceipt.productId ?? 0,
+                    productName: selectedReceipt.productName ?? 'Item',
+                    quantity: selectedReceipt.quantity ?? 0,
+                    price: selectedReceipt.price ?? 0,
+                    subtotal: selectedReceipt.total ?? 0,
+                    unitType: 'single' as const,
+                    packSize: undefined,
+                  }]).map((line, index) => (
+                    <View key={`${line.productId}-${index}`} style={styles.modalItemRow}>
+                      <Text style={styles.modalItemName}>{line.productName}</Text>
+                      <Text style={styles.modalItemMeta}>
+                        {line.quantity} x ${line.price.toFixed(2)} = ${(line.subtotal ?? line.quantity * line.price).toFixed(2)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
                 <TouchableOpacity
                   style={styles.printBtn}
                   onPress={() => handlePrintReceipt(selectedReceipt)}
@@ -657,6 +671,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0f172a',
     marginBottom: 8
+  },
+  itemsWrapper: {
+    marginTop: 4,
+    marginBottom: 8
+  },
+  itemsTitle: {
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 6
+  },
+  modalItemRow: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 6
+  },
+  modalItemName: {
+    color: '#0f172a',
+    fontWeight: '600'
+  },
+  modalItemMeta: {
+    color: '#6b7280',
+    fontSize: 12,
+    marginTop: 2
   },
   printBtn: {
     marginTop: 8,
