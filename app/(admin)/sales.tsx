@@ -12,9 +12,10 @@ import {
   SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppSelector } from "../../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import type { SaleRecord } from "../../store/types";
 import type { PaymentMethod } from "../../store/types";
+import { fetchOperationalData } from "../../store/slices/userSlice";
 
 const DEBOUNCE_MS = 300;
 
@@ -34,7 +35,14 @@ interface PaymentOption {
 }
 
 const AdminSales: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
   const { sales = [] } = useAppSelector((state) => state.user);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
 
   // UI state
   const [searchQuery, setSearchQuery] = useState("");

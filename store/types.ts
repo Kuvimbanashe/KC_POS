@@ -16,6 +16,17 @@ export type Permission =
   | 'returns'
   | 'all';
 
+export interface BusinessProfile {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  taxId?: string;
+  currency?: string;
+  timezone?: string;
+}
+
 export interface UserProfile {
   id: number;
   email: string;
@@ -28,6 +39,8 @@ export interface UserProfile {
   status?: UserStatus;
   permissions?: Permission[];
   lastLogin?: string | null;
+  businessId?: number | null;
+  businessName?: string | null;
 }
 
 export interface AuthState {
@@ -49,6 +62,7 @@ export interface Product {
   cost: number;
   stock: number;
   sku: string;
+  barcode?: string;
   supplier?: string;
   unitType: UnitType;
   packSize?: number;

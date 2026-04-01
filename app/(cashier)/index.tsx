@@ -1,9 +1,11 @@
 // app/(cashier)/index.js
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Platform, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Ionicons as IoniconsType } from '@expo/vector-icons';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { SaleRecord } from '../../store/types';
+import { fetchOperationalData } from '../../store/slices/userSlice';
 
 // Correct Ionicon type
 type IoniconName = keyof typeof Ionicons.glyphMap;
@@ -17,8 +19,15 @@ interface StatCardProps {
 }
 
 const CashierHome = () => {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { sales, products } = useAppSelector((state) => state.user);
+  const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
 
   const today = new Date().toDateString();
 
@@ -80,13 +89,13 @@ const CashierHome = () => {
 
   const renderSaleItem = (sale: SaleRecord) => {
     const item = sale.items?.[0];
-    const qty = sale.quantity ?? item?.quantity ?? 0;
+    const qty = Number(sale.quantity ?? item?.quantity ?? 0);
     const name = sale.productName ?? item?.productName ?? 'Item';
-    const price = sale.price ?? item?.price ?? 0;
-    const subtotal = item?.subtotal ?? qty * price;
+    const price = Number(sale.price ?? item?.price ?? 0);
+    const subtotal = Number(item?.subtotal ?? qty * price);
 
     return (
-      <View key={sale.id} style={styles.saleItem}>
+      <TouchableOpacity key={sale.id} style={styles.saleItem} onPress={() => setSelectedReceipt(sale)}>
         <View style={styles.saleHeader}>
           <View>
             <Text style={styles.receiptId}>Receipt #{sale.id}</Text>
@@ -104,15 +113,58 @@ const CashierHome = () => {
 
         <View style={styles.productRow}>
           <Text style={styles.productText}>{qty}x {name}</Text>
-          <Text style={styles.productSubtotal}>${subtotal.toFixed(2)}</Text>
+          <Text style={styles.productSubtotal}>${Number.isFinite(subtotal) ? subtotal.toFixed(2) : '0.00'}</Text>
         </View>
 
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalValue}>${sale.total.toFixed(2)}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
+  };
+
+  const buildReceiptText = (sale: SaleRecord) => {
+    const lines = [
+      `Receipt #${sale.id}`,
+      `Date: ${new Date(sale.date).toLocaleString()}`,
+      `Cashier: ${sale.cashier ?? user?.name ?? 'Unknown'}`,
+      `Payment: ${sale.paymentMethod}`,
+      '',
+      'Items:'
+    ];
+
+    if (sale.items?.length) {
+      sale.items.forEach((line) => {
+        const lineQty = Number(line.quantity ?? 0);
+        const linePrice = Number(line.price ?? 0);
+        lines.push(`- ${lineQty}x ${line.productName} @ $${linePrice.toFixed(2)} = $${Number(line.subtotal ?? lineQty * linePrice).toFixed(2)}`);
+      });
+    } else {
+      const qty = Number(sale.quantity ?? 0);
+      const price = Number(sale.price ?? 0);
+      lines.push(`- ${qty}x ${sale.productName ?? 'Item'} @ $${price.toFixed(2)} = $${Number(qty * price).toFixed(2)}`);
+    }
+
+    lines.push('', `Total: $${sale.total.toFixed(2)}`);
+    return lines.join('\n');
+  };
+
+  const handlePrintReceipt = async (sale: SaleRecord) => {
+    const receiptText = buildReceiptText(sale);
+    if (Platform.OS === 'web') {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${receiptText}</pre>`);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      return;
+    }
+    await Share.share({
+      title: `Receipt #${sale.id}`,
+      message: receiptText
+    });
   };
 
   return (
@@ -180,7 +232,7 @@ const CashierHome = () => {
 
         {/* Today's Tickets */}
         <View style={styles.ticketsCard}>
-          <Text style={styles.ticketsTitle}>Today's Tickets</Text>
+          <Text style={styles.ticketsTitle}>Today&apos;s Tickets</Text>
 
           {todaySales.length === 0 ? (
             <View style={styles.emptyState}>
@@ -231,8 +283,37 @@ const CashierHome = () => {
             </View>
           )}
         </View>
-
       </ScrollView>
+
+      <Modal
+        visible={Boolean(selectedReceipt)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedReceipt(null)}
+      >
+        <View style={styles.receiptBackdrop}>
+          <View style={styles.receiptModal}>
+            <Text style={styles.ticketsTitle}>Receipt Details</Text>
+            {selectedReceipt && (
+              <>
+                <Text style={styles.receiptMeta}>ID: {selectedReceipt.id}</Text>
+                <Text style={styles.receiptMeta}>Date: {new Date(selectedReceipt.date).toLocaleString()}</Text>
+                <Text style={styles.receiptMeta}>Payment: {selectedReceipt.paymentMethod}</Text>
+                <Text style={styles.receiptMeta}>Total: ${selectedReceipt.total.toFixed(2)}</Text>
+                <TouchableOpacity
+                  style={styles.printBtn}
+                  onPress={() => handlePrintReceipt(selectedReceipt)}
+                >
+                  <Text style={styles.printBtnText}>Print Receipt</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedReceipt(null)}>
+              <Text style={styles.closeBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -553,6 +634,47 @@ const styles = StyleSheet.create({
   emptyRecent: {
     alignItems: 'center',
     paddingVertical: 20
+  },
+  receiptBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20
+  },
+  receiptModal: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16
+  },
+  receiptMeta: {
+    fontSize: 14,
+    color: '#0f172a',
+    marginBottom: 8
+  },
+  printBtn: {
+    marginTop: 8,
+    backgroundColor: '#f97316',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center'
+  },
+  printBtnText: {
+    color: '#fff',
+    fontWeight: '700'
+  },
+  closeBtn: {
+    marginTop: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingVertical: 12,
+    alignItems: 'center'
+  },
+  closeBtnText: {
+    color: '#0f172a',
+    fontWeight: '600'
   }
 });
 
