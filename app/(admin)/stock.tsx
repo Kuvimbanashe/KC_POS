@@ -287,7 +287,10 @@ const AdminStock = () => {
         minStockLevel: parsedMinStockLevel,
       };
 
-      const editingProductId = selectedProduct?.id;
+      const matchedByBarcode = productData.barcode
+        ? products.find((p) => p.barcode === productData.barcode && p.id !== selectedProduct?.id)?.id
+        : undefined;
+      const editingProductId = selectedProduct?.id ?? matchedByBarcode;
       const savedProduct = await apiClient.saveProduct(productData, user.businessId, editingProductId);
 
       if (editingProductId) {

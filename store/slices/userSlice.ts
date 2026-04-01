@@ -31,6 +31,17 @@ interface BackendProduct {
   created_at: string;
 }
 
+interface BackendSale {
+  id: number;
+  date: string;
+  cashier: string;
+  total: string | number;
+  payment_method: PaymentMethod;
+  invoice_number: string;
+  customer?: string;
+  items?: SaleItem[];
+}
+
 const initialState: UserState = {
   users: [],
   products: [],
@@ -84,10 +95,21 @@ export const fetchOperationalData = createAsyncThunk(
       createdAt: p.created_at,
     })) as Product[];
 
+    const mappedSales = unwrap<BackendSale>(sales.data).map((s) => ({
+      id: s.id,
+      date: s.date,
+      cashier: s.cashier,
+      total: Number(s.total),
+      paymentMethod: s.payment_method,
+      invoiceNumber: s.invoice_number,
+      customer: s.customer,
+      items: s.items,
+    })) as SaleRecord[];
+
     return {
       users: unwrap<UserProfile>(users.data),
       products: mappedProducts,
-      sales: unwrap<SaleRecord>(sales.data),
+      sales: mappedSales,
       purchases: unwrap<PurchaseRecord>(purchases.data),
       expenses: unwrap<ExpenseRecord>(expenses.data),
     };
