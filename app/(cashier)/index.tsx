@@ -1,9 +1,11 @@
 // app/(cashier)/index.js
+import { useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Ionicons as IoniconsType } from '@expo/vector-icons';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { SaleRecord } from '../../store/types';
+import { fetchOperationalData } from '../../store/slices/userSlice';
 
 // Correct Ionicon type
 type IoniconName = keyof typeof Ionicons.glyphMap;
@@ -17,8 +19,14 @@ interface StatCardProps {
 }
 
 const CashierHome = () => {
+  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { sales, products } = useAppSelector((state) => state.user);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
 
   const today = new Date().toDateString();
 
