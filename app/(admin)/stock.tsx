@@ -285,7 +285,7 @@ const AdminStock = () => {
       const savedProduct = await apiClient.saveProduct(productData, user.businessId, editingProductId);
 
       if (editingProductId) {
-        dispatch(updateProduct({ id: selectedProduct.id, ...savedProduct }));
+        dispatch(updateProduct({ ...savedProduct, id: editingProductId }));
         Alert.alert('Success', `Product "${savedProduct.name}" updated`);
       } else {
         dispatch(addProduct({
@@ -1300,6 +1300,10 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  detailSubValue: {
+    fontSize: 12,
+    marginTop: 2,
   },
   detailPrice: {
     fontSize: 16,
