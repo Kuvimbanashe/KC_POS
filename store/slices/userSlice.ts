@@ -125,6 +125,19 @@ type AddSalePayload = {
 };
 
 type UpdateStockPayload = { productId: number; quantity: number };
+type AddPurchasePayload = {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  total: number;
+  supplier: string;
+};
+type AddExpensePayload = {
+  category: string;
+  amount: number;
+  description: string;
+};
 type AddProductPayload = Omit<Product, 'id' | 'createdAt'> & {
   id?: number;
   createdAt?: string;
@@ -150,6 +163,39 @@ const userSlice = createSlice({
         invoiceNumber: `INV${(1000 + nextId).toString().padStart(4, '0')}`,
         customer: action.payload.customer,
         items: action.payload.items,
+      });
+    },
+    addPurchase: (state, action: PayloadAction<AddPurchasePayload>) => {
+      const nextId = state.purchases.length > 0 ? Math.max(...state.purchases.map((p) => p.id)) + 1 : 1;
+      const timestamp = new Date().toISOString();
+      state.purchases.unshift({
+        id: nextId,
+        productId: action.payload.productId,
+        productName: action.payload.productName,
+        quantity: action.payload.quantity,
+        unitCost: action.payload.unitCost,
+        total: action.payload.total,
+        date: timestamp,
+        supplier: action.payload.supplier,
+        orderNumber: `PO-${(1000 + nextId).toString().padStart(4, '0')}`,
+        status: 'Completed',
+        deliveryDate: timestamp,
+        createdAt: timestamp,
+      });
+    },
+    addExpense: (state, action: PayloadAction<AddExpensePayload>) => {
+      const nextId = state.expenses.length > 0 ? Math.max(...state.expenses.map((e) => e.id)) + 1 : 1;
+      const date = new Date().toISOString().split('T')[0];
+      state.expenses.unshift({
+        id: nextId,
+        category: action.payload.category,
+        amount: action.payload.amount,
+        date,
+        description: action.payload.description,
+        paymentMethod: 'Cash',
+        vendor: 'N/A',
+        status: 'Paid',
+        receiptNumber: `EXP-${(1000 + nextId).toString().padStart(4, '0')}`,
       });
     },
     updateProductStock: (state, action: PayloadAction<UpdateStockPayload>) => {
@@ -199,5 +245,6 @@ const userSlice = createSlice({
   },
 });
 
-export const { addSale, updateProductStock, addProduct, updateProduct, hydrateOperationalData } = userSlice.actions;
+export const { addSale, addPurchase, addExpense, updateProductStock, addProduct, updateProduct, hydrateOperationalData } =
+  userSlice.actions;
 export default userSlice.reducer;
