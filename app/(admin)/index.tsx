@@ -8,8 +8,9 @@ import {
   TouchableOpacity
 } from 'react-native';
 import { StyleSheet } from 'react-native';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
+import { fetchOperationalData } from '../../store/slices/userSlice';
 
 interface DashboardStats {
   todaySales: number;
@@ -52,7 +53,14 @@ const AdminHome = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
   const { sales, products } = useAppSelector((state) => state.user);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
 
   useEffect(() => {
     const fetchDashboardData = () => {
