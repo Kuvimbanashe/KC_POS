@@ -29,6 +29,11 @@ const CashierHome = () => {
     dispatch(fetchOperationalData(user.businessId));
   }, [dispatch, user?.businessId]);
 
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
+
   const today = new Date().toDateString();
 
   // Filter today's sales by cashier
