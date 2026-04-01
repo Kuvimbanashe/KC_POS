@@ -16,6 +16,7 @@ import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { addPurchase, fetchOperationalData, updateProduct } from '../../store/slices/userSlice';
 import type { PurchaseRecord, Product } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 interface PurchaseFormData {
   quantity: string;
@@ -95,9 +96,13 @@ const AdminPurchases = () => {
   };
 
   // Handle purchase submission
-  const handlePurchaseSubmit = () => {
+  const handlePurchaseSubmit = async () => {
     if (!selectedProduct || !formData.quantity || !formData.unitCost || !formData.supplier) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+    if (!user?.businessId) {
+      Alert.alert('Error', 'Business context missing. Please sign in again.');
       return;
     }
 
@@ -113,7 +118,17 @@ const AdminPurchases = () => {
 
       const totalCost = quantity * unitCost;
 
-      // Add purchase to Redux store
+      await apiClient.createPurchase({
+        productId: selectedProduct.id,
+        productName: selectedProduct.name,
+        quantity: actualQuantity,
+        unitCost,
+        total: totalCost,
+        supplier: formData.supplier,
+        businessId: user.businessId,
+      });
+
+      // Keep local state in sync immediately
       dispatch(addPurchase({
         productId: selectedProduct.id,
         productName: selectedProduct.name,
@@ -123,20 +138,15 @@ const AdminPurchases = () => {
         supplier: formData.supplier,
       }));
 
-      // Update product with supplier info if not already set
-      if (!selectedProduct.supplier) {
-        dispatch(updateProduct({
-          id: selectedProduct.id,
-          supplier: formData.supplier,
-        }));
-      }
+      dispatch(updateProduct({
+        id: selectedProduct.id,
+        stock: selectedProduct.stock + actualQuantity,
+        cost: unitCost,
+        supplier: selectedProduct.supplier || formData.supplier,
+      }));
+      dispatch(fetchOperationalData(user.businessId));
 
-      Alert.alert(
-        'Success',
-        `Purchase order created!\n\n` +
-        `Suggested price: $${sellingPrice.toFixed(2)}\n` +
-        `${actualQuantity} units added to stock`
-      );
+      Alert.alert('Success', `Purchase saved to backend.\n\nSuggested price: $${sellingPrice.toFixed(2)}\n${actualQuantity} units added to stock`);
       
       // Reset form
       setIsPurchaseModalOpen(false);

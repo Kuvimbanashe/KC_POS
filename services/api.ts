@@ -20,6 +20,15 @@ interface CreateSalePayload {
   items: SaleItem[];
   businessId?: number | null;
 }
+interface CreatePurchasePayload {
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  total: number;
+  supplier: string;
+  businessId?: number | null;
+}
 
 interface RegisterBusinessPayload {
   businessName: string;
@@ -334,6 +343,22 @@ export const apiClient = {
           unit_type: item.unitType,
           pack_size: item.packSize,
         })),
+      }),
+    });
+  },
+  async createPurchase(payload: CreatePurchasePayload): Promise<void> {
+    await request('/purchases/', {
+      method: 'POST',
+      body: JSON.stringify({
+        business: payload.businessId,
+        product: payload.productId,
+        product_name: payload.productName,
+        quantity: payload.quantity,
+        unit_cost: roundCurrency(payload.unitCost),
+        total: roundCurrency(payload.total),
+        supplier: payload.supplier,
+        order_number: `PO-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        status: 'Completed',
       }),
     });
   },
