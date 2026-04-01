@@ -41,6 +41,8 @@ interface StatCard {
   bgColor: string;
 }
 
+const MAX_CURRENCY_VALUE = 9_999_999_999.99;
+
 const AdminStock = () => {
   const { products } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
@@ -266,18 +268,22 @@ const AdminStock = () => {
         Alert.alert('Error', 'Please enter valid numeric values.');
         return;
       }
+      if (parsedPrice > MAX_CURRENCY_VALUE || (parsedPackPrice ?? 0) > MAX_CURRENCY_VALUE || (parsedSinglePrice ?? 0) > MAX_CURRENCY_VALUE) {
+        Alert.alert('Error', `Currency values must be <= ${MAX_CURRENCY_VALUE.toFixed(2)}.`);
+        return;
+      }
 
       const productData = {
         name: formData.name,
         category: formData.category,
-        price: parsedPrice,
+        price: Number(parsedPrice.toFixed(2)),
         stock: parsedStock,
         barcode: formData.barcode || undefined,
         supplier: formData.supplier,
         unitType: formData.unitType,
         packSize: parsedPackSize,
-        packPrice: parsedPackPrice,
-        singlePrice: parsedSinglePrice,
+        packPrice: parsedPackPrice === undefined ? undefined : Number(parsedPackPrice.toFixed(2)),
+        singlePrice: parsedSinglePrice === undefined ? undefined : Number(parsedSinglePrice.toFixed(2)),
         minStockLevel: parsedMinStockLevel,
       };
 

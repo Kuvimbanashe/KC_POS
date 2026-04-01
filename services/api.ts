@@ -1,6 +1,15 @@
 import type { AssetRecord, ExpenseRecord, Product, PurchaseRecord, SaleItem, SaleRecord, UserProfile } from '../store/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://d3kf6j33-8000.inc1.devtunnels.ms/api';
+const MAX_CURRENCY_VALUE = 9_999_999_999.99;
+
+const roundCurrency = (value: number): number => {
+  if (!Number.isFinite(value)) return 0;
+  const rounded = Number(value.toFixed(2));
+  if (rounded > MAX_CURRENCY_VALUE) return MAX_CURRENCY_VALUE;
+  if (rounded < -MAX_CURRENCY_VALUE) return -MAX_CURRENCY_VALUE;
+  return rounded;
+};
 
 interface CreateSalePayload {
   cashier: string;
@@ -312,7 +321,7 @@ export const apiClient = {
       body: JSON.stringify({
         business: payload.businessId,
         cashier: payload.cashier,
-        total: payload.total,
+        total: roundCurrency(payload.total),
         payment_method: payload.paymentMethod,
         invoice_number: payload.invoiceNumber,
         customer: payload.customer ?? '',
@@ -320,8 +329,8 @@ export const apiClient = {
           product: item.productId,
           product_name: item.productName,
           quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
+          price: roundCurrency(item.price),
+          subtotal: roundCurrency(item.subtotal),
           unit_type: item.unitType,
           pack_size: item.packSize,
         })),
@@ -352,14 +361,14 @@ export const apiClient = {
       business: businessId,
       name: payload.name,
       category: payload.category,
-      price: payload.price,
-      cost: payload.cost ?? payload.price * 0.6,
+      price: roundCurrency(payload.price),
+      cost: roundCurrency(payload.cost ?? payload.price * 0.6),
       stock: payload.stock,
       supplier: payload.supplier ?? '',
       unit_type: payload.unitType,
       pack_size: payload.packSize,
-      pack_price: payload.packPrice,
-      single_price: payload.singlePrice,
+      pack_price: payload.packPrice === undefined ? undefined : roundCurrency(payload.packPrice),
+      single_price: payload.singlePrice === undefined ? undefined : roundCurrency(payload.singlePrice),
       min_stock_level: payload.minStockLevel ?? 10,
       barcode: payload.barcode,
       description: payload.description ?? '',
@@ -389,8 +398,8 @@ export const apiClient = {
         business: businessId,
         name: payload.name,
         category: payload.category,
-        purchase_value: payload.purchaseValue,
-        current_value: payload.currentValue,
+        purchase_value: roundCurrency(payload.purchaseValue),
+        current_value: roundCurrency(payload.currentValue),
         purchase_date: payload.purchaseDate,
         condition: payload.condition,
         location: payload.location,
