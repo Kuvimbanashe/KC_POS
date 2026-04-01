@@ -33,6 +33,7 @@ const authSlice = createSlice({
       
       // Store in AsyncStorage
       AsyncStorage.setItem('userData', JSON.stringify({ user, userType }));
+      AsyncStorage.setItem('authToken', token);
       AsyncStorage.setItem('sessionExpiry', state.sessionExpiry);
     },
     logout: (state) => {
@@ -44,7 +45,7 @@ const authSlice = createSlice({
       state.sessionExpiry = null;
       
       // Clear AsyncStorage
-      AsyncStorage.multiRemove(['userData', 'sessionExpiry']);
+      AsyncStorage.multiRemove(['userData', 'authToken', 'sessionExpiry']);
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
