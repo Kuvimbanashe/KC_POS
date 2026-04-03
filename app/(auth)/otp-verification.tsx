@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { apiClient } from '../../services/api';
 
@@ -60,6 +61,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
   backButton: {
     paddingVertical: 12,
     borderRadius: 12,
@@ -112,7 +119,7 @@ export default function OTPVerificationScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Text style={styles.title}>Verify Code</Text>
       <Text style={styles.subtitle}>Enter the 6-digit reset code generated for your account.</Text>
       <Text style={styles.email}>{email || 'No email provided'}</Text>
@@ -132,12 +139,15 @@ export default function OTPVerificationScreen() {
         onPress={handleVerify}
         disabled={isLoading}
       >
-        <Text style={styles.submitButtonText}>{isLoading ? 'Verifying...' : 'Verify Code'}</Text>
+        <View style={styles.buttonContent}>
+          {isLoading && <ActivityIndicator size="small" color="#ffffff" />}
+          <Text style={styles.submitButtonText}>{isLoading ? 'Verifying...' : 'Verify Code'}</Text>
+        </View>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }

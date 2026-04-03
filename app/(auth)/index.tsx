@@ -3,12 +3,13 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 
 export default function WelcomeScreen() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.iconContainer}>
         <Feather name="shopping-bag" size={48} color="white" />
       </View>
@@ -41,7 +42,7 @@ export default function WelcomeScreen() {
       </View>
       
      
-    </View>
+    </SafeAreaView>
   );
 }
 

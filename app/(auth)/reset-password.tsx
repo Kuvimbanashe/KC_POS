@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { apiClient } from '../../services/api';
 
@@ -54,6 +55,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   backButton: {
     paddingVertical: 12,
@@ -117,7 +124,7 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <Text style={styles.title}>Reset Password</Text>
       <Text style={styles.subtitle}>Enter your new password for {email || 'your account'}.</Text>
       <Text style={styles.hint}>Your verification code has already been confirmed.</Text>
@@ -147,12 +154,15 @@ export default function ResetPasswordScreen() {
         onPress={handleReset}
         disabled={isLoading}
       >
-        <Text style={styles.submitButtonText}>{isLoading ? 'Resetting...' : 'Reset Password'}</Text>
+        <View style={styles.buttonContent}>
+          {isLoading && <ActivityIndicator size="small" color="#ffffff" />}
+          <Text style={styles.submitButtonText}>{isLoading ? 'Resetting...' : 'Reset Password'}</Text>
+        </View>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
