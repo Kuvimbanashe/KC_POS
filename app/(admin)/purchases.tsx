@@ -71,8 +71,8 @@ const AdminPurchases = () => {
   // Filter purchases based on search
   useEffect(() => {
     const filtered = purchases.filter(purchase =>
-      purchase.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      purchase.supplier.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      purchase.productName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      purchase.supplier?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       purchase.id.toString().includes(searchQuery.toLowerCase())
     );
     setFilteredPurchases(filtered);
@@ -186,7 +186,7 @@ const AdminPurchases = () => {
     },
     {
       title: "Total Cost",
-      value: `$${totalCost.toFixed(2)}`,
+      value: `$${totalCost}`,
       icon: "cash-outline",
       color: "#059669",
     },
@@ -207,7 +207,7 @@ const AdminPurchases = () => {
     >
       <View style={styles.purchaseHeader}>
         <Text style={styles.productName}>{item.productName}</Text>
-        <Text style={styles.purchaseAmount}>${item.total.toFixed(2)}</Text>
+        <Text style={styles.purchaseAmount}>${item.total}</Text>
       </View>
       
       <View style={styles.purchaseDetails}>
@@ -225,7 +225,7 @@ const AdminPurchases = () => {
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
             <Ionicons name="pricetag-outline" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>${item.unitCost.toFixed(2)}/unit</Text>
+            <Text style={styles.detailText}>${item.unitCost}/unit</Text>
           </View>
           <View style={styles.detailItem}>
             <Ionicons name="calendar-outline" size={14} color="#6B7280" />
@@ -247,7 +247,7 @@ const AdminPurchases = () => {
     >
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.productPrice}>${item.price}</Text>
       </View>
       
       <View style={styles.productDetails}>
@@ -423,7 +423,7 @@ const AdminPurchases = () => {
                 <Text style={styles.productName}>{selectedProduct.name}</Text>
                 <View style={styles.productInfoRow}>
                   <Text style={styles.productInfoText}>
-                    Stock: {selectedProduct.stock} • ${selectedProduct.price.toFixed(2)}
+                    Stock: {selectedProduct.stock} • ${selectedProduct.price}
                   </Text>
                 </View>
               </View>
@@ -591,13 +591,13 @@ const AdminPurchases = () => {
                   <View style={styles.detailItem}>
                     <Text style={styles.detailLabel}>Unit Cost</Text>
                     <Text style={styles.detailValue}>
-                      ${selectedPurchase.unitCost.toFixed(2)}
+                      ${selectedPurchase.unitCost}
                     </Text>
                   </View>
                   <View style={styles.detailItem}>
                     <Text style={styles.detailLabel}>Total Cost</Text>
                     <Text style={[styles.detailValue, styles.totalCost]}>
-                      ${selectedPurchase.total.toFixed(2)}
+                      ${selectedPurchase.total}
                     </Text>
                   </View>
                   <View style={styles.detailItem}>

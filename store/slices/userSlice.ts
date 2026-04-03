@@ -268,6 +268,33 @@ const userSlice = createSlice({
       state.expenses = action.payload.expenses;
     });
   },
+  extraReducers: (builder) => {
+    builder.addCase(fetchOperationalData.fulfilled, (state, action) => {
+      state.users = action.payload.users;
+      state.products = action.payload.products;
+      state.sales = action.payload.sales;
+      state.purchases = action.payload.purchases;
+      state.expenses = action.payload.expenses;
+    });
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchOperationalData.fulfilled, (state, action) => {
+      state.users = action.payload.users;
+      state.products = action.payload.products;
+      state.sales = action.payload.sales;
+      state.purchases = action.payload.purchases;
+      state.expenses = action.payload.expenses;
+    });
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchOperationalData.fulfilled, (state, action) => {
+      state.users = action.payload.users;
+      state.products = action.payload.products;
+      state.sales = action.payload.sales;
+      state.purchases = action.payload.purchases;
+      state.expenses = action.payload.expenses;
+    });
+  },
 });
 
 export const { addSale, addPurchase, addExpense, updateProductStock, addProduct, updateProduct, hydrateOperationalData } =
