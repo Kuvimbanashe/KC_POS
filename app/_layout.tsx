@@ -22,6 +22,11 @@ function RootLayoutNav() {
       const userData = await AsyncStorage.getItem('userData');
       const authToken = await AsyncStorage.getItem('authToken');
 
+      if (authToken === 'mock-jwt-token') {
+        await AsyncStorage.multiRemove(['userData', 'authToken', 'sessionExpiry']);
+        return;
+      }
+
       if (userData) {
         const parsed = JSON.parse(userData) as Partial<{
           user: UserProfile;

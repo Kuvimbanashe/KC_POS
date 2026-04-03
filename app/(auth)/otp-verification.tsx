@@ -1,10 +1,8 @@
-// app/(auth)/otp-verification.js
-import { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
-
+import { apiClient } from '../../services/api';
 
 const styles = StyleSheet.create({
   container: {
@@ -18,29 +16,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#6b7280',
-    marginBottom: 32,
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 24,
   },
-  otpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 32,
-    gap: 12,
+  email: {
+    fontSize: 14,
+    color: '#f97316',
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '600',
   },
   otpInput: {
-    flex: 1,
+    height: 56,
     borderWidth: 1,
     borderColor: '#e6edf3',
     borderRadius: 12,
-    fontSize: 24,
-    fontWeight: '700',
     textAlign: 'center',
-    paddingVertical: 16,
+    fontSize: 24,
+    fontWeight: '600',
     color: '#0f172a',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
+    letterSpacing: 8,
+    marginBottom: 24,
   },
   submitButton: {
     paddingVertical: 14,
@@ -57,58 +60,52 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  resendButton: {
+  backButton: {
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e6edf3',
     backgroundColor: 'transparent',
   },
-  resendButtonText: {
+  backButtonText: {
     color: '#6b7280',
     textAlign: 'center',
     fontSize: 14,
     fontWeight: '500',
   },
 });
+
 export default function OTPVerificationScreen() {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const params = useLocalSearchParams<{ email?: string }>();
+  const email = Array.isArray(params.email) ? params.email[0] : params.email ?? '';
+  const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const inputs = useRef([]);
   const router = useRouter();
 
-  const focusNext = (index: number, value: string) => {
-    if (value && index < 5) {
-      (inputs.current[index + 1] as TextInput).focus();
-    }
-  };
-
-  const focusPrevious = (index: number, key: string) => {
-    if (key === 'Backspace' && index > 0) {
-      (inputs.current[index - 1] as TextInput).focus();
-    }
-  };
-
   const handleVerify = async () => {
-    const otpCode = otp.join('');
-    if (otpCode.length !== 6) {
-      Alert.alert('Error', 'Please enter the complete OTP code');
+    const normalizedCode = otpCode.trim();
+    if (!email) {
+      Alert.alert('Error', 'Reset context is missing. Start again from forgot password.');
+      return;
+    }
+    if (normalizedCode.length !== 6) {
+      Alert.alert('Error', 'Please enter the full 6-digit code.');
       return;
     }
 
     setIsLoading(true);
-
     try {
-      // Simulate OTP verification
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      if (otpCode === '123456') { // Mock valid OTP
-        router.push('/reset-password');
-      } else {
-        Alert.alert('Error', 'Invalid OTP code. Please try again.');
-      }
+      await apiClient.verifyPasswordResetCode(email, normalizedCode);
+      router.push({
+        pathname: '/reset-password',
+        params: {
+          email,
+          code: normalizedCode,
+        },
+      });
     } catch (error) {
-      Alert.alert('Error', 'Verification failed. Please try again.');
+      const message = error instanceof Error ? error.message : 'Verification failed';
+      Alert.alert('Error', message);
     } finally {
       setIsLoading(false);
     }
@@ -116,55 +113,30 @@ export default function OTPVerificationScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        OTP Verification
-      </Text>
-      <Text style={styles.subtitle}>
-        Enter the 6-digit code sent to your email
-      </Text>
+      <Text style={styles.title}>Verify Code</Text>
+      <Text style={styles.subtitle}>Enter the 6-digit reset code generated for your account.</Text>
+      <Text style={styles.email}>{email || 'No email provided'}</Text>
 
-      <View style={styles.otpContainer}>
-        {otp.map((digit, index) => (
-          <TextInput
-            key={index}
-            ref={(ref: TextInput | null) => {
-              if (ref) {
-                (inputs.current[index] as TextInput) = ref;
-              }
-            }}
-            style={styles.otpInput}
-            value={digit}
-            onChangeText={(value) => {
-              const newOtp = [...otp];
-              newOtp[index] = value;
-              setOtp(newOtp);
-              focusNext(index, value);
-            }}
-            onKeyPress={({ nativeEvent: { key } }) => focusPrevious(index, key)}
-            keyboardType="number-pad"
-            maxLength={1}
-            selectTextOnFocus
-          />
-        ))}
-      </View>
+      <TextInput
+        style={styles.otpInput}
+        value={otpCode}
+        onChangeText={(value) => setOtpCode(value.replace(/[^0-9]/g, '').slice(0, 6))}
+        keyboardType="numeric"
+        maxLength={6}
+        placeholder="000000"
+        placeholderTextColor="#9ca3af"
+      />
 
-      <TouchableOpacity 
-        style={[
-          styles.submitButton,
-          isLoading && styles.submitButtonDisabled,
-        ]}
+      <TouchableOpacity
+        style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
         onPress={handleVerify}
         disabled={isLoading}
       >
-        <Text style={styles.submitButtonText}>
-          {isLoading ? 'Verifying...' : 'Verify OTP'}
-        </Text>
+        <Text style={styles.submitButtonText}>{isLoading ? 'Verifying...' : 'Verify Code'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.resendButton}>
-        <Text style={styles.resendButtonText}>
-          Resend OTP
-        </Text>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
     </View>
   );

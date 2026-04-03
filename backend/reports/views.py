@@ -7,17 +7,21 @@ from expenses.models import Expense
 from products.models import Product
 from purchases.models import Purchase
 from sales.models import Sale
+from users.authentication import get_request_business_id
+from users.permissions import IsAdminStaffUser
 
 
 def apply_business_scope(queryset, business_id):
     if business_id:
         return queryset.filter(business_id=business_id)
-    return queryset
+    return queryset.none()
 
 
 class DashboardReportView(APIView):
+    permission_classes = [IsAdminStaffUser]
+
     def get(self, request):
-        business_id = request.query_params.get('business_id')
+        business_id = get_request_business_id(request)
         sales_qs = apply_business_scope(Sale.objects.all(), business_id)
         expenses_qs = apply_business_scope(Expense.objects.all(), business_id)
         products_qs = apply_business_scope(Product.objects.all(), business_id)
@@ -43,10 +47,12 @@ class DashboardReportView(APIView):
 
 
 class SalesReportView(APIView):
+    permission_classes = [IsAdminStaffUser]
+
     def get(self, request):
         start = request.query_params.get('start')
         end = request.query_params.get('end')
-        business_id = request.query_params.get('business_id')
+        business_id = get_request_business_id(request)
         queryset = apply_business_scope(Sale.objects.all(), business_id)
 
         if start:
@@ -72,8 +78,10 @@ class SalesReportView(APIView):
 
 
 class InventoryReportView(APIView):
+    permission_classes = [IsAdminStaffUser]
+
     def get(self, request):
-        business_id = request.query_params.get('business_id')
+        business_id = get_request_business_id(request)
         products_qs = apply_business_scope(Product.objects.all(), business_id)
         products = products_qs.values('id', 'name', 'sku', 'barcode', 'stock', 'min_stock_level', 'cost', 'price')
         low_stock = products_qs.filter(stock__lte=F('min_stock_level')).values('id', 'name', 'stock', 'min_stock_level')
@@ -89,10 +97,12 @@ class InventoryReportView(APIView):
 
 
 class ExpensesReportView(APIView):
+    permission_classes = [IsAdminStaffUser]
+
     def get(self, request):
         start = request.query_params.get('start')
         end = request.query_params.get('end')
-        business_id = request.query_params.get('business_id')
+        business_id = get_request_business_id(request)
         queryset = apply_business_scope(Expense.objects.all(), business_id)
 
         if start:
@@ -107,11 +117,13 @@ class ExpensesReportView(APIView):
 
 
 class ProfitLossReportView(APIView):
+    permission_classes = [IsAdminStaffUser]
+
     def get(self, request):
         start = request.query_params.get('start')
         end = request.query_params.get('end')
 
-        business_id = request.query_params.get('business_id')
+        business_id = get_request_business_id(request)
         sales_qs = apply_business_scope(Sale.objects.all(), business_id)
         expenses_qs = apply_business_scope(Expense.objects.all(), business_id)
         purchases_qs = apply_business_scope(Purchase.objects.all(), business_id)

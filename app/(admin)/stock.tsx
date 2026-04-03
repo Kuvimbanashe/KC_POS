@@ -8,7 +8,8 @@ import {
   Modal,
   FlatList,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +19,27 @@ import { addProduct, fetchOperationalData, updateProduct } from '../../store/sli
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { Product, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
+import {
+  ADMIN_BUTTON_CONTENT,
+  ADMIN_BUTTON_TEXT,
+  ADMIN_COLORS,
+  ADMIN_DETAIL_LABEL,
+  ADMIN_DETAIL_ROW,
+  ADMIN_DETAIL_VALUE,
+  ADMIN_INPUT_FIELD,
+  ADMIN_INPUT_SURFACE,
+  ADMIN_LIST_CARD,
+  ADMIN_MODAL_HEADER,
+  ADMIN_MODAL_SECTION,
+  ADMIN_PAGE_SUBTITLE,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_PRIMARY_BUTTON_DISABLED,
+  ADMIN_PAGE_TITLE,
+  ADMIN_SECTION_CARD,
+  ADMIN_SECTION_SUBTITLE,
+  ADMIN_SECTION_TITLE,
+  ADMIN_STAT_CARD,
+} from '../../theme/adminUi';
 
 interface ProductFormData {
   name: string;
@@ -56,6 +78,8 @@ const AdminStock = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -79,20 +103,20 @@ const AdminStock = () => {
 
   // Colors from your tailwind config
   const COLORS = {
-    primary: '#0f172a', // hsl(220 90% 15%)
+    primary: ADMIN_COLORS.text,
     primaryLight: '#1e293b',
-    accent: '#f97316', // hsl(25 95% 53%)
+    accent: ADMIN_COLORS.accent,
     accentLight: '#fb923c',
-    background: '#ffffff',
-    card: '#ffffff',
-    border: '#e2e8f0', // hsl(220 20% 90%)
-    input: '#e2e8f0',
-    destructive: '#ef4444',
-    muted: '#64748b', // hsl(220 30% 45%)
-    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#dc2626',
+    background: ADMIN_COLORS.background,
+    card: ADMIN_COLORS.surface,
+    border: ADMIN_COLORS.border,
+    input: ADMIN_COLORS.surfaceMuted,
+    destructive: ADMIN_COLORS.danger,
+    muted: ADMIN_COLORS.secondaryText,
+    mutedLight: ADMIN_COLORS.line,
+    success: ADMIN_COLORS.success,
+    warning: ADMIN_COLORS.warning,
+    danger: ADMIN_COLORS.danger,
   };
 
   // Simulate loading
@@ -114,6 +138,16 @@ const AdminStock = () => {
     );
     setFilteredProducts(filtered);
   }, [searchQuery, products]);
+
+  const handleRefresh = async () => {
+    if (!user?.businessId) return;
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchOperationalData(user.businessId));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Calculate statistics
   const lowStockProducts = useMemo(() => 
@@ -257,6 +291,7 @@ const AdminStock = () => {
     }
 
     try {
+      setIsSubmitting(true);
       const parsedPrice = Number.parseFloat(formData.price);
       const parsedStock = Number.parseInt(formData.stock, 10);
       const parsedPackSize = formData.packSize ? Number.parseInt(formData.packSize, 10) : undefined;
@@ -324,6 +359,8 @@ const AdminStock = () => {
       console.error('Error saving product:', error);
       const message = error instanceof Error ? error.message : 'Failed to save product';
       Alert.alert('Error', message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -412,8 +449,14 @@ const AdminStock = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
-      <ScrollView style={styles.scrollView}>
+    <View style={[styles.container, { backgroundColor: COLORS.background }]}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: COLORS.primary }]}>Inventory</Text>
@@ -430,13 +473,7 @@ const AdminStock = () => {
           {statCards.map((stat, index) => (
             <View 
               key={index} 
-              style={[
-                styles.statCard, 
-                { 
-                  backgroundColor: stat.bgColor,
-                  borderColor: COLORS.border 
-                }
-              ]}
+              style={styles.statCard}
             >
               <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
                 <Ionicons name={stat.icon} size={20} color={stat.color} />
@@ -552,7 +589,7 @@ const AdminStock = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
             <View style={styles.formContainer}>
               {/* Basic Info */}
               <View style={styles.formGroup}>
@@ -794,12 +831,16 @@ const AdminStock = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
               onPress={handleSubmit}
+              disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText}>
-                {isEditMode ? 'Update Product' : 'Add Product'}
-              </Text>
+              <View style={styles.buttonContent}>
+                {isSubmitting && <ActivityIndicator size="small" color="#FFFFFF" />}
+                <Text style={styles.submitButtonText}>
+                  {isSubmitting ? 'Saving...' : isEditMode ? 'Update Product' : 'Add Product'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -845,59 +886,50 @@ const AdminStock = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.detailsContainer}>
                 {/* Product Info */}
                 <View style={styles.detailsSection}>
-                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Name</Text>
-                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.name}</Text>
-                </View>
-
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>SKU</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.sku}</Text>
-                    <Text style={[styles.detailSubValue, { color: COLORS.muted }]}>Barcode: {selectedProduct.barcode || 'N/A'}</Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Name</Text>
+                    <Text style={styles.detailLineValue}>{selectedProduct.name}</Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.category}</Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>SKU</Text>
+                    <Text style={styles.detailLineValue}>{selectedProduct.sku}</Text>
                   </View>
-                </View>
-
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Price</Text>
-                    <Text style={[styles.detailPrice, { color: COLORS.accent }]}>${selectedProduct.price.toFixed(2)}</Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Barcode</Text>
+                    <Text style={styles.detailLineValue}>{selectedProduct.barcode || 'N/A'}</Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Stock</Text>
-                    <View style={styles.stockContainer}>
-                      <Text style={[styles.detailStock, { color: COLORS.primary }]}>{selectedProduct.stock}</Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Category</Text>
+                    <Text style={styles.detailLineValue}>{selectedProduct.category}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Price</Text>
+                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.price.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Stock</Text>
+                    <View style={styles.detailLineValueContent}>
+                      <Text style={styles.detailLineValue}>{selectedProduct.stock}</Text>
                       {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
                     </View>
                   </View>
-                </View>
-
-                <View style={styles.detailsSection}>
-                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Supplier</Text>
-                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                    {selectedProduct.supplier || 'Not specified'}
-                  </Text>
-                </View>
-
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Unit Type</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Supplier</Text>
+                    <Text style={styles.detailLineValue}>{selectedProduct.supplier || 'Not specified'}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Unit Type</Text>
+                    <Text style={styles.detailLineValue}>
                       {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
                     </Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Min Stock</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                      {selectedProduct.minStockLevel || 10}
-                    </Text>
+                  <View style={[styles.detailLine, styles.detailLineLast]}>
+                    <Text style={styles.detailLineLabel}>Min Stock</Text>
+                    <Text style={styles.detailLineValue}>{selectedProduct.minStockLevel || 10}</Text>
                   </View>
                 </View>
 
@@ -905,32 +937,24 @@ const AdminStock = () => {
                 {(selectedProduct.packSize || selectedProduct.packPrice) && (
                   <View style={styles.detailsSection}>
                     <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Pack Information</Text>
-                    <View style={styles.detailsGrid}>
-                      {selectedProduct.packSize && (
-                        <View style={styles.detailItem}>
-                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Size</Text>
-                          <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                            {selectedProduct.packSize} units
-                          </Text>
-                        </View>
-                      )}
-                      {selectedProduct.packPrice && (
-                        <View style={styles.detailItem}>
-                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Price</Text>
-                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
-                            ${selectedProduct.packPrice.toFixed(2)}
-                          </Text>
-                        </View>
-                      )}
-                      {selectedProduct.singlePrice && (
-                        <View style={styles.detailItem}>
-                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Single Price</Text>
-                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
-                            ${selectedProduct.singlePrice.toFixed(2)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
+                    {selectedProduct.packSize && (
+                      <View style={styles.detailLine}>
+                        <Text style={styles.detailLineLabel}>Pack Size</Text>
+                        <Text style={styles.detailLineValue}>{selectedProduct.packSize} units</Text>
+                      </View>
+                    )}
+                    {selectedProduct.packPrice && (
+                      <View style={styles.detailLine}>
+                        <Text style={styles.detailLineLabel}>Pack Price</Text>
+                        <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.packPrice.toFixed(2)}</Text>
+                      </View>
+                    )}
+                    {selectedProduct.singlePrice && (
+                      <View style={[styles.detailLine, styles.detailLineLast]}>
+                        <Text style={styles.detailLineLabel}>Single Price</Text>
+                        <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.singlePrice.toFixed(2)}</Text>
+                      </View>
+                    )}
                   </View>
                 )}
 
@@ -949,7 +973,7 @@ const AdminStock = () => {
           </SafeAreaView>
         )}
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -957,9 +981,13 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
+    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
+  },
+  content: {
+    paddingBottom: 24,
   },
 
   // Loading
@@ -967,6 +995,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: ADMIN_COLORS.background,
   },
   loadingText: {
     marginTop: 12,
@@ -980,12 +1009,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    ...ADMIN_PAGE_TITLE,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    ...ADMIN_PAGE_SUBTITLE,
   },
 
   // Stats
@@ -997,11 +1025,10 @@ const styles = StyleSheet.create({
     paddingRight: 40,
   },
   statCard: {
-    borderRadius: 12,
+    ...ADMIN_STAT_CARD,
     padding: 16,
     marginRight: 12,
     width: 120,
-    borderWidth: 1,
   },
   statIcon: {
     width: 40,
@@ -1022,11 +1049,9 @@ const styles = StyleSheet.create({
 
   // Search Section
   searchCard: {
+    ...ADMIN_SECTION_CARD,
     marginHorizontal: 20,
     marginBottom: 20,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
   },
   searchHeader: {
     flexDirection: "row",
@@ -1035,11 +1060,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    ...ADMIN_SECTION_TITLE,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    ...ADMIN_SECTION_SUBTITLE,
     marginTop: 2,
   },
   addButton: {
@@ -1066,11 +1090,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   searchBar: {
+    ...ADMIN_INPUT_SURFACE,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
   },
   searchInput: {
     flex: 1,
@@ -1087,10 +1109,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   productCard: {
-    borderRadius: 12,
-    padding: 16,
+    ...ADMIN_LIST_CARD,
     marginBottom: 12,
-    borderWidth: 1,
   },
   productHeader: {
     flexDirection: "row",
@@ -1182,12 +1202,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalHeader: {
+    ...ADMIN_MODAL_HEADER,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 20,
@@ -1197,9 +1217,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
+  modalContent: {
+    gap: 16,
+  },
 
   // Form
   formContainer: {
+    ...ADMIN_MODAL_SECTION,
     gap: 20,
   },
   formGroup: {
@@ -1236,10 +1260,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   formInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    ...ADMIN_INPUT_FIELD,
     fontSize: 16,
   },
 
@@ -1278,15 +1299,17 @@ const styles = StyleSheet.create({
 
   // Submit Button
   submitButton: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
+    ...ADMIN_PRIMARY_BUTTON,
     marginTop: 20,
   },
+  submitButtonDisabled: {
+    ...ADMIN_PRIMARY_BUTTON_DISABLED,
+  },
+  buttonContent: {
+    ...ADMIN_BUTTON_CONTENT,
+  },
   submitButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    ...ADMIN_BUTTON_TEXT,
   },
 
   // Details Modal
@@ -1294,7 +1317,30 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   detailsSection: {
+    ...ADMIN_MODAL_SECTION,
     gap: 8,
+  },
+  detailLine: {
+    ...ADMIN_DETAIL_ROW,
+  },
+  detailLineLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  detailLineLabel: {
+    ...ADMIN_DETAIL_LABEL,
+  },
+  detailLineValue: {
+    ...ADMIN_DETAIL_VALUE,
+  },
+  detailLineAccent: {
+    color: ADMIN_COLORS.accent,
+  },
+  detailLineValueContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    maxWidth: '62%',
   },
   detailsGrid: {
     flexDirection: "row",
@@ -1333,7 +1379,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
-    marginTop: 8,
   },
   editButtonText: {
     color: "#FFFFFF",

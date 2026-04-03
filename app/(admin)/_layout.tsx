@@ -7,7 +7,7 @@ import {
   type DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { logout } from '../../store/slices/authSlice';
 import { useRouter } from 'expo-router';
 import { useAppDispatch } from '../../store/hooks';
@@ -44,6 +44,8 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 }
 
 export default function AdminLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Drawer
       drawerContent={(props) => <CustomDrawerContent {...props} />}
@@ -56,6 +58,10 @@ export default function AdminLayout() {
         drawerInactiveTintColor: '#FFFFFF',
         drawerStyle: {
           backgroundColor: '#1E3A8A',
+        },
+        sceneStyle: {
+          backgroundColor: '#ffffff',
+          paddingBottom: insets.bottom,
         },
       }}
     >

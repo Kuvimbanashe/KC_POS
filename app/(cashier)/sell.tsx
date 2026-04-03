@@ -10,6 +10,8 @@ import {
   Alert,
   Platform,
   Share,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
@@ -21,6 +23,27 @@ import { fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { PaymentMethod, Product, SaleItem, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
+import {
+  ADMIN_BUTTON_CONTENT,
+  ADMIN_BUTTON_TEXT,
+  ADMIN_COLORS,
+  ADMIN_DETAIL_LABEL,
+  ADMIN_DETAIL_ROW,
+  ADMIN_DETAIL_VALUE,
+  ADMIN_INPUT_FIELD,
+  ADMIN_INPUT_SURFACE,
+  ADMIN_LIST_CARD,
+  ADMIN_MODAL_HEADER,
+  ADMIN_MODAL_SECTION,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_PRIMARY_BUTTON_DISABLED,
+  ADMIN_SECONDARY_BUTTON,
+  ADMIN_SECONDARY_BUTTON_TEXT,
+  ADMIN_SECTION_CARD,
+  ADMIN_SECTION_SUBTITLE,
+  ADMIN_SECTION_TITLE,
+  ADMIN_STAT_CARD,
+} from '../../theme/adminUi';
 
 // Types
 type PaymentMethodOption = 'cash' | 'card' | 'mobile';
@@ -65,6 +88,67 @@ const getUnitPrice = (product: Product, unitType: UnitType): number => {
   return product.singlePrice ?? product.price;
 };
 
+const getRequiredStock = (quantity: number, unitType: UnitType, packSize?: number): number =>
+  unitType === 'pack' ? quantity * (packSize ?? 1) : quantity;
+
+const mergeReferenceProducts = (referenceProducts: Product[], extraProduct?: Product | null) => {
+  if (!extraProduct || referenceProducts.some((product) => product.id === extraProduct.id)) {
+    return referenceProducts;
+  }
+  return [...referenceProducts, extraProduct];
+};
+
+const buildCartItem = (product: Product, quantity: number, unitType: UnitType): CartItem => {
+  const unitPrice = getUnitPrice(product, unitType);
+  const packInfo = unitType === 'pack' && product.packSize ? ` (Pack of ${product.packSize})` : '';
+
+  return {
+    productId: `${product.id}_${unitType}`,
+    productName: `${product.name}${packInfo}`,
+    quantity,
+    price: unitPrice,
+    subtotal: unitPrice * quantity,
+    unitType,
+    originalProductId: product.id,
+    packSize: unitType === 'pack' ? (product.packSize ?? 1) : 1,
+  };
+};
+
+const validateCartStock = (cartItems: CartItem[], referenceProducts: Product[]) => {
+  const productsById = new Map(referenceProducts.map((product) => [product.id, product]));
+  const requiredByProduct = new Map<number, { name: string; required: number; available: number }>();
+
+  for (const item of cartItems) {
+    const product = productsById.get(item.originalProductId);
+    if (!product) {
+      return {
+        isValid: false,
+        message: `${item.productName} is no longer available. Refresh products and try again.`,
+      };
+    }
+
+    const requiredStock = getRequiredStock(item.quantity, item.unitType, item.packSize ?? product.packSize);
+    const current = requiredByProduct.get(product.id);
+
+    requiredByProduct.set(product.id, {
+      name: product.name,
+      required: (current?.required ?? 0) + requiredStock,
+      available: product.stock,
+    });
+  }
+
+  for (const { name, required, available } of requiredByProduct.values()) {
+    if (required > available) {
+      return {
+        isValid: false,
+        message: `${name} only has ${available} units available, but your cart needs ${required}.`,
+      };
+    }
+  }
+
+  return { isValid: true };
+};
+
 const CashierSell = () => {
   const dispatch = useAppDispatch();
   const { products } = useAppSelector((state) => state.user);
@@ -84,6 +168,9 @@ const CashierSell = () => {
   const [selectedUnitType, setSelectedUnitType] = useState<UnitType>('single');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodOption>('cash');
   const [showReceipt, setShowReceipt] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
 
   const buildReceiptText = (receipt: ReceiptDetails) => {
     const lines = [
@@ -102,6 +189,8 @@ const CashierSell = () => {
   };
 
   const printReceipt = async (receipt: ReceiptDetails) => {
+    setIsPrintingReceipt(true);
+    try {
     const text = buildReceiptText(receipt);
     if (Platform.OS === 'web') {
       const printWindow = window.open('', '_blank');
@@ -113,6 +202,9 @@ const CashierSell = () => {
       return;
     }
     await Share.share({ title: receipt.receiptNumber, message: text });
+    } finally {
+      setIsPrintingReceipt(false);
+    }
   };
   const [lastSale, setLastSale] = useState<ReceiptDetails | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,6 +238,16 @@ const CashierSell = () => {
     const inStockProducts = products.filter(product => product.stock > 0);
     setAvailableProducts(inStockProducts);
   }, [products]);
+
+  const handleRefresh = async () => {
+    if (!user?.businessId) return;
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchOperationalData(user.businessId));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Calculations
   const totalAmount = useMemo(() => 
@@ -198,86 +300,53 @@ const CashierSell = () => {
     }
 
     const qty = parsedQuantity;
-    const unitPrice = getUnitPrice(selectedProduct, selectedUnitType);
-    let requiredStock = qty;
-
-    // Adjust for pack sales
-    if (selectedUnitType === 'pack') {
-      requiredStock = qty * (selectedProduct.packSize ?? 1);
-    }
-
-    if (requiredStock > selectedProduct.stock) {
-      Alert.alert('Insufficient Stock', `Only ${selectedProduct.stock} units available`);
-      return;
-    }
+    const nextItem = buildCartItem(selectedProduct, qty, selectedUnitType);
+    const referenceProducts = mergeReferenceProducts(products, selectedProduct);
 
     if (editingCartItem) {
-      // Update existing cart item
-      setCart(
-        cart.map((item) =>
-          item.productId === editingCartItem.productId
-            ? {
-                ...item,
-                quantity: qty,
-                unitType: selectedUnitType,
-                productName: `${selectedProduct.name}${
-                  selectedUnitType === 'pack' && selectedProduct.packSize
-                    ? ` (Pack of ${selectedProduct.packSize})`
-                    : ''
-                }`,
-                price: unitPrice,
-                subtotal: unitPrice * qty,
-                packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1,
-              }
-            : item,
-        ),
-      );
-    } else {
-      // Add new item to cart
-      const cartKey = `${selectedProduct.id}_${selectedUnitType}`;
-      const existingItem = cart.find((item) => item.productId === cartKey);
-      
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + qty;
-        const newRequiredStock =
-          selectedUnitType === 'pack'
-            ? newQuantity * (selectedProduct.packSize ?? 1)
-            : newQuantity;
-        
-        if (newRequiredStock > selectedProduct.stock) {
-          Alert.alert('Insufficient Stock', `Cannot add more. Only ${selectedProduct.stock} units available`);
-          return;
-        }
-        
-        setCart(
-          cart.map((item) =>
-            item.productId === cartKey
-              ? { 
-                  ...item, 
-                  quantity: newQuantity, 
-                  price: unitPrice,
-                  subtotal: unitPrice * newQuantity 
+      const cartWithoutEditingItem = cart.filter((item) => item.productId !== editingCartItem.productId);
+      const existingTargetItem = cartWithoutEditingItem.find((item) => item.productId === nextItem.productId);
+
+      const nextCart = existingTargetItem
+        ? cartWithoutEditingItem.map((item) =>
+            item.productId === nextItem.productId
+              ? {
+                  ...nextItem,
+                  quantity: existingTargetItem.quantity + nextItem.quantity,
+                  subtotal: nextItem.price * (existingTargetItem.quantity + nextItem.quantity),
                 }
               : item,
-          ),
-        );
-      } else {
-        const packInfo =
-          selectedUnitType === 'pack' && selectedProduct.packSize
-            ? ` (Pack of ${selectedProduct.packSize})`
-            : '';
-        const newItem: CartItem = {
-          productId: cartKey,
-          productName: `${selectedProduct.name}${packInfo}`,
-          quantity: qty,
-          price: unitPrice,
-          subtotal: unitPrice * qty,
-          unitType: selectedUnitType,
-          originalProductId: selectedProduct.id,
-          packSize: selectedUnitType === 'pack' ? selectedProduct.packSize : 1,
-        };
-        setCart([...cart, newItem]);
+          )
+        : [...cartWithoutEditingItem, nextItem];
+
+      const validation = validateCartStock(nextCart, referenceProducts);
+      if (!validation.isValid) {
+        Alert.alert('Insufficient Stock', validation.message);
+        return;
       }
+
+      setCart(nextCart);
+    } else {
+      const existingItem = cart.find((item) => item.productId === nextItem.productId);
+      const nextCart = existingItem
+        ? cart.map((item) =>
+            item.productId === nextItem.productId
+              ? {
+                  ...nextItem,
+                  quantity: existingItem.quantity + nextItem.quantity,
+                  subtotal: nextItem.price * (existingItem.quantity + nextItem.quantity),
+                }
+              : item,
+          )
+        : [...cart, nextItem];
+
+      const validation = validateCartStock(nextCart, referenceProducts);
+      if (!validation.isValid) {
+        Alert.alert('Insufficient Stock', validation.message);
+        return;
+      }
+
+      setCart(nextCart);
     }
 
     setQuantity('1');
@@ -336,7 +405,26 @@ const CashierSell = () => {
       return;
     }
 
+    setIsCheckingOut(true);
     try {
+      let referenceProducts = products;
+      if (user.businessId) {
+        try {
+          const latestProducts = await apiClient.fetchProducts(user.businessId);
+          referenceProducts = latestProducts;
+        } catch (refreshError) {
+          console.warn('Could not refresh products before checkout', refreshError);
+        }
+      }
+
+      const validation = validateCartStock(cart, referenceProducts);
+      if (!validation.isValid) {
+        if (user.businessId) {
+          await dispatch(fetchOperationalData(user.businessId));
+        }
+        Alert.alert('Insufficient Stock', validation.message);
+        return;
+      }
       const total = totalAmount;
       const saleItems: SaleItem[] = cart.map((item) => ({
         productId: item.originalProductId,
@@ -351,33 +439,25 @@ const CashierSell = () => {
       const receiptSuffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const paymentMethodLabel = paymentMethodConfig.find(m => m.value === paymentMethod)?.label || 'Cash';
 
-      // Dispatch sales and update stock
-      dispatch(
-        addSale({
-          items: saleItems,
-          total,
-          cashier: user.name,
-          paymentMethod: paymentMethodLabel as PaymentMethod,
-        }),
-      );
-      
-      cart.forEach((item) => {
-        const [rawProductId, unitType] = item.productId.split('_');
-        const numericProductId = Number.parseInt(rawProductId, 10);
-        const product = products.find((p) => p.id === numericProductId);
-        const packSize = product?.packSize ?? 1;
-        const stockReduction = unitType === 'pack' ? item.quantity * packSize : item.quantity;
-
+      if (!user.businessId) {
         dispatch(
-          updateProductStock({
-            productId: numericProductId,
-            quantity: stockReduction,
+          addSale({
+            items: saleItems,
+            total,
+            cashier: user.name,
+            paymentMethod: paymentMethodLabel as PaymentMethod,
           }),
         );
-      });
 
-      if (!user.businessId) {
-        console.warn('Backend sale sync skipped: missing business id');
+        cart.forEach((item) => {
+          const stockReduction = getRequiredStock(item.quantity, item.unitType, item.packSize);
+          dispatch(
+            updateProductStock({
+              productId: item.originalProductId,
+              quantity: stockReduction,
+            }),
+          );
+        });
       } else {
         try {
           await apiClient.createSale({
@@ -388,8 +468,21 @@ const CashierSell = () => {
             items: saleItems,
             businessId: user.businessId,
           });
+          await dispatch(fetchOperationalData(user.businessId));
         } catch (apiError) {
           console.warn('Backend sale sync failed', apiError);
+          await dispatch(fetchOperationalData(user.businessId));
+
+          const errorMessage = apiError instanceof Error ? apiError.message : 'Failed to save sale to backend.';
+          if (errorMessage.includes('Insufficient stock')) {
+            Alert.alert(
+              'Stock Changed',
+              'Stock changed on the backend before checkout completed. Products were refreshed. Please review the cart and try again.',
+            );
+          } else {
+            Alert.alert('Checkout Failed', 'Could not save the sale to the backend. Please try again.');
+          }
+          return;
         }
       }
 
@@ -408,6 +501,8 @@ const CashierSell = () => {
     } catch (error) {
       console.error('Checkout error:', error);
       Alert.alert('Checkout Failed', 'An error occurred during checkout');
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -415,9 +510,7 @@ const CashierSell = () => {
     const item = cart.find((i) => i.productId === cartKey);
     if (!item) return;
 
-    const [rawProductId, unitType] = cartKey.split('_');
-    const numericProductId = Number.parseInt(rawProductId, 10);
-    const product = products.find((p) => p.id === numericProductId);
+    const product = products.find((p) => p.id === item.originalProductId);
     if (!product) return;
 
     const newQuantity = item.quantity + change;
@@ -426,26 +519,24 @@ const CashierSell = () => {
       return;
     }
 
-    const requiredStock =
-      unitType === 'pack' ? newQuantity * (product.packSize ?? 1) : newQuantity;
-    
-    if (requiredStock > product.stock) {
-      Alert.alert('Insufficient Stock', `Only ${product.stock} units available`);
+    const nextCart = cart.map((cartItem) => {
+      if (cartItem.productId === cartKey) {
+        return {
+          ...cartItem,
+          quantity: newQuantity,
+          subtotal: cartItem.price * newQuantity,
+        };
+      }
+      return cartItem;
+    });
+
+    const validation = validateCartStock(nextCart, mergeReferenceProducts(products, product));
+    if (!validation.isValid) {
+      Alert.alert('Insufficient Stock', validation.message);
       return;
     }
 
-    setCart(
-      cart.map((cartItem) => {
-        if (cartItem.productId === cartKey) {
-          return {
-            ...cartItem,
-            quantity: newQuantity,
-            subtotal: cartItem.price * newQuantity,
-          };
-        }
-        return cartItem;
-      }),
-    );
+    setCart(nextCart);
   };
 
   const removeFromCart = (productId: string) => {
@@ -582,7 +673,12 @@ const CashierSell = () => {
       </View>
 
       {/* Cart Section */}
-      <ScrollView style={styles.mainContent}>
+      <ScrollView
+        style={styles.mainContent}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
+        }
+      >
         <View style={styles.cartSection}>
           <View style={styles.cartHeader}>
             <View style={styles.cartTitle}>
@@ -626,12 +722,18 @@ const CashierSell = () => {
           onPress={handleCheckout}
           style={[
             styles.checkoutButton,
-            cart.length === 0 && styles.checkoutButtonDisabled,
+            (cart.length === 0 || isCheckingOut) && styles.checkoutButtonDisabled,
           ]}
-          disabled={cart.length === 0}
+          disabled={cart.length === 0 || isCheckingOut}
         >
-          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-          <Text style={styles.checkoutButtonText}>Checkout</Text>
+          <View style={styles.buttonContent}>
+            {isCheckingOut ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+            )}
+            <Text style={styles.checkoutButtonText}>{isCheckingOut ? 'Processing...' : 'Checkout'}</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -733,11 +835,15 @@ const CashierSell = () => {
           </View>
 
           <ScrollView style={styles.quantityModalContent}>
-            <View style={styles.productHeader}>
-              <Text style={styles.productModalName}>{selectedProduct?.name}</Text>
-              <Text style={styles.productModalPrice}>
-                ${selectedProductPrice} each
-              </Text>
+            <View style={styles.productHeaderCard}>
+              <View style={styles.detailLine}>
+                <Text style={styles.detailLineLabel}>Product</Text>
+                <Text style={styles.detailLineValue}>{selectedProduct?.name}</Text>
+              </View>
+              <View style={[styles.detailLine, styles.detailLineLast]}>
+                <Text style={styles.detailLineLabel}>Unit Price</Text>
+                <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProductPrice} each</Text>
+              </View>
             </View>
 
             {/* Unit Type Selection */}
@@ -794,11 +900,11 @@ const CashierSell = () => {
             {/* Summary */}
             <View style={styles.summaryContainer}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Unit Price:</Text>
+                <Text style={styles.summaryLabel}>Unit Price</Text>
                 <Text style={styles.summaryValue}>${selectedProductPrice}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Quantity:</Text>
+                <Text style={styles.summaryLabel}>Quantity</Text>
                 <Text style={styles.summaryValue}>
                   {quantity} {selectedUnitType === 'pack' ? 'packs' : 'units'}
                 </Text>
@@ -856,15 +962,15 @@ const CashierSell = () => {
               {/* Receipt Info */}
               <View style={styles.receiptInfo}>
                 <View style={styles.receiptRow}>
-                  <Text style={styles.receiptLabel}>Receipt #:</Text>
+                  <Text style={styles.receiptLabel}>Receipt #</Text>
                   <Text style={styles.receiptValue}>{lastSale.receiptNumber}</Text>
                 </View>
                 <View style={styles.receiptRow}>
-                  <Text style={styles.receiptLabel}>Cashier:</Text>
+                  <Text style={styles.receiptLabel}>Cashier</Text>
                   <Text style={styles.receiptValue}>{lastSale.cashier}</Text>
                 </View>
                 <View style={styles.receiptRow}>
-                  <Text style={styles.receiptLabel}>Date & Time:</Text>
+                  <Text style={styles.receiptLabel}>Date & Time</Text>
                   <Text style={styles.receiptValue}>
                     {lastSale.date.toLocaleDateString()} {lastSale.date.toLocaleTimeString([], { 
                       hour: '2-digit', 
@@ -900,14 +1006,14 @@ const CashierSell = () => {
               {/* Total Section */}
               <View style={styles.totalSection}>
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total Amount:</Text>
-                  <Text style={styles.totalValue}>
+                  <Text style={styles.receiptTotalLabel}>Total Amount</Text>
+                  <Text style={styles.receiptTotalValue}>
                     ${lastSale.total.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Payment Method:</Text>
-                  <Text style={styles.totalValue}>{lastSale.paymentMethod}</Text>
+                  <Text style={styles.receiptTotalLabel}>Payment Method</Text>
+                  <Text style={styles.receiptTotalValue}>{lastSale.paymentMethod}</Text>
                 </View>
               </View>
 
@@ -922,12 +1028,16 @@ const CashierSell = () => {
               </View>
 
               <TouchableOpacity
-                style={styles.printReceiptButton}
+                style={[styles.printReceiptButton, isPrintingReceipt && styles.printReceiptButtonDisabled]}
                 onPress={() => printReceipt(lastSale)}
+                disabled={isPrintingReceipt}
               >
-                <Text style={styles.printReceiptButtonText}>
-                  Print Receipt
-                </Text>
+                <View style={styles.buttonContent}>
+                  {isPrintingReceipt && <ActivityIndicator size="small" color="#FFFFFF" />}
+                  <Text style={styles.printReceiptButtonText}>
+                    {isPrintingReceipt ? 'Preparing...' : 'Print Receipt'}
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -950,34 +1060,33 @@ const styles = StyleSheet.create({
   // Main Container
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: ADMIN_COLORS.background,
   },
 
   // Header
   header: {
-    backgroundColor: '#FFFFFF',
+    ...ADMIN_SECTION_CARD,
+    margin: 16,
+    marginBottom: 0,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
+    gap: 8,
   },
   statCard: {
+    ...ADMIN_STAT_CARD,
     flex: 1,
-    backgroundColor: '#F3F4F6',
     padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 4,
   },
   totalCard: {
-    backgroundColor: '#1F2937',
+    backgroundColor: ADMIN_COLORS.primary,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: ADMIN_COLORS.secondaryText,
     marginBottom: 4,
   },
   totalLabel: {
@@ -986,7 +1095,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: ADMIN_COLORS.text,
   },
   totalValue: {
     fontSize: 24,
@@ -999,9 +1108,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
+    ...ADMIN_SECTION_TITLE,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
   },
   paymentOptions: {
@@ -1015,11 +1123,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: ADMIN_COLORS.border,
+    backgroundColor: ADMIN_COLORS.surface,
   },
   paymentOptionActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: ADMIN_COLORS.primary,
     borderWidth: 1,
   },
   paymentOptionText: {
@@ -1039,38 +1147,29 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkoutButton: {
+    ...ADMIN_PRIMARY_BUTTON,
     width: '100%',
-    flexDirection: 'row',
-    backgroundColor: '#0F172A',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   checkoutButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    ...ADMIN_PRIMARY_BUTTON_DISABLED,
   },
   checkoutButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+    ...ADMIN_BUTTON_TEXT,
   },
   addItemButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: ADMIN_COLORS.surfaceTint,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#FB923C',
+    borderColor: ADMIN_COLORS.accent,
   },
   addItemButtonText: {
-    color: '#FB923C',
+    color: ADMIN_COLORS.accent,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -1084,20 +1183,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: ADMIN_COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: ADMIN_COLORS.border,
   },
   cartSection: {
-    backgroundColor: '#FFFFFF',
+    ...ADMIN_SECTION_CARD,
     margin: 16,
-    borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   cartHeader: {
     flexDirection: 'row',
@@ -1110,9 +1203,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartTitleText: {
+    ...ADMIN_SECTION_TITLE,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
     marginLeft: 8,
   },
   clearCartButton: {
@@ -1149,8 +1241,7 @@ const styles = StyleSheet.create({
 
   // Cart Items
   cartItem: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    ...ADMIN_LIST_CARD,
     marginBottom: 8,
     overflow: 'hidden',
   },
@@ -1166,12 +1257,12 @@ const styles = StyleSheet.create({
   cartItemName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
     marginBottom: 4,
   },
   cartItemDetails: {
     fontSize: 12,
-    color: '#6B7280',
+    color: ADMIN_COLORS.secondaryText,
   },
   cartItemActions: {
     flexDirection: 'row',
@@ -1180,7 +1271,7 @@ const styles = StyleSheet.create({
   cartItemSubtotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: ADMIN_COLORS.success,
     marginRight: 12,
   },
   removeButton: {
@@ -1190,21 +1281,20 @@ const styles = StyleSheet.create({
   // Modals
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: ADMIN_COLORS.background,
   },
   modalHeader: {
+    ...ADMIN_MODAL_HEADER,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
   },
   closeButton: {
     padding: 4,
@@ -1214,30 +1304,26 @@ const styles = StyleSheet.create({
   searchContainer: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: ADMIN_COLORS.border,
   },
   searchBar: {
+    ...ADMIN_INPUT_SURFACE,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
     marginLeft: 8,
   },
   productList: {
     flex: 1,
   },
   productItem: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    ...ADMIN_LIST_CARD,
+    marginHorizontal: 16,
+    marginBottom: 10,
   },
   productInfo: {
     flexDirection: 'row',
@@ -1248,13 +1334,13 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
     flex: 1,
   },
   productPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: ADMIN_COLORS.success,
   },
   productDetails: {
     flexDirection: 'row',
@@ -1262,11 +1348,11 @@ const styles = StyleSheet.create({
   },
   productCategory: {
     fontSize: 14,
-    color: '#6B7280',
+    color: ADMIN_COLORS.secondaryText,
   },
   productStock: {
     fontSize: 14,
-    color: '#6B7280',
+    color: ADMIN_COLORS.secondaryText,
   },
 
   emptyState: {
@@ -1291,9 +1377,10 @@ const styles = StyleSheet.create({
   quantityModalContent: {
     flex: 1,
     padding: 16,
+    gap: 16,
   },
-  productHeader: {
-    marginBottom: 24,
+  productHeaderCard: {
+    ...ADMIN_MODAL_SECTION,
   },
   productModalName: {
     fontSize: 20,
@@ -1319,15 +1406,15 @@ const styles = StyleSheet.create({
   unitTypeOption: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: ADMIN_COLORS.border,
     borderRadius: 8,
     padding: 16,
     marginHorizontal: 4,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
   },
   unitTypeOptionActive: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
+    borderColor: ADMIN_COLORS.primary,
+    backgroundColor: '#eff6ff',
   },
   unitTypeLabel: {
     fontSize: 16,
@@ -1351,26 +1438,24 @@ const styles = StyleSheet.create({
   quantityButton: {
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
   },
   quantityInput: {
     width: 80,
     fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
     marginHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: ADMIN_COLORS.border,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: ADMIN_COLORS.surface,
   },
   summaryContainer: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    ...ADMIN_MODAL_SECTION,
     padding: 16,
-    marginBottom: 24,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -1379,48 +1464,44 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: ADMIN_COLORS.secondaryText,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: ADMIN_COLORS.text,
   },
   summaryDivider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: ADMIN_COLORS.line,
     marginVertical: 8,
   },
   summaryTotalLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
   },
   summaryTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10B981',
+    color: ADMIN_COLORS.success,
   },
   confirmButton: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+    ...ADMIN_PRIMARY_BUTTON,
   },
   confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    ...ADMIN_BUTTON_TEXT,
   },
 
   // Receipt Modal
   receiptContent: {
     flex: 1,
     padding: 16,
+    gap: 16,
   },
   businessHeader: {
+    ...ADMIN_MODAL_SECTION,
     alignItems: 'center',
-    marginBottom: 24,
   },
   businessName: {
     fontSize: 24,
@@ -1438,27 +1519,20 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   receiptInfo: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    ...ADMIN_MODAL_SECTION,
     padding: 16,
-    marginBottom: 24,
   },
   receiptRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    ...ADMIN_DETAIL_ROW,
   },
   receiptLabel: {
-    fontSize: 14,
-    color: '#6B7280',
+    ...ADMIN_DETAIL_LABEL,
   },
   receiptValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+    ...ADMIN_DETAIL_VALUE,
   },
   itemsSection: {
-    marginBottom: 24,
+    ...ADMIN_MODAL_SECTION,
   },
   itemsHeader: {
     flexDirection: 'row',
@@ -1471,7 +1545,7 @@ const styles = StyleSheet.create({
   itemsHeaderText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#374151',
+    color: ADMIN_COLORS.text,
   },
   itemRow: {
     flexDirection: 'row',
@@ -1487,31 +1561,36 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
   },
   itemQuantity: {
     flex: 1,
     fontSize: 14,
-    color: '#6B7280',
+    color: ADMIN_COLORS.secondaryText,
     textAlign: 'center',
   },
   itemAmount: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: ADMIN_COLORS.text,
     textAlign: 'right',
   },
   totalSection: {
-    backgroundColor: '#1F2937',
-    borderRadius: 12,
+    ...ADMIN_MODAL_SECTION,
     padding: 20,
-    marginBottom: 24,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  receiptTotalLabel: {
+    ...ADMIN_DETAIL_LABEL,
+  },
+  receiptTotalValue: {
+    ...ADMIN_DETAIL_VALUE,
+    color: ADMIN_COLORS.text,
   },
 
   thankYouSection: {
@@ -1541,16 +1620,32 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   printReceiptButton: {
-    marginTop: 12,
-    backgroundColor: '#2563EB',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
+    ...ADMIN_PRIMARY_BUTTON,
+  },
+  printReceiptButtonDisabled: {
+    ...ADMIN_PRIMARY_BUTTON_DISABLED,
   },
   printReceiptButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15,
+    ...ADMIN_BUTTON_TEXT,
+  },
+  buttonContent: {
+    ...ADMIN_BUTTON_CONTENT,
+  },
+  detailLine: {
+    ...ADMIN_DETAIL_ROW,
+  },
+  detailLineLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  detailLineLabel: {
+    ...ADMIN_DETAIL_LABEL,
+  },
+  detailLineValue: {
+    ...ADMIN_DETAIL_VALUE,
+  },
+  detailLineAccent: {
+    color: ADMIN_COLORS.accent,
   },
 });
 

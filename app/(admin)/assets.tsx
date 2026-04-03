@@ -9,7 +9,8 @@ import {
   Modal,
   FlatList,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,27 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { AssetRecord } from '../../store/types';
 import { apiClient } from '../../services/api';
+import {
+  ADMIN_BUTTON_CONTENT,
+  ADMIN_BUTTON_TEXT,
+  ADMIN_COLORS,
+  ADMIN_DETAIL_LABEL,
+  ADMIN_DETAIL_ROW,
+  ADMIN_DETAIL_VALUE,
+  ADMIN_INPUT_FIELD,
+  ADMIN_INPUT_SURFACE,
+  ADMIN_LIST_CARD,
+  ADMIN_MODAL_HEADER,
+  ADMIN_MODAL_SECTION,
+  ADMIN_PAGE_SUBTITLE,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_PRIMARY_BUTTON_DISABLED,
+  ADMIN_PAGE_TITLE,
+  ADMIN_SECTION_CARD,
+  ADMIN_SECTION_SUBTITLE,
+  ADMIN_SECTION_TITLE,
+  ADMIN_STAT_CARD,
+} from '../../theme/adminUi';
 
 type ConditionFilter = 'all' | AssetRecord['condition'];
 
@@ -51,6 +73,9 @@ const AdminAssets = () => {
   
   const [filteredAssets, setFilteredAssets] = useState<AssetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [conditionFilter, setConditionFilter] = useState<ConditionFilter>('all');
@@ -69,20 +94,20 @@ const AdminAssets = () => {
 
   // Colors based on your Tailwind config
   const COLORS = {
-    primary: '#0f172a', // hsl(220 90% 15%)
+    primary: ADMIN_COLORS.text,
     primaryLight: '#1e293b',
-    accent: '#f97316', // hsl(25 95% 53%)
+    accent: ADMIN_COLORS.accent,
     accentLight: '#fb923c',
-    background: '#ffffff',
-    card: '#ffffff',
-    border: '#e2e8f0', // hsl(220 20% 90%)
-    input: '#e2e8f0',
-    destructive: '#ef4444',
-    muted: '#64748b', // hsl(220 30% 45%)
-    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#dc2626',
+    background: ADMIN_COLORS.background,
+    card: ADMIN_COLORS.surface,
+    border: ADMIN_COLORS.border,
+    input: ADMIN_COLORS.surfaceMuted,
+    destructive: ADMIN_COLORS.danger,
+    muted: ADMIN_COLORS.secondaryText,
+    mutedLight: ADMIN_COLORS.line,
+    success: ADMIN_COLORS.success,
+    warning: ADMIN_COLORS.warning,
+    danger: ADMIN_COLORS.danger,
   };
 
   useEffect(() => {
@@ -112,6 +137,16 @@ const AdminAssets = () => {
 
     setFilteredAssets(filtered);
   }, [searchQuery, conditionFilter, assets]);
+
+  const handleRefresh = async () => {
+    if (!user?.businessId) return;
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchAssets(user.businessId));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Calculate statistics
   const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
@@ -189,6 +224,7 @@ const AdminAssets = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const createdAsset = await apiClient.createAsset(
         {
@@ -220,6 +256,8 @@ const AdminAssets = () => {
       console.error('Error creating asset:', error);
       const message = error instanceof Error ? error.message : 'Failed to add asset';
       Alert.alert('Error', message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -234,6 +272,7 @@ const AdminAssets = () => {
           text: 'Delete', 
           style: 'destructive',
           onPress: async () => {
+            setIsDeleting(true);
             try {
               await apiClient.deleteAsset(asset.id);
               dispatch(deleteAsset(asset.id));
@@ -243,6 +282,8 @@ const AdminAssets = () => {
               console.error('Error deleting asset:', error);
               const message = error instanceof Error ? error.message : 'Failed to delete asset';
               Alert.alert('Error', message);
+            } finally {
+              setIsDeleting(false);
             }
           }
         },
@@ -309,7 +350,13 @@ const AdminAssets = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: COLORS.primary }]}>Assets</Text>
@@ -455,7 +502,7 @@ const AdminAssets = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
             <View style={styles.formContainer}>
               {/* Asset Name */}
               <View style={styles.formGroup}>
@@ -618,10 +665,14 @@ const AdminAssets = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
               onPress={handleSubmit}
+              disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText}>Add Asset</Text>
+              <View style={styles.buttonContent}>
+                {isSubmitting && <ActivityIndicator size="small" color="#FFFFFF" />}
+                <Text style={styles.submitButtonText}>{isSubmitting ? 'Saving...' : 'Add Asset'}</Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -643,7 +694,7 @@ const AdminAssets = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.detailsContainer}>
                 {/* Asset Header */}
                 <View style={styles.detailsHeader}>
@@ -659,36 +710,34 @@ const AdminAssets = () => {
 
                 {/* Details Grid */}
                 <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedAsset.category}</Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Category</Text>
+                    <Text style={styles.detailLineValue}>{selectedAsset.category}</Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Location</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedAsset.location}</Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Location</Text>
+                    <Text style={styles.detailLineValue}>{selectedAsset.location}</Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Purchase Date</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                      {new Date(selectedAsset.purchaseDate).toLocaleDateString()}
-                    </Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Purchase Date</Text>
+                    <Text style={styles.detailLineValue}>{new Date(selectedAsset.purchaseDate).toLocaleDateString()}</Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Purchase Value</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Purchase Value</Text>
+                    <Text style={styles.detailLineValue}>
                       ${selectedAsset.purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Current Value</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.accent }]}>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Current Value</Text>
+                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>
                       ${selectedAsset.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Depreciation</Text>
-                    <Text style={[styles.detailValue, { 
-                      color: (selectedAsset.purchaseValue - selectedAsset.currentValue) > 0 ? COLORS.danger : COLORS.success 
+                  <View style={[styles.detailLine, styles.detailLineLast]}>
+                    <Text style={styles.detailLineLabel}>Depreciation</Text>
+                    <Text style={[styles.detailLineValue, {
+                      color: (selectedAsset.purchaseValue - selectedAsset.currentValue) > 0 ? COLORS.danger : COLORS.success,
                     }]}>
                       ${(selectedAsset.purchaseValue - selectedAsset.currentValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
@@ -698,11 +747,18 @@ const AdminAssets = () => {
                 {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
-                    style={[styles.deleteButton, { backgroundColor: COLORS.danger }]}
+                    style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
                     onPress={() => handleDeleteAsset(selectedAsset)}
+                    disabled={isDeleting}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-                    <Text style={styles.deleteButtonText}>Delete Asset</Text>
+                    <View style={styles.buttonContent}>
+                      {isDeleting ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                      )}
+                      <Text style={styles.deleteButtonText}>{isDeleting ? 'Deleting...' : 'Delete Asset'}</Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -718,9 +774,13 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
+    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
+  },
+  content: {
+    paddingBottom: 24,
   },
 
   // Loading
@@ -728,6 +788,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: ADMIN_COLORS.background,
   },
   loadingText: {
     marginTop: 12,
@@ -741,12 +802,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    ...ADMIN_PAGE_TITLE,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    ...ADMIN_PAGE_SUBTITLE,
   },
 
   // Stats
@@ -758,11 +818,10 @@ const styles = StyleSheet.create({
     paddingRight: 40,
   },
   statCard: {
-    borderRadius: 12,
+    ...ADMIN_STAT_CARD,
     padding: 16,
     marginRight: 12,
     width: 140,
-    borderWidth: 1,
   },
   statIcon: {
     width: 40,
@@ -783,11 +842,9 @@ const styles = StyleSheet.create({
 
   // Search Section
   searchCard: {
+    ...ADMIN_SECTION_CARD,
     marginHorizontal: 20,
     marginBottom: 20,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
   },
   searchHeader: {
     flexDirection: "row",
@@ -796,11 +853,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    ...ADMIN_SECTION_TITLE,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    ...ADMIN_SECTION_SUBTITLE,
     marginTop: 2,
   },
   addButton: {
@@ -822,11 +878,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   searchBar: {
+    ...ADMIN_INPUT_SURFACE,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
   },
   searchInput: {
     flex: 1,
@@ -860,10 +914,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   assetCard: {
-    borderRadius: 12,
-    padding: 16,
+    ...ADMIN_LIST_CARD,
     marginBottom: 12,
-    borderWidth: 1,
   },
   assetHeader: {
     flexDirection: "row",
@@ -953,12 +1005,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalHeader: {
+    ...ADMIN_MODAL_HEADER,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 20,
@@ -968,9 +1020,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
+  modalContent: {
+    gap: 16,
+  },
 
   // Form
   formContainer: {
+    ...ADMIN_MODAL_SECTION,
     gap: 24,
   },
   formGroup: {
@@ -988,10 +1044,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   formInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    ...ADMIN_INPUT_FIELD,
     fontSize: 16,
   },
   categoryContainer: {
@@ -1010,12 +1063,10 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   dateButton: {
+    ...ADMIN_INPUT_SURFACE,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     gap: 8,
   },
   dateButtonText: {
@@ -1037,15 +1088,17 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   submitButton: {
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
+    ...ADMIN_PRIMARY_BUTTON,
     marginTop: 20,
   },
+  submitButtonDisabled: {
+    ...ADMIN_PRIMARY_BUTTON_DISABLED,
+  },
+  buttonContent: {
+    ...ADMIN_BUTTON_CONTENT,
+  },
   submitButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    ...ADMIN_BUTTON_TEXT,
   },
 
   // Details Modal
@@ -1053,10 +1106,10 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   detailsHeader: {
+    ...ADMIN_MODAL_SECTION,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
   },
   assetNameLarge: {
     fontSize: 24,
@@ -1065,34 +1118,36 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   detailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
+    ...ADMIN_MODAL_SECTION,
   },
-  
-  detailLabel: {
-    fontSize: 13,
-    marginBottom: 4,
+  detailLine: {
+    ...ADMIN_DETAIL_ROW,
   },
-  detailValue: {
-    fontSize: 15,
-    fontWeight: "600",
+  detailLineLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  detailLineLabel: {
+    ...ADMIN_DETAIL_LABEL,
+  },
+  detailLineValue: {
+    ...ADMIN_DETAIL_VALUE,
+  },
+  detailLineAccent: {
+    color: ADMIN_COLORS.accent,
   },
   actionButtons: {
-    marginTop: 16,
+    ...ADMIN_MODAL_SECTION,
   },
   deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    paddingVertical: 16,
-    gap: 8,
+    ...ADMIN_PRIMARY_BUTTON,
+    backgroundColor: ADMIN_COLORS.danger,
+  },
+  deleteButtonDisabled: {
+    backgroundColor: '#fca5a5',
   },
   deleteButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    ...ADMIN_BUTTON_TEXT,
   },
 });
 

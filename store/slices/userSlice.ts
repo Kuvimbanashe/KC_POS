@@ -31,6 +31,21 @@ interface BackendProduct {
   created_at: string;
 }
 
+interface BackendUser {
+  id: number;
+  email: string;
+  name: string;
+  role: UserProfile['type'];
+  phone?: string;
+  address?: string;
+  join_date?: string;
+  status?: UserProfile['status'];
+  permissions?: UserProfile['permissions'];
+  last_login_at?: string | null;
+  business?: number;
+  business_name?: string | null;
+}
+
 interface BackendSale {
   id: number;
   date: string;
@@ -49,6 +64,33 @@ interface BackendSale {
     unit_type?: SaleItem['unitType'];
     pack_size?: number;
   }>;
+}
+
+interface BackendPurchase {
+  id: number;
+  product: number;
+  product_name: string;
+  quantity: number;
+  unit_cost: string | number;
+  total: string | number;
+  date: string;
+  supplier: string;
+  order_number: string;
+  status: PurchaseRecord['status'];
+  delivery_date: string;
+  created_at: string;
+}
+
+interface BackendExpense {
+  id: number;
+  category: string;
+  amount: string | number;
+  date: string;
+  description: string;
+  payment_method: ExpenseRecord['paymentMethod'];
+  vendor: string;
+  status: ExpenseRecord['status'];
+  receipt_number: string;
 }
 
 const initialState: UserState = {
@@ -84,6 +126,22 @@ export const fetchOperationalData = createAsyncThunk(
     ]);
 
     const unwrap = <T>(data: { results?: T[] } | T[]) => (Array.isArray(data) ? data : (data.results ?? []));
+
+    const mappedUsers = unwrap<BackendUser>(users.data).map((u) => ({
+      id: u.id,
+      email: u.email,
+      password: '',
+      name: u.name,
+      type: u.role,
+      phone: u.phone,
+      address: u.address,
+      joinDate: u.join_date,
+      status: u.status,
+      permissions: u.permissions,
+      lastLogin: u.last_login_at,
+      businessId: u.business,
+      businessName: u.business_name,
+    })) as UserProfile[];
 
     const mappedProducts = unwrap<BackendProduct>(products.data).map((p) => ({
       id: p.id,
@@ -131,12 +189,39 @@ export const fetchOperationalData = createAsyncThunk(
       };
     }) as SaleRecord[];
 
+    const mappedPurchases = unwrap<BackendPurchase>(purchases.data).map((p) => ({
+      id: p.id,
+      productId: p.product,
+      productName: p.product_name,
+      quantity: p.quantity,
+      unitCost: Number(p.unit_cost),
+      total: Number(p.total),
+      date: p.date,
+      supplier: p.supplier,
+      orderNumber: p.order_number,
+      status: p.status,
+      deliveryDate: p.delivery_date,
+      createdAt: p.created_at,
+    })) as PurchaseRecord[];
+
+    const mappedExpenses = unwrap<BackendExpense>(expenses.data).map((e) => ({
+      id: e.id,
+      category: e.category,
+      amount: Number(e.amount),
+      date: e.date,
+      description: e.description,
+      paymentMethod: e.payment_method,
+      vendor: e.vendor,
+      status: e.status,
+      receiptNumber: e.receipt_number,
+    })) as ExpenseRecord[];
+
     return {
-      users: unwrap<UserProfile>(users.data),
+      users: mappedUsers,
       products: mappedProducts,
       sales: mappedSales,
-      purchases: unwrap<PurchaseRecord>(purchases.data),
-      expenses: unwrap<ExpenseRecord>(expenses.data),
+      purchases: mappedPurchases,
+      expenses: mappedExpenses,
     };
   },
 );
@@ -258,33 +343,6 @@ const userSlice = createSlice({
       state.purchases = action.payload.purchases;
       state.expenses = action.payload.expenses;
     },
-  },
-  extraReducers: (builder) => {
-    builder.addCase(fetchOperationalData.fulfilled, (state, action) => {
-      state.users = action.payload.users;
-      state.products = action.payload.products;
-      state.sales = action.payload.sales;
-      state.purchases = action.payload.purchases;
-      state.expenses = action.payload.expenses;
-    });
-  },
-  extraReducers: (builder) => {
-    builder.addCase(fetchOperationalData.fulfilled, (state, action) => {
-      state.users = action.payload.users;
-      state.products = action.payload.products;
-      state.sales = action.payload.sales;
-      state.purchases = action.payload.purchases;
-      state.expenses = action.payload.expenses;
-    });
-  },
-  extraReducers: (builder) => {
-    builder.addCase(fetchOperationalData.fulfilled, (state, action) => {
-      state.users = action.payload.users;
-      state.products = action.payload.products;
-      state.sales = action.payload.sales;
-      state.purchases = action.payload.purchases;
-      state.expenses = action.payload.expenses;
-    });
   },
   extraReducers: (builder) => {
     builder.addCase(fetchOperationalData.fulfilled, (state, action) => {

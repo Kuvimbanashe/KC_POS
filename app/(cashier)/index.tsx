@@ -1,11 +1,33 @@
 // app/(cashier)/index.js
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Platform, Share } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Platform, Share, RefreshControl, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { Ionicons as IoniconsType } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { SaleRecord } from '../../store/types';
 import { fetchOperationalData } from '../../store/slices/userSlice';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  ADMIN_BUTTON_CONTENT,
+  ADMIN_BUTTON_TEXT,
+  ADMIN_COLORS,
+  ADMIN_DETAIL_LABEL,
+  ADMIN_DETAIL_ROW,
+  ADMIN_DETAIL_VALUE,
+  ADMIN_LIST_CARD,
+  ADMIN_MODAL_HEADER,
+  ADMIN_MODAL_SECTION,
+  ADMIN_PAGE_SUBTITLE,
+  ADMIN_PAGE_TITLE,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_PRIMARY_BUTTON_DISABLED,
+  ADMIN_SECONDARY_BUTTON,
+  ADMIN_SECONDARY_BUTTON_TEXT,
+  ADMIN_SECTION_CARD,
+  ADMIN_SECTION_SUBTITLE,
+  ADMIN_SECTION_TITLE,
+  ADMIN_STAT_CARD,
+} from '../../theme/adminUi';
 
 // Correct Ionicon type
 type IoniconName = keyof typeof Ionicons.glyphMap;
@@ -20,14 +42,27 @@ interface StatCardProps {
 
 const CashierHome = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const { sales, products } = useAppSelector((state) => state.user);
   const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
 
   useEffect(() => {
     if (!user?.businessId) return;
     dispatch(fetchOperationalData(user.businessId));
   }, [dispatch, user?.businessId]);
+
+  const handleRefresh = async () => {
+    if (!user?.businessId) return;
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchOperationalData(user.businessId));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const today = new Date().toDateString();
 
@@ -45,18 +80,26 @@ const CashierHome = () => {
 
   // Quick Actions
   const quickActions = [
-    { title: 'New Sale', description: 'Start a new transaction', icon: 'cart', screen: 'sell' },
-    { title: 'View Products', description: 'Check product availability', icon: 'cube', screen: 'products' }
+    {
+      title: 'New Sale',
+      description: 'Start a new transaction',
+      icon: 'cart',
+      action: () => router.push('/(cashier)/sell'),
+    },
+    {
+      title: 'View Products',
+      description: 'Browse products in sell screen',
+      icon: 'cube',
+      action: () => router.push('/(cashier)/sell'),
+    },
   ];
 
   const StatCard = ({ title, value, description, icon, variant }: StatCardProps) => {
-    const isDark = variant === 'dark';
-    const isAccent = variant === 'accent';
-
     return (
       <View
         style={[
           styles.statCard,
+          { backgroundColor: variant === 'accent' ? '#fff7ed' : '#f8fafc' },
         ]}
       >
         <View style={styles.statCardHeader}>
@@ -95,31 +138,31 @@ const CashierHome = () => {
     const subtotal = Number(item?.subtotal ?? qty * price);
 
     return (
-      <TouchableOpacity key={sale.id} style={styles.saleItem} onPress={() => setSelectedReceipt(sale)}>
-        <View style={styles.saleHeader}>
-          <View>
-            <Text style={styles.receiptId}>{sale.invoiceNumber || `Receipt #${sale.id}`}</Text>
-            <Text style={styles.receiptTime}>
-              {new Date(sale.date).toLocaleTimeString()}
-            </Text>
+      <TouchableOpacity key={sale.id} onPress={() => setSelectedReceipt(sale)}>
+
+        <View style={styles.saleItem}>
+          <View style={styles.saleHeader}>
+            <View>
+              <Text style={styles.receiptId}>{sale.invoiceNumber || `Receipt #${sale.id}`}</Text>
+              <Text style={styles.receiptTime}>
+                {new Date(sale.date).toLocaleTimeString()}
+              </Text>
+            </View>
+
+            <View style={styles.paymentBadge}>
+              <Text style={styles.paymentBadgeText}>{sale.paymentMethod}</Text>
+            </View>
+
+
           </View>
 
-          <View style={styles.paymentBadge}>
-            <Text style={styles.paymentBadgeText}>{sale.paymentMethod}</Text>
+          <View style={styles.productRow}>
+            <Text style={styles.productText}>{qty}x Items</Text>
+            <Text style={styles.totalValue}>${sale.total.toFixed(2)}</Text>
           </View>
-
-          <Text style={styles.saleTotal}>${sale.total.toFixed(2)}</Text>
         </View>
 
-        <View style={styles.productRow}>
-          <Text style={styles.productText}>{qty}x {name}</Text>
-          <Text style={styles.productSubtotal}>${Number.isFinite(subtotal) ? subtotal.toFixed(2) : '0.00'}</Text>
-        </View>
 
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>${sale.total.toFixed(2)}</Text>
-        </View>
       </TouchableOpacity>
     );
   };
@@ -153,36 +196,38 @@ const CashierHome = () => {
   };
 
   const handlePrintReceipt = async (sale: SaleRecord) => {
-    const text = buildReceiptText(sale);
-    if (Platform.OS === 'web') {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
-      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${text}</pre>`);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      return;
+    setIsPrintingReceipt(true);
+    try {
+      const text = buildReceiptText(sale);
+      if (Platform.OS === 'web') {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+        printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${text}</pre>`);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        return;
+      }
+      await Share.share({ title: sale.invoiceNumber || `Receipt #${sale.id}`, message: text });
+    } finally {
+      setIsPrintingReceipt(false);
     }
-    await Share.share({ title: sale.invoiceNumber || `Receipt #${sale.id}`, message: text });
   };
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
+        }
+      >
+        <View style={styles.headerCard}>
+          <Text style={styles.headerTitle}>Cashier Dashboard</Text>
+          <Text style={styles.headerSubtitle}>Track your day, review receipts, and jump back into selling fast.</Text>
+        </View>
 
-
-
-        {/* Quick Stats */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            marginTop: 16,
-            marginBottom: 16,
-            gap: 10,
-            
-          }}
-        >
+        <View style={styles.statsGrid}>
           <StatCard
             title="Receipts Today"
             value={String(todayReceiptsCount)}
@@ -198,22 +243,22 @@ const CashierHome = () => {
             icon="cash"
             variant="dark"
           />
-        </ScrollView>
+        </View>
 
-
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActionsRow}>
-          {quickActions.map((action, i) => (
-            <TouchableOpacity key={i} style={styles.quickActionCard}>
-
-              <Text style={styles.quickActionTitle}>{action.description}</Text>
-              {/* <Text style={styles.quickActionDescription}>{action.description}</Text> */}
-              <Ionicons name='chevron-forward-outline' size={24} style={{
-                 color: '#0f172a',
-              }}/>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionSubtitle}>Use the cashier tools you reach for most.</Text>
+          <View style={styles.quickActionsRow}>
+            {quickActions.map((action, i) => (
+              <TouchableOpacity key={i} style={styles.quickActionCard} onPress={action.action}>
+                <View style={styles.quickActionCopy}>
+                  <Text style={styles.quickActionTitle}>{action.title}</Text>
+                  <Text style={styles.quickActionDescription}>{action.description}</Text>
+                </View>
+                <Ionicons name='chevron-forward-outline' size={22} color={ADMIN_COLORS.tertiaryText} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Low Stock */}
@@ -232,6 +277,7 @@ const CashierHome = () => {
         {/* Today's Tickets */}
         <View style={styles.ticketsCard}>
           <Text style={styles.ticketsTitle}>Today&apos;s Tickets</Text>
+          <Text style={styles.sectionSubtitle}>Tap a receipt to review its details or print it again.</Text>
 
           {todaySales.length === 0 ? (
             <View style={styles.emptyState}>
@@ -239,7 +285,7 @@ const CashierHome = () => {
               <Text style={styles.emptyTitle}>No sales yet today.</Text>
               <Text style={styles.emptySubtitle}>Start selling to see your transactions here!</Text>
 
-              <TouchableOpacity style={styles.startSaleButton}>
+              <TouchableOpacity style={styles.startSaleButton} onPress={() => router.push('/(cashier)/sell')}>
                 <Text style={styles.startSaleButtonText}>Start New Sale</Text>
               </TouchableOpacity>
             </View>
@@ -252,11 +298,12 @@ const CashierHome = () => {
           )}
         </View>
 
-        
+
 
         {/* Recent Activity */}
         <View style={styles.recentCard}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Text style={styles.sectionSubtitle}>Your latest sales from today&apos;s shift.</Text>
 
           {todaySales.length > 0 ? (
             todaySales.slice(0, 3).map((sale) => (
@@ -286,20 +333,42 @@ const CashierHome = () => {
 
       <Modal
         visible={Boolean(selectedReceipt)}
-        transparent
-        animationType="fade"
+        animationType="slide"
+        presentationStyle="pageSheet"
         onRequestClose={() => setSelectedReceipt(null)}
       >
-        <View style={styles.receiptBackdrop}>
-          <View style={styles.receiptModal}>
+        <SafeAreaView style={styles.receiptModalPage}>
+          <View style={styles.receiptModalHeader}>
             <Text style={styles.ticketsTitle}>Receipt Details</Text>
+            <TouchableOpacity style={styles.closeIconButton} onPress={() => setSelectedReceipt(null)}>
+              <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={styles.receiptModalContent}>
             {selectedReceipt && (
               <>
-                <Text style={styles.receiptMeta}>Invoice: {selectedReceipt.invoiceNumber || selectedReceipt.id}</Text>
-                <Text style={styles.receiptMeta}>Date: {new Date(selectedReceipt.date).toLocaleString()}</Text>
-                <Text style={styles.receiptMeta}>Cashier: {selectedReceipt.cashier}</Text>
-                <Text style={styles.receiptMeta}>Payment: {selectedReceipt.paymentMethod}</Text>
-                <Text style={styles.receiptMeta}>Total: ${selectedReceipt.total.toFixed(2)}</Text>
+                <View style={styles.receiptDetailsCard}>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Invoice</Text>
+                    <Text style={styles.detailLineValue}>{selectedReceipt.invoiceNumber || selectedReceipt.id}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Date</Text>
+                    <Text style={styles.detailLineValue}>{new Date(selectedReceipt.date).toLocaleString()}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Cashier</Text>
+                    <Text style={styles.detailLineValue}>{selectedReceipt.cashier}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Payment</Text>
+                    <Text style={styles.detailLineValue}>{selectedReceipt.paymentMethod}</Text>
+                  </View>
+                  <View style={[styles.detailLine, styles.detailLineLast]}>
+                    <Text style={styles.detailLineLabel}>Total</Text>
+                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedReceipt.total.toFixed(2)}</Text>
+                  </View>
+                </View>
                 <View style={styles.itemsWrapper}>
                   <Text style={styles.itemsTitle}>Items</Text>
                   {(selectedReceipt.items?.length ? selectedReceipt.items : [{
@@ -312,26 +381,34 @@ const CashierHome = () => {
                     packSize: undefined,
                   }]).map((line, index) => (
                     <View key={`${line.productId}-${index}`} style={styles.modalItemRow}>
-                      <Text style={styles.modalItemName}>{line.productName}</Text>
-                      <Text style={styles.modalItemMeta}>
-                        {line.quantity} x ${line.price.toFixed(2)} = ${(line.subtotal ?? line.quantity * line.price).toFixed(2)}
-                      </Text>
+                      <View style={styles.detailLine}>
+                        <Text style={styles.detailLineLabel}>{line.productName}</Text>
+                        <Text style={styles.detailLineValue}>${(line.subtotal ?? line.quantity * line.price).toFixed(2)}</Text>
+                      </View>
+                      <View style={[styles.detailLine, styles.detailLineLast]}>
+                        <Text style={styles.detailLineLabel}>Qty x Price</Text>
+                        <Text style={styles.detailLineValue}>{line.quantity} x ${line.price.toFixed(2)}</Text>
+                      </View>
                     </View>
                   ))}
                 </View>
                 <TouchableOpacity
-                  style={styles.printBtn}
+                  style={[styles.printBtn, isPrintingReceipt && styles.printBtnDisabled]}
                   onPress={() => handlePrintReceipt(selectedReceipt)}
+                  disabled={isPrintingReceipt}
                 >
-                  <Text style={styles.printBtnText}>Print Receipt</Text>
+                  <View style={styles.buttonContent}>
+                    {isPrintingReceipt && <ActivityIndicator size="small" color="#FFFFFF" />}
+                    <Text style={styles.printBtnText}>{isPrintingReceipt ? 'Preparing...' : 'Print Receipt'}</Text>
+                  </View>
                 </TouchableOpacity>
               </>
             )}
             <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedReceipt(null)}>
               <Text style={styles.closeBtnText}>Close</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -341,209 +418,189 @@ const CashierHome = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#ffffff'
+    backgroundColor: ADMIN_COLORS.background,
   },
 
   scrollContainer: {
-    padding: 16
+    padding: 16,
+    gap: 16,
   },
 
   /* -------- Header -------- */
+  headerCard: {
+    ...ADMIN_SECTION_CARD,
+  },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0f172a'
+    ...ADMIN_PAGE_TITLE,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4
+    ...ADMIN_PAGE_SUBTITLE,
+    marginTop: 4,
   },
 
   /* -------- Stats -------- */
-  statsRow: {
-    marginTop: 16,
-    marginBottom: 16,
+  statsGrid: {
+    flexDirection: 'row',
     gap: 10,
-    flex: 1
+    justifyContent: 'space-between',
   },
 
   statCard: {
-    width: 280,
+    ...ADMIN_STAT_CARD,
+    flex: 1,
     padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e6edf3'
+    minHeight: 134,
   },
-
 
   statCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8
+    marginBottom: 8,
   },
 
   statTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280'
+    color: ADMIN_COLORS.secondaryText,
   },
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#6b7280',
-    marginBottom: 4
+    color: ADMIN_COLORS.text,
+    marginBottom: 4,
   },
   statDescription: {
     fontSize: 12,
-    color: '#6b7280'
-  },
-
-  statTextLight: {
-    color: '#ffffff'
-  },
-  statDescriptionLight: {
-    color: '#ffffff',
-    opacity: 0.9
+    color: ADMIN_COLORS.secondaryText,
   },
 
   /* -------- Section Titles -------- */
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 12
+    ...ADMIN_SECTION_TITLE,
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    ...ADMIN_SECTION_SUBTITLE,
+    marginBottom: 12,
   },
 
   /* -------- Quick Actions -------- */
+  sectionCard: {
+    ...ADMIN_SECTION_CARD,
+  },
   quickActionsRow: {
-
+    gap: 10,
   },
   quickActionCard: {
-    width: '100%',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    borderColor: '#e6edf3',
-    marginBottom: 12,
+    ...ADMIN_LIST_CARD,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between'
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
+  quickActionCopy: { flex: 1 },
   quickActionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0f172a',
-    marginTop: 8
+    color: ADMIN_COLORS.text,
   },
   quickActionDescription: {
     fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2
+    color: ADMIN_COLORS.secondaryText,
+    marginTop: 4,
   },
 
   /* -------- Alerts -------- */
   alertCard: {
-    borderWidth: 1,
-    borderRadius: 12,
+    ...ADMIN_SECTION_CARD,
     padding: 16,
     borderColor: '#f97316',
-    marginTop: 16
   },
   alertHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8
+    marginBottom: 8,
   },
   alertTitle: {
     fontSize: 16,
     fontWeight: '700',
     marginLeft: 6,
-    color: '#0f172a'
+    color: ADMIN_COLORS.text,
   },
   alertText: {
     fontSize: 14,
-    color: '#6b7280'
+    color: ADMIN_COLORS.secondaryText,
   },
 
   /* -------- Tickets -------- */
   ticketsCard: {
-    backgroundColor: '#fff',
+    ...ADMIN_SECTION_CARD,
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    marginTop: 16
   },
   ticketsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...ADMIN_SECTION_TITLE,
     marginBottom: 16,
-    color: '#0f172a'
   },
 
   saleItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: '#e5e7eb'
+    ...ADMIN_LIST_CARD,
+    paddingVertical: 14,
+    marginBottom: 10,
   },
   saleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   receiptId: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0f172a'
+    color: ADMIN_COLORS.text,
   },
   receiptTime: {
     fontSize: 14,
-    color: '#6b7280'
+    color: ADMIN_COLORS.secondaryText,
   },
   paymentBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     backgroundColor: '#eef2ff',
-    borderRadius: 6
+    borderRadius: 999,
   },
   paymentBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#0f172a'
+    color: ADMIN_COLORS.text,
   },
   saleTotal: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#f97316'
+    color: ADMIN_COLORS.accent,
   },
   productRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8
+    marginBottom: 8,
   },
   productText: {
     fontSize: 14,
-    color: '#6b7280'
+    color: ADMIN_COLORS.secondaryText,
   },
   productSubtotal: {
     fontSize: 14,
-    color: '#0f172a'
+    color: ADMIN_COLORS.text,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between'
   },
   totalLabel: {
-    color: '#0f172a'
+    color: ADMIN_COLORS.text,
   },
   totalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#f97316'
+    color: ADMIN_COLORS.accent,
   },
 
   /* -------- Empty State -------- */
@@ -554,25 +611,23 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6b7280',
+    color: ADMIN_COLORS.secondaryText,
     marginTop: 8
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: ADMIN_COLORS.secondaryText,
     textAlign: 'center',
     marginTop: 4
   },
   startSaleButton: {
     marginTop: 16,
-    backgroundColor: '#f97316',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 24
+    ...ADMIN_PRIMARY_BUTTON,
+    backgroundColor: ADMIN_COLORS.accent,
+    paddingHorizontal: 24,
   },
   startSaleButtonText: {
-    color: '#fff',
-    fontWeight: '600'
+    ...ADMIN_BUTTON_TEXT,
   },
 
   /* -------- Performance -------- */
@@ -615,21 +670,16 @@ const styles = StyleSheet.create({
 
   /* -------- Recent -------- */
   recentCard: {
-    backgroundColor: '#ffffff',
+    ...ADMIN_SECTION_CARD,
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    marginTop: 16
   },
 
   recentItem: {
-    backgroundColor: '#f3f4f6',
+    ...ADMIN_LIST_CARD,
     padding: 12,
-    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12
+    marginBottom: 10,
   },
   recentIcon: {
     backgroundColor: '#f97316',
@@ -638,88 +688,91 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   recentSaleId: {
-    color: '#0f172a',
-    fontWeight: '600'
+    color: ADMIN_COLORS.text,
+    fontWeight: '600',
   },
   recentMeta: {
     fontSize: 12,
-    color: '#6b7280'
+    color: ADMIN_COLORS.secondaryText,
   },
   recentTotal: {
     fontWeight: '700',
-    color: '#f97316'
+    color: ADMIN_COLORS.accent,
   },
 
   emptyRecent: {
     alignItems: 'center',
     paddingVertical: 20
   },
-  receiptBackdrop: {
+  receiptModalPage: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: ADMIN_COLORS.background,
+  },
+  receiptModalHeader: {
+    ...ADMIN_MODAL_HEADER,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  receiptModal: {
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16
+  closeIconButton: {
+    padding: 4,
   },
-  receiptMeta: {
-    fontSize: 14,
-    color: '#0f172a',
-    marginBottom: 8
+  receiptModalContent: {
+    padding: 20,
+    gap: 16,
+  },
+  receiptDetailsCard: {
+    ...ADMIN_MODAL_SECTION,
   },
   itemsWrapper: {
-    marginTop: 4,
-    marginBottom: 8
+    ...ADMIN_MODAL_SECTION,
   },
   itemsTitle: {
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 6
+    ...ADMIN_SECTION_TITLE,
+    fontSize: 16,
   },
   modalItemRow: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 6
+    ...ADMIN_LIST_CARD,
+    paddingVertical: 10,
+    marginBottom: 8,
   },
-  modalItemName: {
-    color: '#0f172a',
-    fontWeight: '600'
+  detailLine: {
+    ...ADMIN_DETAIL_ROW,
   },
-  modalItemMeta: {
-    color: '#6b7280',
-    fontSize: 12,
-    marginTop: 2
+  detailLineLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  detailLineLabel: {
+    ...ADMIN_DETAIL_LABEL,
+  },
+  detailLineValue: {
+    ...ADMIN_DETAIL_VALUE,
+  },
+  detailLineAccent: {
+    color: ADMIN_COLORS.accent,
   },
   printBtn: {
-    marginTop: 8,
-    backgroundColor: '#f97316',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center'
+    ...ADMIN_PRIMARY_BUTTON,
+    backgroundColor: ADMIN_COLORS.primary,
+  },
+  printBtnDisabled: {
+    ...ADMIN_PRIMARY_BUTTON_DISABLED,
+  },
+  buttonContent: {
+    ...ADMIN_BUTTON_CONTENT,
   },
   printBtnText: {
-    color: '#fff',
-    fontWeight: '700'
+    ...ADMIN_BUTTON_TEXT,
   },
   closeBtn: {
-    marginTop: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingVertical: 12,
-    alignItems: 'center'
+    ...ADMIN_SECONDARY_BUTTON,
   },
   closeBtnText: {
-    color: '#0f172a',
-    fontWeight: '600'
-  }
+    ...ADMIN_SECONDARY_BUTTON_TEXT,
+  },
 });
 
 export default CashierHome;

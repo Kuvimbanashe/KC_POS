@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  TextInput, 
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
   Alert,
   Modal,
   FlatList,
   SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
@@ -17,6 +18,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { addPurchase, fetchOperationalData, updateProduct } from '../../store/slices/userSlice';
 import type { PurchaseRecord, Product } from '../../store/types';
 import { apiClient } from '../../services/api';
+import {
+  ADMIN_BUTTON_CONTENT,
+  ADMIN_BUTTON_TEXT,
+  ADMIN_COLORS,
+  ADMIN_DETAIL_LABEL,
+  ADMIN_DETAIL_ROW,
+  ADMIN_DETAIL_VALUE,
+  ADMIN_INPUT_FIELD,
+  ADMIN_INPUT_SURFACE,
+  ADMIN_LIST_CARD,
+  ADMIN_MODAL_HEADER,
+  ADMIN_MODAL_SECTION,
+  ADMIN_PAGE_SUBTITLE,
+  ADMIN_PRIMARY_BUTTON,
+  ADMIN_PRIMARY_BUTTON_DISABLED,
+  ADMIN_PAGE_TITLE,
+  ADMIN_SECTION_CARD,
+  ADMIN_SECTION_SUBTITLE,
+  ADMIN_SECTION_TITLE,
+  ADMIN_STAT_CARD,
+} from '../../theme/adminUi';
 
 interface PurchaseFormData {
   quantity: string;
@@ -42,15 +64,17 @@ const AdminPurchases = () => {
     if (!user?.businessId) return;
     dispatch(fetchOperationalData(user.businessId));
   }, [dispatch, user?.businessId]);
-  
+
   const [filteredPurchases, setFilteredPurchases] = useState<PurchaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseRecord | null>(null);
-  
+  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
+
   const [formData, setFormData] = useState<PurchaseFormData>({
     quantity: '',
     unitCost: '',
@@ -78,12 +102,22 @@ const AdminPurchases = () => {
     setFilteredPurchases(filtered);
   }, [searchQuery, purchases]);
 
+  const handleRefresh = async () => {
+    if (!user?.businessId) return;
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchOperationalData(user.businessId));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Handle product selection for purchase
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setIsProductModalOpen(false);
     setIsPurchaseModalOpen(true);
-    
+
     // Pre-fill supplier if available
     if (product.supplier) {
       setFormData(prev => ({ ...prev, supplier: product.supplier as string }));
@@ -106,14 +140,15 @@ const AdminPurchases = () => {
       return;
     }
 
+    setIsSubmittingPurchase(true);
     try {
       const quantity = parseInt(formData.quantity);
       const unitCost = parseFloat(formData.unitCost);
       const margin = parseFloat(formData.profitMargin);
       const sellingPrice = calculateSellingPrice(unitCost, margin);
-      
-      const actualQuantity = formData.unitType === 'pack' && selectedProduct.packSize 
-        ? quantity * selectedProduct.packSize 
+
+      const actualQuantity = formData.unitType === 'pack' && selectedProduct.packSize
+        ? quantity * selectedProduct.packSize
         : quantity;
 
       const totalCost = quantity * unitCost;
@@ -147,20 +182,22 @@ const AdminPurchases = () => {
       dispatch(fetchOperationalData(user.businessId));
 
       Alert.alert('Success', `Purchase saved to backend.\n\nSuggested price: $${sellingPrice.toFixed(2)}\n${actualQuantity} units added to stock`);
-      
+
       // Reset form
       setIsPurchaseModalOpen(false);
       setSelectedProduct(null);
-      setFormData({ 
-        quantity: '', 
-        unitCost: '', 
-        unitType: 'single', 
+      setFormData({
+        quantity: '',
+        unitCost: '',
+        unitType: 'single',
         profitMargin: '30',
-        supplier: '' 
+        supplier: ''
       });
     } catch (error) {
       console.error('Error creating purchase:', error);
       Alert.alert('Error', 'Failed to create purchase');
+    } finally {
+      setIsSubmittingPurchase(false);
     }
   };
 
@@ -172,8 +209,8 @@ const AdminPurchases = () => {
   const unitCost = formData.unitCost ? parseFloat(formData.unitCost) : 0;
   const margin = formData.profitMargin ? parseFloat(formData.profitMargin) : 0;
   const suggestedPrice = unitCost > 0 ? calculateSellingPrice(unitCost, margin) : 0;
-  const totalFormCost = formData.quantity && formData.unitCost 
-    ? parseFloat(formData.quantity) * parseFloat(formData.unitCost) 
+  const totalFormCost = formData.quantity && formData.unitCost
+    ? parseFloat(formData.quantity) * parseFloat(formData.unitCost)
     : 0;
 
   // Stat cards configuration
@@ -200,7 +237,7 @@ const AdminPurchases = () => {
 
   // Render purchase item
   const renderPurchaseItem = ({ item }: { item: PurchaseRecord }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.purchaseCard}
       onPress={() => setSelectedPurchase(item)}
       activeOpacity={0.7}
@@ -209,7 +246,7 @@ const AdminPurchases = () => {
         <Text style={styles.productName}>{item.productName}</Text>
         <Text style={styles.purchaseAmount}>${item.total}</Text>
       </View>
-      
+
       <View style={styles.purchaseDetails}>
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
@@ -221,7 +258,7 @@ const AdminPurchases = () => {
             <Text style={styles.detailText}>{item.quantity} units</Text>
           </View>
         </View>
-        
+
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
             <Ionicons name="pricetag-outline" size={14} color="#6B7280" />
@@ -240,7 +277,7 @@ const AdminPurchases = () => {
 
   // Render product item
   const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.productCard}
       onPress={() => handleProductSelect(item)}
       activeOpacity={0.7}
@@ -249,7 +286,7 @@ const AdminPurchases = () => {
         <Text style={styles.productName}>{item.name}</Text>
         <Text style={styles.productPrice}>${item.price}</Text>
       </View>
-      
+
       <View style={styles.productDetails}>
         <Text style={styles.productDetail}>Stock: {item.stock}</Text>
         <Text style={styles.productDetail}>{item.category}</Text>
@@ -272,7 +309,13 @@ const AdminPurchases = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Purchase Orders</Text>
@@ -280,8 +323,8 @@ const AdminPurchases = () => {
         </View>
 
         {/* Stats Grid */}
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.statsScroll}
           contentContainerStyle={styles.statsContent}
@@ -298,23 +341,33 @@ const AdminPurchases = () => {
         </ScrollView>
 
         {/* Actions */}
-        <View style={styles.actionsCard}>
+        {/* <View style={styles.actionsCard}>
+
+        </View> */}
+
+        {/* Search Section */}
+        <View style={styles.searchCard}>
+
+         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical:10 }}>
+
+           <View>
+            <Text style={styles.sectionTitle}>Purchase History</Text>
+            <Text style={styles.sectionSubtitle}>
+              {filteredPurchases.length} purchases found
+            </Text>
+          </View>
           <TouchableOpacity
             style={styles.newPurchaseButton}
             onPress={() => setIsProductModalOpen(true)}
           >
             <Ionicons name="add" size={20} color="#FFFFFF" />
-            <Text style={styles.newPurchaseText}>New Purchase</Text>
+            <Text style={styles.newPurchaseText}>Add New </Text>
           </TouchableOpacity>
-        </View>
 
-        {/* Search Section */}
-        <View style={styles.searchCard}>
-          <Text style={styles.sectionTitle}>Purchase History</Text>
-          <Text style={styles.sectionSubtitle}>
-            {filteredPurchases.length} purchases found
-          </Text>
-          
+
+         </View>
+
+
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <Ionicons name="search" size={18} color="#6B7280" />
@@ -340,7 +393,7 @@ const AdminPurchases = () => {
             <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>No purchases found</Text>
             <Text style={styles.emptyText}>
-              {searchQuery 
+              {searchQuery
                 ? 'Try adjusting your search'
                 : 'Start by creating a purchase order'
               }
@@ -416,15 +469,20 @@ const AdminPurchases = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
             {selectedProduct && (
               <View style={styles.selectedProduct}>
-                <Text style={styles.productLabel}>Product</Text>
-                <Text style={styles.productName}>{selectedProduct.name}</Text>
-                <View style={styles.productInfoRow}>
-                  <Text style={styles.productInfoText}>
-                    Stock: {selectedProduct.stock} • ${selectedProduct.price}
-                  </Text>
+                <View style={styles.detailLine}>
+                  <Text style={styles.detailLineLabel}>Product</Text>
+                  <Text style={styles.detailLineValue}>{selectedProduct.name}</Text>
+                </View>
+                <View style={styles.detailLine}>
+                  <Text style={styles.detailLineLabel}>Current Stock</Text>
+                  <Text style={styles.detailLineValue}>{selectedProduct.stock}</Text>
+                </View>
+                <View style={[styles.detailLine, styles.detailLineLast]}>
+                  <Text style={styles.detailLineLabel}>Current Price</Text>
+                  <Text style={styles.detailLineValue}>${selectedProduct.price}</Text>
                 </View>
               </View>
             )}
@@ -548,10 +606,14 @@ const AdminPurchases = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[styles.submitButton, isSubmittingPurchase && styles.submitButtonDisabled]}
               onPress={handlePurchaseSubmit}
+              disabled={isSubmittingPurchase}
             >
-              <Text style={styles.submitButtonText}>Create Purchase</Text>
+              <View style={styles.buttonContent}>
+                {isSubmittingPurchase && <ActivityIndicator size="small" color="#FFFFFF" />}
+                <Text style={styles.submitButtonText}>{isSubmittingPurchase ? 'Saving...' : 'Create Purchase'}</Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -573,39 +635,31 @@ const AdminPurchases = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
               <View style={styles.detailsContainer}>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItemLarge}>
-                    <Text style={styles.detailLabel}>Product</Text>
-                    <Text style={styles.detailValue}>{selectedPurchase.productName}</Text>
-                  </View>
-                  <View style={styles.detailItemLarge}>
-                    <Text style={styles.detailLabel}>Supplier</Text>
-                    <Text style={styles.detailValue}>{selectedPurchase.supplier}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Quantity</Text>
-                    <Text style={styles.detailValue}>{selectedPurchase.quantity} units</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Unit Cost</Text>
-                    <Text style={styles.detailValue}>
-                      ${selectedPurchase.unitCost}
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Total Cost</Text>
-                    <Text style={[styles.detailValue, styles.totalCost]}>
-                      ${selectedPurchase.total}
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Date</Text>
-                    <Text style={styles.detailValue}>
-                      {new Date(selectedPurchase.date).toLocaleDateString()}
-                    </Text>
-                  </View>
+                <View style={styles.detailLine}>
+                  <Text style={styles.detailLineLabel}>Product</Text>
+                  <Text style={styles.detailLineValue}>{selectedPurchase.productName}</Text>
+                </View>
+                <View style={styles.detailLine}>
+                  <Text style={styles.detailLineLabel}>Supplier</Text>
+                  <Text style={styles.detailLineValue}>{selectedPurchase.supplier}</Text>
+                </View>
+                <View style={styles.detailLine}>
+                  <Text style={styles.detailLineLabel}>Quantity</Text>
+                  <Text style={styles.detailLineValue}>{selectedPurchase.quantity} units</Text>
+                </View>
+                <View style={styles.detailLine}>
+                  <Text style={styles.detailLineLabel}>Unit Cost</Text>
+                  <Text style={styles.detailLineValue}>${selectedPurchase.unitCost}</Text>
+                </View>
+                <View style={styles.detailLine}>
+                  <Text style={styles.detailLineLabel}>Date</Text>
+                  <Text style={styles.detailLineValue}>{new Date(selectedPurchase.date).toLocaleDateString()}</Text>
+                </View>
+                <View style={[styles.detailLine, styles.detailLineLast]}>
+                  <Text style={styles.detailLineLabel}>Total Cost</Text>
+                  <Text style={[styles.detailLineValue, styles.totalCost]}>${selectedPurchase.total}</Text>
                 </View>
               </View>
             </ScrollView>
@@ -620,10 +674,13 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
+  },
+  content: {
+    paddingBottom: 24,
   },
 
   // Loading
@@ -631,11 +688,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: ADMIN_COLORS.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Header
@@ -645,14 +703,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#111827",
+    ...ADMIN_PAGE_TITLE,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
+    ...ADMIN_PAGE_SUBTITLE,
   },
 
   // Stats
@@ -664,13 +719,12 @@ const styles = StyleSheet.create({
     paddingRight: 40,
   },
   statCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    ...ADMIN_STAT_CARD,
     padding: 16,
     marginRight: 12,
     width: 120,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    flexDirection: "column",
+    alignItems: "center",
   },
   statIcon: {
     width: 40,
@@ -683,26 +737,28 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 4,
   },
   statTitle: {
     fontSize: 12,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Actions
   actionsCard: {
-    paddingHorizontal: 20,
+    ...ADMIN_SECTION_CARD,
+    marginHorizontal: 20,
     marginBottom: 20,
   },
   newPurchaseButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: ADMIN_COLORS.primary,
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal:16,
   },
   newPurchaseText: {
     color: "#FFFFFF",
@@ -713,40 +769,30 @@ const styles = StyleSheet.create({
 
   // Search Section
   searchCard: {
-    backgroundColor: "#FFFFFF",
+    ...ADMIN_SECTION_CARD,
     marginHorizontal: 20,
     marginBottom: 20,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
+    ...ADMIN_SECTION_TITLE,
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 13,
-    color: "#6B7280",
+    ...ADMIN_SECTION_SUBTITLE,
     marginBottom: 16,
   },
   searchContainer: {
     marginBottom: 4,
   },
   searchBar: {
+    ...ADMIN_INPUT_SURFACE,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginLeft: 8,
   },
 
@@ -758,12 +804,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   purchaseCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    ...ADMIN_LIST_CARD,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
   purchaseHeader: {
     flexDirection: "row",
@@ -774,13 +816,13 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     flex: 1,
   },
   purchaseAmount: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#059669",
+    color: ADMIN_COLORS.success,
   },
   purchaseDetails: {
     gap: 8,
@@ -795,7 +837,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginLeft: 4,
   },
 
@@ -809,18 +851,18 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     textAlign: "center",
     marginBottom: 16,
   },
   clearButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: ADMIN_COLORS.primary,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -834,25 +876,27 @@ const styles = StyleSheet.create({
   // Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.background,
   },
   modalHeader: {
+    ...ADMIN_MODAL_HEADER,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   modalScroll: {
     flex: 1,
     padding: 20,
+  },
+  modalContent: {
+    gap: 16,
   },
 
   // Product Selection Modal
@@ -861,12 +905,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   productCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    ...ADMIN_LIST_CARD,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
   productInfo: {
     flexDirection: "row",
@@ -877,7 +917,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#059669",
+    color: ADMIN_COLORS.success,
   },
   productDetails: {
     flexDirection: "row",
@@ -885,37 +925,36 @@ const styles = StyleSheet.create({
   },
   productDetail: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   productSupplier: {
     fontSize: 13,
-    color: "#2563EB",
+    color: ADMIN_COLORS.info,
     fontWeight: "500",
   },
 
   // Purchase Form Modal
   selectedProduct: {
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
+    ...ADMIN_MODAL_SECTION,
     padding: 16,
-    marginBottom: 20,
   },
-  productLabel: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 4,
+  detailLine: {
+    ...ADMIN_DETAIL_ROW,
   },
-  productInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  detailLineLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
-  productInfoText: {
-    fontSize: 13,
-    color: "#6B7280",
+  detailLineLabel: {
+    ...ADMIN_DETAIL_LABEL,
+  },
+  detailLineValue: {
+    ...ADMIN_DETAIL_VALUE,
   },
 
   // Form
   formContainer: {
+    ...ADMIN_MODAL_SECTION,
     gap: 20,
   },
   formGroup: {
@@ -924,17 +963,13 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: ADMIN_COLORS.text,
   },
   formInput: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    ...ADMIN_INPUT_FIELD,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     fontSize: 16,
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   unitTypeContainer: {
     flexDirection: "row",
@@ -943,20 +978,20 @@ const styles = StyleSheet.create({
   unitTypeButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
   },
   unitTypeButtonActive: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: ADMIN_COLORS.primary,
+    borderColor: ADMIN_COLORS.primary,
   },
   unitTypeText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   unitTypeTextActive: {
     color: "#FFFFFF",
@@ -964,15 +999,15 @@ const styles = StyleSheet.create({
 
   // Summary
   summaryCard: {
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
+    ...ADMIN_LIST_CARD,
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     padding: 16,
     marginTop: 12,
   },
   summaryTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 16,
   },
   summaryRow: {
@@ -983,59 +1018,50 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   suggestedPrice: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#059669",
+    color: ADMIN_COLORS.success,
   },
 
   // Submit Button
   submitButton: {
-    backgroundColor: "#2563EB",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 20,
+    ...ADMIN_PRIMARY_BUTTON,
+  },
+  submitButtonDisabled: {
+    ...ADMIN_PRIMARY_BUTTON_DISABLED,
+  },
+  buttonContent: {
+    ...ADMIN_BUTTON_CONTENT,
   },
   submitButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    ...ADMIN_BUTTON_TEXT,
   },
 
   // Details Modal
   detailsContainer: {
+    ...ADMIN_MODAL_SECTION,
     marginTop: 12,
-  },
-  detailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
- 
-  detailItemLarge: {
-    width: "100%",
-    marginBottom: 12,
   },
   detailLabel: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   totalCost: {
-    color: "#059669",
+    color: ADMIN_COLORS.success,
   },
 });
 

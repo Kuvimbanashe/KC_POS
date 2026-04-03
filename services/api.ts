@@ -1,7 +1,15 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AssetRecord, ExpenseRecord, Product, PurchaseRecord, SaleItem, SaleRecord, UserProfile } from '../store/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8000/api';
 const MAX_CURRENCY_VALUE = 9_999_999_999.99;
+const PUBLIC_AUTH_PATHS = [
+  '/auth/login/',
+  '/auth/register-business/',
+  '/auth/request-password-reset/',
+  '/auth/verify-reset-otp/',
+  '/auth/reset-password/',
+];
 
 const roundCurrency = (value: number): number => {
   if (!Number.isFinite(value)) return 0;
@@ -9,6 +17,22 @@ const roundCurrency = (value: number): number => {
   if (rounded > MAX_CURRENCY_VALUE) return MAX_CURRENCY_VALUE;
   if (rounded < -MAX_CURRENCY_VALUE) return -MAX_CURRENCY_VALUE;
   return rounded;
+};
+
+const toNumber = (value: string | number | undefined | null): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const isWithinDateRange = (value: string, start?: string, end?: string) => {
+  const day = value.slice(0, 10);
+  if (start && day < start) return false;
+  if (end && day > end) return false;
+  return true;
 };
 
 interface CreateSalePayload {
@@ -57,7 +81,7 @@ interface RegisterBusinessPayload {
 interface SaveUserPayload {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role: 'admin' | 'cashier';
   phone?: string;
   address?: string;
@@ -67,7 +91,7 @@ interface SaveUserPayload {
 interface BackendUser {
   id: number;
   email: string;
-  password: string;
+  password?: string;
   name: string;
   role: 'admin' | 'cashier';
   phone?: string;
@@ -163,23 +187,127 @@ interface PagedResponse<T> {
   results?: T[];
 }
 
+interface PasswordResetRequestResponse {
+  detail: string;
+  email: string;
+  otp_code: string;
+  expires_at: string;
+}
+
+interface DashboardReportResponse {
+  totals: {
+    sales: string | number;
+    expenses: string | number;
+    inventory_value: string | number;
+    net: string | number;
+  };
+  alerts: {
+    low_stock_products: number;
+  };
+}
+
+interface SalesReportResponse {
+  filters: {
+    start?: string | null;
+    end?: string | null;
+  };
+  summary: {
+    total_sales: string | number;
+    count: number;
+  };
+  daily: Array<{
+    day: string;
+    total: string | number;
+  }>;
+}
+
+interface InventoryReportResponse {
+  summary: {
+    inventory_value: string | number;
+    products_count: number;
+  };
+  low_stock: Array<{
+    id: number;
+    name: string;
+    stock: number;
+    min_stock_level: number;
+  }>;
+  products: Array<{
+    id: number;
+    name: string;
+    sku: string;
+    barcode?: string | null;
+    stock: number;
+    min_stock_level: number;
+    cost: string | number;
+    price: string | number;
+  }>;
+}
+
+interface ExpensesReportResponse {
+  summary: {
+    total_expenses: string | number;
+    count: number;
+  };
+  by_category: Array<{
+    category: string;
+    total: string | number;
+  }>;
+}
+
+interface ProfitLossReportResponse {
+  filters: {
+    start?: string | null;
+    end?: string | null;
+  };
+  income_statement: {
+    revenue: string | number;
+    cogs: string | number;
+    gross_profit: string | number;
+    operating_expenses: string | number;
+    net_profit: string | number;
+  };
+}
+
 const jsonHeaders = {
   Accept: 'application/json',
   'Content-Type': 'application/json',
 };
 
-const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: jsonHeaders,
-    ...init,
-  });
+const isPublicPath = (path: string) => PUBLIC_AUTH_PATHS.some((publicPath) => path.startsWith(publicPath));
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Request failed: ${response.status} ${path} ${errorBody}`);
+const buildHeaders = async (path: string, headers?: HeadersInit): Promise<Headers> => {
+  const mergedHeaders = new Headers(jsonHeaders);
+  if (headers) {
+    new Headers(headers).forEach((value, key) => mergedHeaders.set(key, value));
   }
 
-  return response.json() as Promise<T>;
+  if (!isPublicPath(path) && !mergedHeaders.has('Authorization')) {
+    const token = await AsyncStorage.getItem('authToken');
+    if (token) {
+      mergedHeaders.set('Authorization', `Bearer ${token}`);
+    }
+  }
+
+  return mergedHeaders;
+};
+
+const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers: await buildHeaders(path, init?.headers),
+  });
+  const responseBody = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status} ${path} ${responseBody}`);
+  }
+
+  if (!responseBody.trim()) {
+    return undefined as T;
+  }
+
+  return JSON.parse(responseBody) as T;
 };
 
 const appendBusinessId = (path: string, businessId?: number | null) => {
@@ -191,7 +319,7 @@ const appendBusinessId = (path: string, businessId?: number | null) => {
 const mapUser = (data: BackendUser): UserProfile => ({
   id: data.id,
   email: data.email,
-  password: data.password,
+  password: data.password ?? '',
   name: data.name,
   type: data.role,
   phone: data.phone,
@@ -324,9 +452,51 @@ export const apiClient = {
     };
   },
 
+  async requestPasswordReset(email: string) {
+    const data = await request<PasswordResetRequestResponse>('/auth/request-password-reset/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+
+    return {
+      detail: data.detail,
+      email: data.email,
+      otpCode: data.otp_code,
+      expiresAt: data.expires_at,
+    };
+  },
+
+  async verifyPasswordResetCode(email: string, code: string) {
+    return request<{ detail: string }>('/auth/verify-reset-otp/', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    return request<{ detail: string }>('/auth/reset-password/', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        code,
+        new_password: newPassword,
+      }),
+    });
+  },
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    return request<{ detail: string }>('/auth/change-password/', {
+      method: 'POST',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+  },
+
   async lookupProductByBarcode(barcode: string, businessId?: number | null): Promise<Product | null> {
     const path = appendBusinessId(`/products/lookup-by-barcode/?barcode=${encodeURIComponent(barcode)}`, businessId);
-    const response = await fetch(`${API_BASE_URL}${path}`, { headers: jsonHeaders });
+    const response = await fetch(`${API_BASE_URL}${path}`, { headers: await buildHeaders(path) });
     if (response.status === 404) return null;
     if (!response.ok) throw new Error(`Lookup failed with status ${response.status}`);
     return mapProduct((await response.json()) as BackendProduct);
@@ -457,14 +627,9 @@ export const apiClient = {
   },
 
   async deleteAsset(assetId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/assets/${assetId}/`, {
+    await request<void>(`/assets/${assetId}/`, {
       method: 'DELETE',
-      headers: jsonHeaders,
     });
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Request failed: ${response.status} /assets/${assetId}/ ${errorBody}`);
-    }
   },
 
   async fetchProducts(businessId?: number | null): Promise<Product[]> {
@@ -482,39 +647,35 @@ export const apiClient = {
         business: payload.businessId,
         name: payload.name,
         email: payload.email,
-        password: payload.password,
         role: payload.role,
         phone: payload.phone ?? '',
         address: payload.address ?? '',
         status: 'active',
+        ...(payload.password ? { password: payload.password } : {}),
       }),
     });
     return mapUser(data);
   },
   async updateUser(userId: number, payload: Partial<SaveUserPayload>): Promise<UserProfile> {
+    const body: Record<string, unknown> = {};
+    if (payload.businessId !== undefined) body.business = payload.businessId;
+    if (payload.name !== undefined) body.name = payload.name;
+    if (payload.email !== undefined) body.email = payload.email;
+    if (payload.password) body.password = payload.password;
+    if (payload.role !== undefined) body.role = payload.role;
+    if (payload.phone !== undefined) body.phone = payload.phone;
+    if (payload.address !== undefined) body.address = payload.address;
+
     const data = await request<BackendUser>(`/users/${userId}/`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        business: payload.businessId,
-        name: payload.name,
-        email: payload.email,
-        password: payload.password,
-        role: payload.role,
-        phone: payload.phone,
-        address: payload.address,
-      }),
+      body: JSON.stringify(body),
     });
     return mapUser(data);
   },
   async deleteUser(userId: number): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/`, {
+    await request<void>(`/users/${userId}/`, {
       method: 'DELETE',
-      headers: jsonHeaders,
     });
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Request failed: ${response.status} /users/${userId}/ ${errorBody}`);
-    }
   },
   async fetchSales(businessId?: number | null): Promise<SaleRecord[]> {
     const data = await request<PagedResponse<BackendSale> | BackendSale[]>(appendBusinessId('/sales/', businessId));
@@ -540,13 +701,40 @@ export const apiClient = {
     if (businessId) query.set('business_id', `${businessId}`);
     const suffix = query.toString() ? `?${query.toString()}` : '';
 
-    const [dashboard, sales, inventory, expenses, profitLoss] = await Promise.all([
-      request<Record<string, unknown>>(`/reports/dashboard/${suffix}`),
-      request<Record<string, unknown>>(`/reports/sales/${suffix}`),
-      request<Record<string, unknown>>(`/reports/inventory/${suffix}`),
-      request<Record<string, unknown>>(`/reports/expenses/${suffix}`),
-      request<Record<string, unknown>>(`/reports/profit-loss/${suffix}`),
+    const [dashboard, sales, inventory, expenses] = await Promise.all([
+      request<DashboardReportResponse>(`/reports/dashboard/${suffix}`),
+      request<SalesReportResponse>(`/reports/sales/${suffix}`),
+      request<InventoryReportResponse>(`/reports/inventory/${suffix}`),
+      request<ExpensesReportResponse>(`/reports/expenses/${suffix}`),
     ]);
+
+    let profitLoss: ProfitLossReportResponse;
+
+    try {
+      profitLoss = await request<ProfitLossReportResponse>(`/reports/profit-loss/${suffix}`);
+    } catch (error) {
+      console.error('Profit & loss report request failed, using purchase-data fallback:', error);
+
+      const purchases = await this.fetchPurchases(businessId);
+      const filteredPurchases = purchases.filter((purchase) => isWithinDateRange(purchase.date, start, end));
+      const revenue = toNumber(sales.summary.total_sales);
+      const operatingExpenses = toNumber(expenses.summary.total_expenses);
+      const cogs = filteredPurchases.reduce((sum, purchase) => sum + toNumber(purchase.total), 0);
+      const grossProfit = revenue - cogs;
+      const netProfit = grossProfit - operatingExpenses;
+
+      profitLoss = {
+        filters: { start: start ?? null, end: end ?? null },
+        income_statement: {
+          revenue,
+          cogs,
+          gross_profit: grossProfit,
+          operating_expenses: operatingExpenses,
+          net_profit: netProfit,
+        },
+      };
+    }
+
     return { dashboard, sales, inventory, expenses, profitLoss };
   },
 };
