@@ -146,7 +146,7 @@ const AdminPurchases = () => {
       }));
       dispatch(fetchOperationalData(user.businessId));
 
-      Alert.alert('Success', `Purchase saved.\n\nSuggested price: $${sellingPrice}\n${actualQuantity} units added to stock`);
+      Alert.alert('Success', `Purchase saved to backend.\n\nSuggested price: $${sellingPrice.toFixed(2)}\n${actualQuantity} units added to stock`);
       
       // Reset form
       setIsPurchaseModalOpen(false);

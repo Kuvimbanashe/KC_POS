@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { addExpense, fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { ExpenseRecord } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 const EXPENSE_CATEGORY_OPTIONS = [
   'Rent',
@@ -114,22 +115,35 @@ const AdminExpenses = () => {
     setFilteredExpenses(filtered);
   }, [searchQuery, categoryFilter, expenses]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.category || !formData.description || !formData.amount) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+    if (!user?.businessId) {
+      Alert.alert('Error', 'Business context missing. Please sign in again.');
+      return;
+    }
 
     try {
+      const amount = parseFloat(formData.amount);
+      await apiClient.createExpense({
+        category: formData.category,
+        description: formData.description,
+        amount,
+        businessId: user.businessId,
+      });
+
       dispatch(
         addExpense({
           category: formData.category,
           description: formData.description,
-          amount: parseFloat(formData.amount),
+          amount,
         }),
       );
+      dispatch(fetchOperationalData(user.businessId));
 
-      Alert.alert('Success', 'Expense added successfully');
+      Alert.alert('Success', 'Expense saved to backend successfully');
       setIsDialogOpen(false);
       setFormData({ category: '', description: '', amount: '' });
     } catch (error) {

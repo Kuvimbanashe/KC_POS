@@ -1,6 +1,6 @@
 import type { AssetRecord, ExpenseRecord, Product, PurchaseRecord, SaleItem, SaleRecord, UserProfile } from '../store/types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://d3kf6j33-8000.inc1.devtunnels.ms/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8000/api';
 const MAX_CURRENCY_VALUE = 9_999_999_999.99;
 
 const roundCurrency = (value: number): number => {
@@ -27,6 +27,14 @@ interface CreatePurchasePayload {
   unitCost: number;
   total: number;
   supplier: string;
+  businessId?: number | null;
+}
+interface CreateExpensePayload {
+  category: string;
+  amount: number;
+  description: string;
+  paymentMethod?: 'Bank Transfer' | 'Cash' | 'Check' | 'Online Payment';
+  vendor?: string;
   businessId?: number | null;
 }
 
@@ -359,6 +367,21 @@ export const apiClient = {
         supplier: payload.supplier,
         order_number: `PO-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         status: 'Completed',
+      }),
+    });
+  },
+  async createExpense(payload: CreateExpensePayload): Promise<void> {
+    await request('/expenses/', {
+      method: 'POST',
+      body: JSON.stringify({
+        business: payload.businessId,
+        category: payload.category,
+        amount: roundCurrency(payload.amount),
+        description: payload.description,
+        payment_method: payload.paymentMethod ?? 'Cash',
+        vendor: payload.vendor ?? 'General',
+        status: 'Paid',
+        receipt_number: `EXP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       }),
     });
   },
