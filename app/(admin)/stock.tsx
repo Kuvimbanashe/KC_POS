@@ -209,16 +209,6 @@ const AdminStock = () => {
     'Other'
   ];
 
-  // Supplier options
-  const supplierOptions = [
-    'TechSuppliers Inc.',
-    'Fashion Distributors',
-    'Food Importers Ltd.',
-    'Home Essentials Co.',
-    'Beauty World',
-    'Global Suppliers',
-  ];
-
   // Get stock badge styling
   const getStockBadge = (stock: number, minStockLevel = 10) => {
     if (stock === 0) {
@@ -665,32 +655,20 @@ const AdminStock = () => {
               {/* Supplier */}
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: COLORS.primary }]}>Supplier *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.tagContainer}>
-                    {supplierOptions.map((supplier) => (
-                      <TouchableOpacity
-                        key={supplier}
-                        style={[
-                          styles.tag,
-                          { 
-                            backgroundColor: formData.supplier === supplier ? COLORS.primary : COLORS.input,
-                            borderColor: formData.supplier === supplier ? COLORS.primary : COLORS.border
-                          }
-                        ]}
-                        onPress={() => setFormData({ ...formData, supplier })}
-                      >
-                        <Text style={[
-                          styles.tagText,
-                          { 
-                            color: formData.supplier === supplier ? '#FFFFFF' : COLORS.primary 
-                          }
-                        ]}>
-                          {supplier}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
+                <TextInput
+                  value={formData.supplier}
+                  onChangeText={(text) => setFormData({ ...formData, supplier: text })}
+                  placeholder="Enter supplier name"
+                  style={[
+                    styles.formInput,
+                    {
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary,
+                    },
+                  ]}
+                  placeholderTextColor={COLORS.muted}
+                />
               </View>
 
               {/* Unit Type */}

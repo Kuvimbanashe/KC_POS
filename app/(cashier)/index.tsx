@@ -1,10 +1,10 @@
 // app/(cashier)/index.js
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Platform, Share, RefreshControl, ActivityIndicator } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal, Platform, Share, RefreshControl, ActivityIndicator, FlatList, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import type { SaleRecord } from '../../store/types';
+import type { Product, SaleRecord } from '../../store/types';
 import { fetchOperationalData } from '../../store/slices/userSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -14,6 +14,7 @@ import {
   ADMIN_DETAIL_LABEL,
   ADMIN_DETAIL_ROW,
   ADMIN_DETAIL_VALUE,
+  ADMIN_INPUT_SURFACE,
   ADMIN_LIST_CARD,
   ADMIN_MODAL_HEADER,
   ADMIN_MODAL_SECTION,
@@ -46,6 +47,8 @@ const CashierHome = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { sales, products } = useAppSelector((state) => state.user);
   const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
+  const [isProductsModalOpen, setIsProductsModalOpen] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
 
@@ -78,6 +81,28 @@ const CashierHome = () => {
   // Low stock products
   const lowStockProducts = products.filter((p) => p.stock < 10);
 
+  const filteredProducts = useMemo(() => {
+    const query = productSearchQuery.trim().toLowerCase();
+    if (!query) return products;
+
+    return products.filter((product) => {
+      const searchableValues = [
+        product.name,
+        product.category,
+        product.sku,
+        product.barcode ?? '',
+        product.supplier ?? '',
+      ];
+
+      return searchableValues.some((value) => value.toLowerCase().includes(query));
+    });
+  }, [productSearchQuery, products]);
+
+  const openProductsModal = () => {
+    setProductSearchQuery('');
+    setIsProductsModalOpen(true);
+  };
+
   // Quick Actions
   const quickActions = [
     {
@@ -88,9 +113,9 @@ const CashierHome = () => {
     },
     {
       title: 'View Products',
-      description: 'Browse products in sell screen',
+      description: 'Search and review available products',
       icon: 'cube',
-      action: () => router.push('/(cashier)/sell'),
+      action: openProductsModal,
     },
   ];
 
@@ -214,6 +239,49 @@ const CashierHome = () => {
     }
   };
 
+  const renderProductItem = ({ item }: { item: Product }) => {
+    const isOutOfStock = item.stock <= 0;
+    const isLowStock = !isOutOfStock && item.stock < (item.minStockLevel || 10);
+    const badgeStyle = isOutOfStock
+      ? styles.outOfStockBadge
+      : isLowStock
+        ? styles.lowStockBadge
+        : styles.inStockBadge;
+    const badgeTextStyle = isOutOfStock
+      ? styles.outOfStockBadgeText
+      : isLowStock
+        ? styles.lowStockBadgeText
+        : styles.inStockBadgeText;
+    const badgeLabel = isOutOfStock ? 'Out of Stock' : isLowStock ? 'Low Stock' : 'In Stock';
+
+    return (
+      <View style={styles.catalogCard}>
+        <View style={styles.catalogCardHeader}>
+          <View style={styles.catalogTitleBlock}>
+            <Text style={styles.catalogProductName}>{item.name}</Text>
+            <Text style={styles.catalogProductMeta}>
+              {item.category} • {item.sku}
+            </Text>
+          </View>
+          <Text style={styles.catalogProductPrice}>${item.price.toFixed(2)}</Text>
+        </View>
+
+        <View style={styles.catalogCardFooter}>
+          <View style={styles.catalogInfoStack}>
+            <Text style={styles.catalogDetailText}>Supplier: {item.supplier || 'Not specified'}</Text>
+            <Text style={styles.catalogDetailText}>
+              Stock: {item.stock}
+              {item.barcode ? ` • Barcode: ${item.barcode}` : ''}
+            </Text>
+          </View>
+          <View style={[styles.catalogStockBadge, badgeStyle]}>
+            <Text style={[styles.catalogStockBadgeText, badgeTextStyle]}>{badgeLabel}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -290,7 +358,7 @@ const CashierHome = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={{ maxHeight: 400 }}>
+            <View >
               <ScrollView showsVerticalScrollIndicator={false}>
                 {todaySales.map(renderSaleItem)}
               </ScrollView>
@@ -408,6 +476,69 @@ const CashierHome = () => {
               <Text style={styles.closeBtnText}>Close</Text>
             </TouchableOpacity>
           </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal
+        visible={isProductsModalOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsProductsModalOpen(false)}
+      >
+        <SafeAreaView style={styles.receiptModalPage}>
+          <View style={styles.receiptModalHeader}>
+            <Text style={styles.ticketsTitle}>Products</Text>
+            <TouchableOpacity style={styles.closeIconButton} onPress={() => setIsProductsModalOpen(false)}>
+              <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.productsModalBody}>
+            <View style={styles.productsSearchCard}>
+              <Text style={styles.sectionTitle}>Search Products</Text>
+              <Text style={styles.sectionSubtitle}>Browse the current catalog and search by name, SKU, barcode, category, or supplier.</Text>
+
+              <View style={styles.productsSearchBar}>
+                <Ionicons name="search" size={18} color={ADMIN_COLORS.secondaryText} />
+                <TextInput
+                  value={productSearchQuery}
+                  onChangeText={setProductSearchQuery}
+                  placeholder="Search products"
+                  placeholderTextColor={ADMIN_COLORS.secondaryText}
+                  style={styles.productsSearchInput}
+                />
+                {productSearchQuery ? (
+                  <TouchableOpacity onPress={() => setProductSearchQuery('')}>
+                    <Ionicons name="close-circle" size={18} color={ADMIN_COLORS.secondaryText} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <Text style={styles.productsResultsText}>
+                {filteredProducts.length} product{filteredProducts.length === 1 ? '' : 's'} found
+              </Text>
+            </View>
+
+            {filteredProducts.length === 0 ? (
+              <View style={styles.productsEmptyState}>
+                <Ionicons name="cube-outline" size={52} color={ADMIN_COLORS.tertiaryText} />
+                <Text style={styles.emptyTitle}>No matching products</Text>
+                <Text style={styles.emptySubtitle}>Try a different search term to find products in the catalog.</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredProducts}
+                renderItem={renderProductItem}
+                keyExtractor={(item) => item.id.toString()}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.catalogListContent}
+              />
+            )}
+
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setIsProductsModalOpen(false)}>
+              <Text style={styles.closeBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </Modal>
     </View>
@@ -772,6 +903,111 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     ...ADMIN_SECONDARY_BUTTON_TEXT,
+  },
+  productsModalBody: {
+    flex: 1,
+    padding: 20,
+    gap: 16,
+  },
+  productsSearchCard: {
+    ...ADMIN_MODAL_SECTION,
+  },
+  productsSearchBar: {
+    ...ADMIN_INPUT_SURFACE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  productsSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    marginRight: 8,
+    fontSize: 14,
+    color: ADMIN_COLORS.text,
+  },
+  productsResultsText: {
+    fontSize: 13,
+    color: ADMIN_COLORS.secondaryText,
+    marginTop: 10,
+  },
+  productsEmptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  catalogListContent: {
+    paddingBottom: 12,
+    gap: 10,
+  },
+  catalogCard: {
+    ...ADMIN_LIST_CARD,
+  },
+  catalogCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  catalogTitleBlock: {
+    flex: 1,
+  },
+  catalogProductName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: ADMIN_COLORS.text,
+    marginBottom: 4,
+  },
+  catalogProductMeta: {
+    fontSize: 12,
+    color: ADMIN_COLORS.secondaryText,
+  },
+  catalogProductPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: ADMIN_COLORS.accent,
+  },
+  catalogCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  catalogInfoStack: {
+    flex: 1,
+    gap: 4,
+  },
+  catalogDetailText: {
+    fontSize: 13,
+    color: ADMIN_COLORS.secondaryText,
+  },
+  catalogStockBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  catalogStockBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  inStockBadge: {
+    backgroundColor: '#dcfce7',
+  },
+  inStockBadgeText: {
+    color: ADMIN_COLORS.success,
+  },
+  lowStockBadge: {
+    backgroundColor: '#fef3c7',
+  },
+  lowStockBadgeText: {
+    color: '#b45309',
+  },
+  outOfStockBadge: {
+    backgroundColor: '#fee2e2',
+  },
+  outOfStockBadgeText: {
+    color: ADMIN_COLORS.danger,
   },
 });
 

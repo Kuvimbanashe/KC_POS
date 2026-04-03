@@ -168,3 +168,21 @@ export const ADMIN_SECONDARY_BUTTON_TEXT: TextStyle = {
   fontSize: 16,
   fontWeight: '600',
 };
+
+export const ADMIN_DANGER_OUTLINE_BUTTON: ViewStyle = {
+  minHeight: 52,
+  borderRadius: 16,
+  paddingVertical: 14,
+  paddingHorizontal: 16,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: ADMIN_COLORS.surface,
+  borderWidth: 1,
+  borderColor: '#fecaca',
+};
+
+export const ADMIN_DANGER_OUTLINE_TEXT: TextStyle = {
+  color: ADMIN_COLORS.danger,
+  fontSize: 16,
+  fontWeight: '700',
+};
