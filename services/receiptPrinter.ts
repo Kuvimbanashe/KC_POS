@@ -1,4 +1,5 @@
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { NativeModules, Platform } from 'react-native';
 import * as Print from 'expo-print';
 
 import type { SaleRecord, UnitType } from '../store/types';
@@ -66,6 +67,31 @@ export interface DirectPrinterDiscoveryHandle {
 type EscPosModule = typeof import('react-native-esc-pos-printer');
 
 let escPosModulePromise: Promise<EscPosModule | null> | null = null;
+const expoExecutionEnvironment = Constants.executionEnvironment;
+const isExpoGoRuntime = expoExecutionEnvironment === 'storeClient';
+
+const hasEscPosNativeModule = () => {
+  if (Platform.OS === 'web') {
+    return false;
+  }
+
+  const legacyModulePresent =
+    Boolean(NativeModules.EscPosPrinter) &&
+    Boolean(NativeModules.EscPosPrinterDiscovery);
+
+  const turboModuleProxy = (
+    global as typeof globalThis & {
+      __turboModuleProxy?: (name: string) => unknown;
+    }
+  ).__turboModuleProxy;
+
+  const turboModulePresent =
+    typeof turboModuleProxy === 'function' &&
+    Boolean(turboModuleProxy('EscPosPrinter')) &&
+    Boolean(turboModuleProxy('EscPosPrinterDiscovery'));
+
+  return legacyModulePresent || turboModulePresent;
+};
 
 const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
 
@@ -100,7 +126,7 @@ const openWebPrintPreview = (html: string) => {
 };
 
 const getEscPosModule = async (): Promise<EscPosModule | null> => {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || isExpoGoRuntime || !hasEscPosNativeModule()) {
     return null;
   }
 
@@ -134,6 +160,22 @@ export const getDirectThermalAvailability = async (): Promise<DirectThermalAvail
     return {
       available: false,
       message: 'Direct thermal printing is not available on web. The app will use browser printing there.',
+    };
+  }
+
+  if (isExpoGoRuntime) {
+    return {
+      available: false,
+      message:
+        'Direct thermal printing is disabled in Expo Go. Use a development build or production build to enable saved Epson receipt printers.',
+    };
+  }
+
+  if (!hasEscPosNativeModule()) {
+    return {
+      available: false,
+      message:
+        'This app build does not include the native Epson printer module yet. Rebuild the app natively to enable direct thermal printing.',
     };
   }
 
