@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosHeaders, InternalAxiosRequestConfig } from 'axios';
 
-const baseURL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8000/api';
+const baseURL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://kc-pos-backend.vercel.app/api';
 
 export const axiosClient = axios.create({
   baseURL,

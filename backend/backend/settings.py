@@ -14,8 +14,7 @@ def env_list(name: str, default: str = '') -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
 
 
-allowed_hosts_env = os.getenv('DJANGO_ALLOWED_HOSTS', '*').strip()
-ALLOWED_HOSTS = ['*'] if allowed_hosts_env == '*' else env_list('DJANGO_ALLOWED_HOSTS')
+ALLOWED_HOSTS = ['*'] 
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -105,12 +104,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = os.getenv(
-    'DJANGO_CORS_ALLOW_ALL',
-    'True' if DEBUG else 'False',
-).lower() == 'true'
-CORS_ALLOWED_ORIGINS = env_list('DJANGO_CORS_ALLOWED_ORIGINS')
-CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = ["*"]
+CSRF_TRUSTED_ORIGINS = ["*"]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

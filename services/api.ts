@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AssetRecord, ExpenseRecord, Product, PurchaseRecord, SaleItem, SaleRecord, UserProfile } from '../store/types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://kc-pos-backend.vercel.app/api';
 const MAX_CURRENCY_VALUE = 9_999_999_999.99;
 const PUBLIC_AUTH_PATHS = [
   '/auth/login/',

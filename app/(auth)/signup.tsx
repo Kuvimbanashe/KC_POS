@@ -90,6 +90,7 @@ export default function SignUpScreen() {
       Alert.alert('Success', 'Business and owner account created successfully!');
       router.replace(response.user.type === 'admin' ? '/(admin)' : '/(cashier)');
     } catch (error) {
+      console.error('Registration error:', error);
       Alert.alert('Error', 'Failed to create business account. Please try again.');
     } finally {
       setIsLoading(false);
