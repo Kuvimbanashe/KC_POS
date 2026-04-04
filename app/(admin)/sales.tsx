@@ -10,8 +10,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
-  Platform,
-  Share,
+  Alert,
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +18,11 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import type { SaleRecord } from "../../store/types";
 import type { PaymentMethod } from "../../store/types";
 import { fetchOperationalData } from "../../store/slices/userSlice";
+import {
+  buildPrintableReceiptFromSale,
+  printReceiptDocument,
+} from "../../services/receiptPrinter";
+import { getPrinterPreferenceScope } from "../../services/printerPreferences";
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -60,7 +64,7 @@ interface PaymentOption {
 const AdminSales: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { sales = [] } = useAppSelector((state) => state.user);
+  const { sales = [], currentStore } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     if (!user?.businessId) return;
@@ -263,49 +267,23 @@ const AdminSales: React.FC = () => {
   const handlePrintSale = async (sale: SaleRecord) => {
     setIsPrinting(true);
     try {
-    const lines = sale.items?.length
-      ? sale.items
-      : [{
-        productId: sale.productId ?? 0,
-        productName: sale.productName ?? 'Item',
-        quantity: sale.quantity ?? 0,
-        price: sale.price ?? 0,
-        subtotal: sale.total ?? 0,
-        unitType: 'single' as const,
-        packSize: undefined,
-      }];
-    const rows = lines
-      .map((line) => `<tr><td>${line.productName}</td><td style="text-align:center;">${line.quantity}</td><td style="text-align:right;">$${(line.subtotal || 0).toFixed(2)}</td></tr>`)
-      .join("");
-    if (Platform.OS === "web") {
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) return;
-      const html = `
-        <html><body style="font-family: Arial, sans-serif; padding: 16px;">
-        <h2>${sale.invoiceNumber || `INV-${sale.id}`}</h2>
-        <p>Date: ${new Date(sale.date).toLocaleString()}</p>
-        <p>Cashier: ${sale.cashier}</p>
-        <p>Payment: ${sale.paymentMethod}</p>
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead><tr><th align=\"left\">Item</th><th>Qty</th><th align=\"right\">Amount</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <h3 style="text-align:right;">Total: $${sale.total.toFixed(2)}</h3>
-        </body></html>
-      `;
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      return;
-    }
-    const text = lines
-      .map((line) => `${line.productName} x${line.quantity} - $${(line.subtotal || 0).toFixed(2)}`)
-      .join("\n");
-    await Share.share({
-      title: sale.invoiceNumber || `INV-${sale.id}`,
-      message: `${sale.invoiceNumber || `INV-${sale.id}`}\n${new Date(sale.date).toLocaleString()}\n${text}\nTotal: $${sale.total.toFixed(2)}`,
-    });
+      await printReceiptDocument(
+        buildPrintableReceiptFromSale(sale, {
+          fallbackCashier: user?.name,
+          business: {
+            name: currentStore?.name || user?.businessName || 'KC POS',
+            address: currentStore?.address,
+            phone: currentStore?.phone,
+            email: currentStore?.email,
+          },
+        }),
+        {
+          preferenceScope: getPrinterPreferenceScope(user?.businessId, user?.id),
+        },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to print receipt";
+      Alert.alert("Printing Error", message);
     } finally {
       setIsPrinting(false);
     }
@@ -528,7 +506,7 @@ const AdminSales: React.FC = () => {
                 >
                   <View style={styles.buttonContent}>
                     {isPrinting && <ActivityIndicator size="small" color="#FFFFFF" />}
-                    <Text style={styles.printButtonText}>{isPrinting ? 'Preparing...' : 'Print Receipt'}</Text>
+                    <Text style={styles.printButtonText}>{isPrinting ? 'Printing...' : 'Print Receipt'}</Text>
                   </View>
                 </TouchableOpacity>
               </View>

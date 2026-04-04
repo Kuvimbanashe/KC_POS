@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "KC POS uses Bluetooth to discover and connect to supported receipt printers.",
+        "NSBluetoothPeripheralUsageDescription": "KC POS uses Bluetooth to discover and connect to supported receipt printers.",
+        "NSLocalNetworkUsageDescription": "KC POS uses your local network to discover and print to receipt printers in your shop."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,6 +23,14 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

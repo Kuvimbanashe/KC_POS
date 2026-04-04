@@ -37,6 +37,7 @@ import {
   ADMIN_SECTION_CARD,
   ADMIN_SECTION_TITLE,
 } from '../../theme/adminUi';
+import { ReceiptPrinterSection } from '../../components/profile/ReceiptPrinterSection';
 
 const formatDateValue = (value?: string | null, withTime = false) => {
   if (!value) return 'Not available';
@@ -253,6 +254,7 @@ export default function CashierProfileScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
+  const currentStore = useAppSelector((state) => state.user.currentStore);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -459,6 +461,8 @@ export default function CashierProfileScreen() {
             </View>
           ))}
         </View>
+
+        <ReceiptPrinterSection user={user} currentStore={currentStore} />
 
         <View style={styles.actionsCard}>
           <Text style={styles.sectionTitle}>Actions</Text>

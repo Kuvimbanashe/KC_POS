@@ -8,8 +8,6 @@ import {
   Modal,
   FlatList,
   Alert,
-  Platform,
-  Share,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
@@ -23,6 +21,11 @@ import { fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { PaymentMethod, Product, SaleItem, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
+import {
+  getPrinterPreferenceScope,
+  getPrinterPreferences,
+} from '../../services/printerPreferences';
+import { printReceiptDocument } from '../../services/receiptPrinter';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -151,7 +154,7 @@ const validateCartStock = (cartItems: CartItem[], referenceProducts: Product[]) 
 
 const CashierSell = () => {
   const dispatch = useAppDispatch();
-  const { products } = useAppSelector((state) => state.user);
+  const { products, currentStore } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
@@ -171,37 +174,43 @@ const CashierSell = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
+  const printerScope = getPrinterPreferenceScope(user?.businessId, user?.id);
 
-  const buildReceiptText = (receipt: ReceiptDetails) => {
-    const lines = [
-      `Receipt ${receipt.receiptNumber}`,
-      `Cashier: ${receipt.cashier}`,
-      `Date: ${receipt.date.toLocaleString()}`,
-      `Payment: ${receipt.paymentMethod}`,
-      '',
-      'Items:'
-    ];
-    receipt.items.forEach((item) => {
-      lines.push(`- ${item.productName}: ${item.quantity} ${item.unitType} - $${item.subtotal.toFixed(2)}`);
-    });
-    lines.push('', `Total: $${receipt.total.toFixed(2)}`);
-    return lines.join('\n');
-  };
-
-  const printReceipt = async (receipt: ReceiptDetails) => {
+  const printReceipt = async (
+    receipt: ReceiptDetails,
+    preferences?: Awaited<ReturnType<typeof getPrinterPreferences>>,
+  ) => {
     setIsPrintingReceipt(true);
     try {
-    const text = buildReceiptText(receipt);
-    if (Platform.OS === 'web') {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
-      printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${text}</pre>`);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      return;
-    }
-    await Share.share({ title: receipt.receiptNumber, message: text });
+      await printReceiptDocument(
+        {
+          receiptNumber: receipt.receiptNumber,
+          date: receipt.date,
+          cashier: receipt.cashier,
+          paymentMethod: receipt.paymentMethod,
+          total: receipt.total,
+          items: receipt.items.map((item) => ({
+            name: item.productName,
+            quantity: item.quantity,
+            amount: item.subtotal,
+            unitType: item.unitType,
+            packSize: item.packSize,
+          })),
+          business: {
+            name: currentStore?.name || user?.businessName || 'KC POS',
+            address: currentStore?.address,
+            phone: currentStore?.phone,
+            email: currentStore?.email,
+          },
+        },
+        {
+          preferenceScope: printerScope,
+          preferences,
+        },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to print receipt';
+      Alert.alert('Printing Error', message);
     } finally {
       setIsPrintingReceipt(false);
     }
@@ -497,7 +506,10 @@ const CashierSell = () => {
       setLastSale(completedSale);
       setShowReceipt(true);
       setCart([]);
-      await printReceipt(completedSale);
+      const printerPreferences = await getPrinterPreferences(printerScope);
+      if (printerPreferences.autoPrintReceipts) {
+        await printReceipt(completedSale, printerPreferences);
+      }
     } catch (error) {
       console.error('Checkout error:', error);
       Alert.alert('Checkout Failed', 'An error occurred during checkout');
@@ -1035,7 +1047,7 @@ const CashierSell = () => {
                 <View style={styles.buttonContent}>
                   {isPrintingReceipt && <ActivityIndicator size="small" color="#FFFFFF" />}
                   <Text style={styles.printReceiptButtonText}>
-                    {isPrintingReceipt ? 'Preparing...' : 'Print Receipt'}
+                    {isPrintingReceipt ? 'Printing...' : 'Print Receipt'}
                   </Text>
                 </View>
               </TouchableOpacity>
