@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { apiClient } from '../../services/api';
 
@@ -124,7 +123,7 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container} >
       <Text style={styles.title}>Reset Password</Text>
       <Text style={styles.subtitle}>Enter your new password for {email || 'your account'}.</Text>
       <Text style={styles.hint}>Your verification code has already been confirmed.</Text>
@@ -163,6 +162,6 @@ export default function ResetPasswordScreen() {
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }

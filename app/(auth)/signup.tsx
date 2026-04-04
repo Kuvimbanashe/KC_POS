@@ -97,8 +97,8 @@ export default function SignUpScreen() {
   };
 
   return (
-   <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-     <ScrollView  contentContainerStyle={{ paddingBottom: 24 }}>
+   <View style={styles.container} >
+     <ScrollView  contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>
         Create Account
       </Text>
@@ -179,34 +179,13 @@ export default function SignUpScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Tax ID"
+          placeholder="Tax ID ( Optional )"
           placeholderTextColor="#9ca3af"
           value={formData.businessTaxId}
           onChangeText={(text) => setFormData({...formData, businessTaxId: text})}
         />
 
-        <View style={styles.accountTypeContainer}>
-          <Text style={styles.accountTypeLabel}>Account Type</Text>
-          <View style={styles.accountTypeRow}>
-            {(['cashier', 'admin'] as UserRole[]).map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.accountTypeButton,
-                  formData.userType === type && styles.accountTypeButtonActive,
-                ]}
-                onPress={() => setFormData({...formData, userType: type})}
-              >
-                <Text style={[
-                  styles.accountTypeText,
-                  formData.userType === type && styles.accountTypeTextActive,
-                ]}>
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+       
         
         <TextInput
           style={styles.input}
@@ -252,7 +231,7 @@ export default function SignUpScreen() {
         </Link>
       </View>
     </ScrollView>
-   </SafeAreaView>
+   </View>
   );
 }
 

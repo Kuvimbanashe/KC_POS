@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useAppDispatch } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CashierLayout() {
   const dispatch = useAppDispatch();
@@ -26,7 +27,7 @@ export default function CashierLayout() {
   };
 
   return (
-    <>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1938' }} edges={['bottom']}>
       <StatusBar style="light" backgroundColor="#0d1938" />
       <Tabs
         screenOptions={{
@@ -35,7 +36,15 @@ export default function CashierLayout() {
           headerStyle: {
             backgroundColor: '#0d1938',
           },
+
           headerTintColor: '#FFFFFF',
+          tabBarStyle: {
+              height: 64,
+              paddingTop: 8,
+              paddingBottom: 10,
+              backgroundColor: '#ffffff',
+              borderTopColor: '#e2e8f0',
+            },
           headerRight: () => (
             <TouchableOpacity
               onPress={confirmLogout}
@@ -84,6 +93,6 @@ export default function CashierLayout() {
           }}
         />
       </Tabs>
-    </>
+    </SafeAreaView>
   );
 }

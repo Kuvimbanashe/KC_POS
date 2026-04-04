@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { apiClient } from '../../services/api';
 
@@ -119,7 +118,7 @@ export default function OTPVerificationScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container} >
       <Text style={styles.title}>Verify Code</Text>
       <Text style={styles.subtitle}>Enter the 6-digit reset code generated for your account.</Text>
       <Text style={styles.email}>{email || 'No email provided'}</Text>
@@ -148,6 +147,6 @@ export default function OTPVerificationScreen() {
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }

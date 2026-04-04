@@ -15,11 +15,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateProfile } from '../../store/slices/authSlice';
-import { addUser, deleteUser, setManagedUsers, updateUser } from '../../store/slices/userManagementSlice';
-import type { UserProfile, UserRole } from '../../store/types';
-import { apiClient } from '../../services/api';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { updateProfile } from '../../../store/slices/authSlice';
+import { addUser, deleteUser, setManagedUsers, updateUser } from '../../../store/slices/userManagementSlice';
+import type { UserProfile, UserRole } from '../../../store/types';
+import { apiClient } from '../../../services/api';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -36,7 +36,7 @@ import {
   ADMIN_SECTION_CARD,
   ADMIN_SECTION_SUBTITLE,
   ADMIN_SECTION_TITLE,
-} from '../../theme/adminUi';
+} from '../../../theme/adminUi';
 
 const AdminUsers = () => {
   const dispatch = useAppDispatch();

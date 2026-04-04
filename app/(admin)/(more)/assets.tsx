@@ -14,12 +14,12 @@ import {
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { addAsset, deleteAsset } from '../../store/slices/assetsSlice';
-import { fetchAssets } from '../../store/slices/assetsSlice';
+import { addAsset, deleteAsset } from '../../../store/slices/assetsSlice';
+import { fetchAssets } from '../../../store/slices/assetsSlice';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import type { AssetRecord } from '../../store/types';
-import { apiClient } from '../../services/api';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import type { AssetRecord } from '../../../store/types';
+import { apiClient } from '../../../services/api';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -40,7 +40,7 @@ import {
   ADMIN_SECTION_SUBTITLE,
   ADMIN_SECTION_TITLE,
   ADMIN_STAT_CARD,
-} from '../../theme/adminUi';
+} from '../../../theme/adminUi';
 
 type ConditionFilter = 'all' | AssetRecord['condition'];
 

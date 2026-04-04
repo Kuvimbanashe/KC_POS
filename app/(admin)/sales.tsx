@@ -314,15 +314,15 @@ const AdminSales: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563EB" />
         <Text style={styles.loadingText}>Loading sales...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header with metrics */}
       <ScrollView
         style={styles.scrollView}
@@ -537,7 +537,7 @@ const AdminSales: React.FC = () => {
           </SafeAreaView>
         )}
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 

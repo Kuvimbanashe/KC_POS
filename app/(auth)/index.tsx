@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function WelcomeScreen() {
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container}>
       <View style={styles.iconContainer}>
         <Feather name="shopping-bag" size={48} color="white" />
       </View>
@@ -42,7 +42,7 @@ export default function WelcomeScreen() {
       </View>
       
      
-    </SafeAreaView>
+    </View>
   );
 }
 

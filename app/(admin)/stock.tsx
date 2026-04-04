@@ -431,10 +431,10 @@ const AdminStock = () => {
   // Loading state
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
         <ActivityIndicator size="large" color={COLORS.accent} />
         <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading inventory...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 

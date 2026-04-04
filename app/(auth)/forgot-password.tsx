@@ -114,7 +114,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container} >
       <Text style={styles.title}>Forgot Password</Text>
       <Text style={styles.subtitle}>Enter your account email to generate a reset code.</Text>
       <Text style={styles.hint}>This build shows the OTP in-app because email delivery is not configured yet.</Text>
@@ -145,6 +145,6 @@ export default function ForgotPasswordScreen() {
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>Back to Sign In</Text>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -36,7 +36,7 @@ export default function SignInScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container} >
       <View style={styles.backRow}>
         <Link href="/" style={styles.backLink}>
           <Feather name="arrow-left-circle" size={30} color="#0f172a" />
@@ -95,7 +95,7 @@ export default function SignInScreen() {
           </Link>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -4,7 +4,6 @@ import {
   Text, 
   ScrollView, 
   ActivityIndicator,
-  SafeAreaView,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
@@ -182,7 +181,7 @@ const AdminHome = () => {
       title: 'Add Expense',
       description: 'Record costs',
       icon: 'add-circle-outline',
-      action: () => router.push('/(admin)/expenses'),
+      action: () => router.push('/(admin)/(more)/expenses'),
     },
     {
       id: 4,
@@ -237,17 +236,17 @@ const AdminHome = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2563EB" />
           <Text style={styles.loadingText}>Loading dashboard...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -375,7 +374,7 @@ const AdminHome = () => {
         {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

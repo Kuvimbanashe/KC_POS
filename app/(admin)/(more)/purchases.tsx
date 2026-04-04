@@ -13,11 +13,11 @@ import {
   RefreshControl,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
-import { addPurchase, fetchOperationalData, updateProduct } from '../../store/slices/userSlice';
-import type { PurchaseRecord, Product } from '../../store/types';
-import { apiClient } from '../../services/api';
+import { addPurchase, fetchOperationalData, updateProduct } from '../../../store/slices/userSlice';
+import type { PurchaseRecord, Product } from '../../../store/types';
+import { apiClient } from '../../../services/api';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -38,7 +38,7 @@ import {
   ADMIN_SECTION_SUBTITLE,
   ADMIN_SECTION_TITLE,
   ADMIN_STAT_CARD,
-} from '../../theme/adminUi';
+} from '../../../theme/adminUi';
 
 interface PurchaseFormData {
   quantity: string;

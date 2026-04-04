@@ -179,24 +179,24 @@ export default function AdminReports() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#f97316" />
         <Text style={styles.loadingText}>Loading reports...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!reports) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}>
         <Ionicons name="bar-chart-outline" size={42} color="#94a3b8" />
         <Text style={styles.loadingText}>No reports available right now.</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -397,6 +397,6 @@ export default function AdminReports() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

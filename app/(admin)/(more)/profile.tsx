@@ -14,10 +14,10 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { logout, updateProfile } from '../../store/slices/authSlice';
-import { updateUser as updateManagedUser } from '../../store/slices/userManagementSlice';
-import { apiClient } from '../../services/api';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { logout, updateProfile } from '../../../store/slices/authSlice';
+import { updateUser as updateManagedUser } from '../../../store/slices/userManagementSlice';
+import { apiClient } from '../../../services/api';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -36,7 +36,7 @@ import {
   ADMIN_SECONDARY_BUTTON_TEXT,
   ADMIN_SECTION_CARD,
   ADMIN_SECTION_TITLE,
-} from '../../theme/adminUi';
+} from '../../../theme/adminUi';
 
 const formatDateValue = (value?: string | null, withTime = false) => {
   if (!value) return 'Not available';

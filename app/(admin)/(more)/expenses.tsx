@@ -14,10 +14,10 @@ import {
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { addExpense, fetchOperationalData } from '../../store/slices/userSlice';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import type { ExpenseRecord } from '../../store/types';
-import { apiClient } from '../../services/api';
+import { addExpense, fetchOperationalData } from '../../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import type { ExpenseRecord } from '../../../store/types';
+import { apiClient } from '../../../services/api';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -38,7 +38,7 @@ import {
   ADMIN_SECTION_SUBTITLE,
   ADMIN_SECTION_TITLE,
   ADMIN_STAT_CARD,
-} from '../../theme/adminUi';
+} from '../../../theme/adminUi';
 
 const EXPENSE_CATEGORY_OPTIONS = [
   'Rent',
