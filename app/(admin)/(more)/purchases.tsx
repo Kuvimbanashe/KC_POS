@@ -8,11 +8,11 @@ import {
   Alert,
   Modal,
   FlatList,
-  SafeAreaView,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { addPurchase, fetchOperationalData, updateProduct } from '../../../store/slices/userSlice';

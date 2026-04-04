@@ -618,7 +618,7 @@ const CashierSell = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.statsContainer}>
@@ -1064,7 +1064,7 @@ const CashierSell = () => {
           </SafeAreaView>
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -4,17 +4,26 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR.parent / '.env')
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'change-me-in-production')
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
+
 
 def env_list(name: str, default: str = '') -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
 
 
-ALLOWED_HOSTS = ['*'] 
+def env_origin_list(name: str) -> list[str]:
+    return [item for item in env_list(name) if item != '*']
+
+
+allowed_hosts_env = os.getenv('DJANGO_ALLOWED_HOSTS', '*').strip()
+ALLOWED_HOSTS = ['*'] if allowed_hosts_env == '*' else env_list('DJANGO_ALLOWED_HOSTS')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -67,6 +76,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASE_URL = os.getenv('DATABASE_URL')
+
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(
@@ -104,9 +114,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = ["*"]
-CSRF_TRUSTED_ORIGINS = ["*"]
+CORS_ALLOW_ALL_ORIGINS = os.getenv(
+    'DJANGO_CORS_ALLOW_ALL',
+    'True' if DEBUG else 'False',
+).lower() == 'true'
+CORS_ALLOWED_ORIGINS = [] if CORS_ALLOW_ALL_ORIGINS else env_origin_list('DJANGO_CORS_ALLOWED_ORIGINS')
+CSRF_TRUSTED_ORIGINS = env_origin_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

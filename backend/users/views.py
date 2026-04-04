@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from rest_framework import status, viewsets
@@ -88,29 +89,30 @@ class RegisterBusinessOwnerView(APIView):
         if StaffUser.objects.filter(email__iexact=email).exists():
             return Response({'detail': 'An account with that email already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
-        business = Business.objects.create(
-            name=data['business_name'],
-            email=(data.get('business_email') or email).strip().lower(),
-            phone=data.get('business_phone', ''),
-            address=data.get('business_address', ''),
-            tax_id=data.get('business_tax_id', ''),
-            currency=data.get('business_currency', 'USD'),
-            timezone=data.get('business_timezone', 'UTC'),
-        )
+        with transaction.atomic():
+            business = Business.objects.create(
+                name=data['business_name'].strip(),
+                email=(data.get('business_email') or email).strip().lower(),
+                phone=(data.get('business_phone') or '').strip(),
+                address=(data.get('business_address') or '').strip(),
+                tax_id=(data.get('business_tax_id') or '').strip(),
+                currency=(data.get('business_currency') or 'USD').strip() or 'USD',
+                timezone=(data.get('business_timezone') or 'UTC').strip() or 'UTC',
+            )
 
-        user = StaffUser.objects.create(
-            business=business,
-            name=data['name'],
-            email=email,
-            password='',
-            role=data.get('role', 'admin'),
-            phone=data.get('phone', ''),
-            address=data.get('address', ''),
-            status='active',
-            permissions=['all'],
-        )
-        set_password(user, data['password'])
-        token = issue_auth_token(user)
+            user = StaffUser.objects.create(
+                business=business,
+                name=data['name'].strip(),
+                email=email,
+                password='',
+                role=data.get('role', 'admin'),
+                phone=(data.get('phone') or '').strip(),
+                address=(data.get('address') or '').strip(),
+                status='active',
+                permissions=['all'],
+            )
+            set_password(user, data['password'])
+            token = issue_auth_token(user)
 
         return Response(
             {
