@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "python manage.py collectstatic --noinput",
   "functions": {
-    "backend/wsgi.py": {
+    "api/**/*.py": {
       "maxDuration": 30,
       "includeFiles": "staticfiles/**",
       "excludeFiles": "{README.md,build_files.sh,Procfile,.env.example,__pycache__/**,**/__pycache__/**}"
@@ -11,7 +11,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/backend/wsgi.py"
+      "destination": "/api/index.py"
     }
   ]
 }
