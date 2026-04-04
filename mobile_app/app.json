@@ -6,14 +6,18 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "shop-manager",
-    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "userInterfaceStyle": "automatic",
+    
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "KC POS uses Bluetooth to discover and connect to supported receipt printers.",
         "NSBluetoothPeripheralUsageDescription": "KC POS uses Bluetooth to discover and connect to supported receipt printers.",
-        "NSLocalNetworkUsageDescription": "KC POS uses your local network to discover and print to receipt printers in your shop."
+        "NSLocalNetworkUsageDescription": "KC POS uses your local network to discover and print to receipt printers in your shop.",
+        "NSBonjourServices": [
+          "_printer._tcp"
+        ]
       }
     },
     "android": {
@@ -28,14 +32,14 @@
         "BLUETOOTH_ADMIN",
         "BLUETOOTH_SCAN",
         "BLUETOOTH_CONNECT",
-        "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ],
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+     
+      "predictiveBackGestureEnabled": false,
+      "package": "com.camarader.shopmanager"
     },
     "web": {
-      "bundler":"metro",
+      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
@@ -57,6 +61,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0d860e6c-a7a9-46ac-a5f4-aa77789c00cf"
+      }
     }
   }
 }

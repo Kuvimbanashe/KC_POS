@@ -196,7 +196,7 @@ export function PrinterSettingsModal({
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Printer Defaults</Text>
             <Text style={styles.sectionSubtitle}>
-              Choose how receipts are sized and whether completed sales should print immediately. Direct thermal printers use their own configured paper width, while this width still shapes the fallback document print layout.
+              Choose how receipts are sized and whether completed sales should print immediately. Saved direct printers can send receipts straight over Bluetooth, USB, or network, while this width still shapes the fallback document print layout.
             </Text>
 
             <View>

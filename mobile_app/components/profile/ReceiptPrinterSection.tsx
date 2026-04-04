@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 
-import type { DeviceInfo } from 'react-native-esc-pos-printer';
-
 import type { StoreInfo, UserProfile } from '../../store/types';
 import {
   getDefaultDirectPrinter,
@@ -18,12 +16,14 @@ import {
 } from '../../services/printerPreferences';
 import {
   buildSavedDirectPrinter,
+  buildSavedNetworkPrinter,
   getDirectThermalAvailability,
   isSilentPrintFailure,
   printReceiptDocument,
   selectDefaultSystemPrinter,
   startDirectThermalPrinterDiscovery,
   type DirectPrinterDiscoveryHandle,
+  type DiscoveredDirectPrinter,
 } from '../../services/receiptPrinter';
 import { PrinterManagementCard } from './PrinterManagementCard';
 import { PrinterSettingsModal } from './PrinterSettingsModal';
@@ -34,13 +34,29 @@ interface ReceiptPrinterSectionProps {
   currentStore: StoreInfo;
 }
 
+const getPrinterTechnologyLabel = (
+  technology?: DiscoveredDirectPrinter['technology'],
+) => {
+  switch (technology) {
+    case 'bluetooth':
+      return 'Bluetooth';
+    case 'usb':
+      return 'USB';
+    case 'network':
+      return 'Network';
+    default:
+      return 'Direct';
+  }
+};
+
 export function ReceiptPrinterSection({
   user,
   currentStore,
 }: ReceiptPrinterSectionProps) {
   const [printerSettingsOpen, setPrinterSettingsOpen] = useState(false);
   const [thermalPrintersOpen, setThermalPrintersOpen] = useState(false);
-  const [printerPreferences, setPrinterPreferences] = useState<ReceiptPrinterPreferences | null>(null);
+  const [printerPreferences, setPrinterPreferences] =
+    useState<ReceiptPrinterPreferences | null>(null);
   const [printerSettingsLoading, setPrinterSettingsLoading] = useState(true);
   const [savingPrinterSettings, setSavingPrinterSettings] = useState(false);
   const [selectingSystemPrinter, setSelectingSystemPrinter] = useState(false);
@@ -49,9 +65,13 @@ export function ReceiptPrinterSection({
   const [thermalAvailabilityMessage, setThermalAvailabilityMessage] = useState(
     'Checking direct thermal printing support...',
   );
-  const [discoveredPrinters, setDiscoveredPrinters] = useState<DeviceInfo[]>([]);
+  const [discoveredPrinters, setDiscoveredPrinters] = useState<
+    DiscoveredDirectPrinter[]
+  >([]);
   const [isDiscoveringThermal, setIsDiscoveringThermal] = useState(false);
-  const [thermalDiscoveryError, setThermalDiscoveryError] = useState<string | null>(null);
+  const [thermalDiscoveryError, setThermalDiscoveryError] = useState<string | null>(
+    null,
+  );
   const [paperWidth, setPaperWidth] = useState<ReceiptPaperWidth>('80mm');
   const [autoPrintReceipts, setAutoPrintReceipts] = useState(true);
   const [showBusinessHeader, setShowBusinessHeader] = useState(true);
@@ -69,7 +89,9 @@ export function ReceiptPrinterSection({
           getPrinterPreferences(printerScope),
           getDirectThermalAvailability(),
         ]);
-        if (!active) return;
+        if (!active) {
+          return;
+        }
 
         setPrinterPreferences(preferences);
         setPaperWidth(preferences.paperWidth);
@@ -101,8 +123,8 @@ export function ReceiptPrinterSection({
   );
 
   const routeDescription = defaultDirectPrinter
-    ? `Receipts will go directly to ${defaultDirectPrinter.name} when direct thermal printing is available. If that route is unavailable, the system print fallback will be used.`
-    : 'Receipts currently use the system print route until you save and select a direct thermal printer.';
+    ? `Receipts will go directly to ${defaultDirectPrinter.name} over ${getPrinterTechnologyLabel(defaultDirectPrinter.technology)} whenever that route is available. If it is unavailable, the system print fallback will be used.`
+    : 'Receipts currently use the system print route until you save and select a direct printer.';
 
   const openPrinterSettings = () => {
     const preferences = printerPreferences;
@@ -136,7 +158,8 @@ export function ReceiptPrinterSection({
       setPrinterSettingsOpen(false);
       Alert.alert('Success', 'Receipt settings saved successfully.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save receipt settings';
+      const message =
+        error instanceof Error ? error.message : 'Failed to save receipt settings';
       Alert.alert('Error', message);
     } finally {
       setSavingPrinterSettings(false);
@@ -164,9 +187,13 @@ export function ReceiptPrinterSection({
         printerScope,
       );
       setPrinterPreferences(next);
-      Alert.alert('Fallback Printer Saved', `${printer.name} was saved for the document-print fallback route.`);
+      Alert.alert(
+        'Fallback Printer Saved',
+        `${printer.name} was saved for the document-print fallback route.`,
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to select the fallback printer';
+      const message =
+        error instanceof Error ? error.message : 'Failed to select the fallback printer';
       Alert.alert('Error', message);
     } finally {
       setSelectingSystemPrinter(false);
@@ -180,9 +207,13 @@ export function ReceiptPrinterSection({
         printerScope,
       );
       setPrinterPreferences(next);
-      Alert.alert('Fallback Printer Cleared', 'The system print sheet will choose the fallback printer again.');
+      Alert.alert(
+        'Fallback Printer Cleared',
+        'The system print sheet will choose the fallback printer again.',
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to clear the fallback printer';
+      const message =
+        error instanceof Error ? error.message : 'Failed to clear the fallback printer';
       Alert.alert('Error', message);
     }
   };
@@ -218,14 +249,15 @@ export function ReceiptPrinterSection({
       Alert.alert(
         'Print Requested',
         result.route === 'direct'
-          ? 'The test receipt was sent directly to the saved thermal printer.'
+          ? 'The test receipt was sent directly to the saved printer.'
           : Platform.OS === 'web'
             ? 'The browser print preview was opened for the test receipt.'
             : 'The receipt was sent through the system print route.',
       );
     } catch (error) {
       if (!isSilentPrintFailure(error)) {
-        const message = error instanceof Error ? error.message : 'Failed to print the test receipt';
+        const message =
+          error instanceof Error ? error.message : 'Failed to print the test receipt';
         Alert.alert('Error', message);
       }
     } finally {
@@ -255,7 +287,7 @@ export function ReceiptPrinterSection({
           onPrinters: (printers) => setDiscoveredPrinters(printers),
           onStatusChange: (discovering) => {
             setIsDiscoveringThermal(discovering);
-            if (!discovering && discoveryHandleRef.current) {
+            if (!discovering) {
               discoveryHandleRef.current = null;
             }
           },
@@ -267,22 +299,53 @@ export function ReceiptPrinterSection({
       );
       setIsDiscoveringThermal(true);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to start printer discovery';
+      const message =
+        error instanceof Error ? error.message : 'Failed to start printer discovery';
       setThermalDiscoveryError(message);
       setIsDiscoveringThermal(false);
     }
   };
 
-  const handleSaveDirectPrinter = async (device: DeviceInfo) => {
+  const handleSaveDirectPrinter = async (device: DiscoveredDirectPrinter) => {
     try {
       const next = await upsertDirectPrinter(
         buildSavedDirectPrinter(device),
         printerScope,
       );
       setPrinterPreferences(next);
-      Alert.alert('Printer Saved', `${device.deviceName || device.target} was saved for direct receipt printing.`);
+      Alert.alert(
+        'Printer Saved',
+        `${device.name} was saved for direct receipt printing.`,
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save the printer';
+      const message =
+        error instanceof Error ? error.message : 'Failed to save the printer';
+      Alert.alert('Error', message);
+    }
+  };
+
+  const handleSaveNetworkPrinter = async ({
+    name,
+    host,
+    port,
+  }: {
+    name?: string;
+    host: string;
+    port?: number;
+  }) => {
+    try {
+      const next = await upsertDirectPrinter(
+        buildSavedNetworkPrinter({ host, port, name }),
+        printerScope,
+      );
+      setPrinterPreferences(next);
+      Alert.alert(
+        'Printer Saved',
+        `${name?.trim() || host.trim()} was saved for direct receipt printing.`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to save the network printer';
       Alert.alert('Error', message);
     }
   };
@@ -294,9 +357,13 @@ export function ReceiptPrinterSection({
       const printerName =
         next.savedDirectPrinters.find((printer) => printer.id === printerId)?.name ??
         'The selected printer';
-      Alert.alert('Default Printer Updated', `${printerName} will now receive receipts directly.`);
+      Alert.alert(
+        'Default Printer Updated',
+        `${printerName} will now receive receipts directly.`,
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to set the default printer';
+      const message =
+        error instanceof Error ? error.message : 'Failed to set the default printer';
       Alert.alert('Error', message);
     }
   };
@@ -304,13 +371,18 @@ export function ReceiptPrinterSection({
   const handleRemoveDirectPrinter = async (printerId: string) => {
     try {
       const printerName =
-        printerPreferences?.savedDirectPrinters.find((printer) => printer.id === printerId)?.name ??
-        'The selected printer';
+        printerPreferences?.savedDirectPrinters.find(
+          (printer) => printer.id === printerId,
+        )?.name ?? 'The selected printer';
       const next = await removeDirectPrinter(printerId, printerScope);
       setPrinterPreferences(next);
-      Alert.alert('Printer Removed', `${printerName} was removed from the app printer list.`);
+      Alert.alert(
+        'Printer Removed',
+        `${printerName} was removed from the app printer list.`,
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to remove the printer';
+      const message =
+        error instanceof Error ? error.message : 'Failed to remove the printer';
       Alert.alert('Error', message);
     }
   };
@@ -345,7 +417,7 @@ export function ReceiptPrinterSection({
           printerPreferences?.defaultSystemPrinter?.name ??
           (Platform.OS === 'ios'
             ? 'No fallback printer selected yet. The iOS print sheet will choose it.'
-            : 'Fallback printers are managed by the system print sheet on this platform.')
+            : 'The device print sheet will choose the fallback printer when needed.')
         }
         routeDescription={routeDescription}
         onSave={handleSavePrinterSettings}
@@ -354,8 +426,8 @@ export function ReceiptPrinterSection({
       <DirectThermalPrintersModal
         visible={thermalPrintersOpen}
         onClose={() => {
-          setThermalPrintersOpen(false);
           void stopDiscovery();
+          setThermalPrintersOpen(false);
         }}
         thermalAvailable={thermalAvailable}
         availabilityMessage={thermalAvailabilityMessage}
@@ -369,6 +441,7 @@ export function ReceiptPrinterSection({
           void stopDiscovery();
         }}
         onSavePrinter={handleSaveDirectPrinter}
+        onSaveNetworkPrinter={handleSaveNetworkPrinter}
         onSetDefaultPrinter={handleSetDefaultDirectPrinter}
         onRemovePrinter={handleRemoveDirectPrinter}
       />

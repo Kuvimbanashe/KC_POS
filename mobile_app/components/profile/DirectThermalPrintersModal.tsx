@@ -1,10 +1,20 @@
-import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { DeviceInfo } from 'react-native-esc-pos-printer';
-
 import type { SavedDirectPrinter } from '../../services/printerPreferences';
+import type { DiscoveredDirectPrinter } from '../../services/receiptPrinter';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -24,12 +34,17 @@ interface DirectThermalPrintersModalProps {
   availabilityMessage: string;
   isDiscovering: boolean;
   discoveryError: string | null;
-  discoveredPrinters: DeviceInfo[];
+  discoveredPrinters: DiscoveredDirectPrinter[];
   savedPrinters: SavedDirectPrinter[];
   defaultPrinterId: string | null;
   onStartDiscovery: () => void;
   onStopDiscovery: () => void;
-  onSavePrinter: (device: DeviceInfo) => void;
+  onSavePrinter: (device: DiscoveredDirectPrinter) => Promise<void>;
+  onSaveNetworkPrinter: (printer: {
+    name?: string;
+    host: string;
+    port?: number;
+  }) => Promise<void>;
   onSetDefaultPrinter: (printerId: string) => void;
   onRemovePrinter: (printerId: string) => void;
 }
@@ -41,7 +56,7 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     ...ADMIN_MODAL_HEADER,
-     flexDirection: 'row',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
@@ -78,11 +93,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: ADMIN_COLORS.secondaryText,
   },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: ADMIN_COLORS.text,
-  },
   primaryButton: {
     ...ADMIN_PRIMARY_BUTTON,
   },
@@ -118,9 +128,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: ADMIN_COLORS.secondaryText,
-  },
-  printerList: {
-    gap: 12,
   },
   printerCard: {
     borderWidth: 1,
@@ -214,7 +221,69 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: ADMIN_COLORS.secondaryText,
   },
+  formField: {
+    gap: 6,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: ADMIN_COLORS.text,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: ADMIN_COLORS.text,
+    backgroundColor: '#FFFFFF',
+  },
+  portRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  portField: {
+    width: 120,
+  },
 });
+
+const getTechnologyLabel = (technology: SavedDirectPrinter['technology']) => {
+  switch (technology) {
+    case 'bluetooth':
+      return 'Bluetooth';
+    case 'usb':
+      return 'USB';
+    case 'network':
+      return 'Network';
+    default:
+      return 'Direct';
+  }
+};
+
+const getSavedPrinterMeta = (printer: SavedDirectPrinter) => {
+  if (printer.technology === 'bluetooth') {
+    return `${getTechnologyLabel(printer.technology)} · ${printer.macAddress || printer.identifier}`;
+  }
+
+  if (printer.technology === 'usb') {
+    return `${getTechnologyLabel(printer.technology)} · VID ${printer.vendorId} / PID ${printer.productId}`;
+  }
+
+  return `${getTechnologyLabel(printer.technology)} · ${printer.host}:${printer.port}`;
+};
+
+const getDiscoveredPrinterMeta = (printer: DiscoveredDirectPrinter) => {
+  if (printer.technology === 'bluetooth') {
+    return `${getTechnologyLabel(printer.technology)} · ${printer.macAddress || printer.identifier}`;
+  }
+
+  if (printer.technology === 'usb') {
+    return `${getTechnologyLabel(printer.technology)} · VID ${printer.vendorId} / PID ${printer.productId}`;
+  }
+
+  return `${getTechnologyLabel(printer.technology)} · ${printer.host}:${printer.port}`;
+};
 
 export function DirectThermalPrintersModal({
   visible,
@@ -229,10 +298,52 @@ export function DirectThermalPrintersModal({
   onStartDiscovery,
   onStopDiscovery,
   onSavePrinter,
+  onSaveNetworkPrinter,
   onSetDefaultPrinter,
   onRemovePrinter,
 }: DirectThermalPrintersModalProps) {
-  const savedPrinterTargets = new Set(savedPrinters.map((printer) => printer.target));
+  const [manualName, setManualName] = useState('');
+  const [manualHost, setManualHost] = useState('');
+  const [manualPort, setManualPort] = useState('9100');
+  const [savingPrinterId, setSavingPrinterId] = useState<string | null>(null);
+  const [savingManualNetwork, setSavingManualNetwork] = useState(false);
+
+  const savedPrinterIds = useMemo(
+    () => new Set(savedPrinters.map((printer) => printer.id)),
+    [savedPrinters],
+  );
+
+  const handleSaveDiscoveredPrinter = async (printer: DiscoveredDirectPrinter) => {
+    setSavingPrinterId(printer.id);
+    try {
+      await onSavePrinter(printer);
+    } finally {
+      setSavingPrinterId(null);
+    }
+  };
+
+  const handleSaveManualNetworkPrinter = async () => {
+    const host = manualHost.trim();
+    const portValue = Number.parseInt(manualPort.trim(), 10);
+
+    if (!host) {
+      return;
+    }
+
+    setSavingManualNetwork(true);
+    try {
+      await onSaveNetworkPrinter({
+        name: manualName.trim() || undefined,
+        host,
+        port: Number.isFinite(portValue) && portValue > 0 ? portValue : 9100,
+      });
+      setManualName('');
+      setManualHost('');
+      setManualPort('9100');
+    } finally {
+      setSavingManualNetwork(false);
+    }
+  };
 
   return (
     <Modal
@@ -258,15 +369,15 @@ export function DirectThermalPrintersModal({
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Saved App Printers</Text>
             <Text style={styles.sectionSubtitle}>
-              Receipts print straight to the default saved thermal printer without opening the system print sheet.
+              Receipts print straight to the selected default printer without opening the system print sheet first.
             </Text>
 
             {savedPrinters.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="print-outline" size={42} color="#94A3B8" />
-                <Text style={styles.emptyTitle}>No saved thermal printers</Text>
+                <Text style={styles.emptyTitle}>No saved direct printers</Text>
                 <Text style={styles.emptySubtitle}>
-                  Discover or connect a supported Epson TM printer, then save it here as the app default.
+                  Save a Bluetooth, USB, or network receipt printer here and then choose one as the app default.
                 </Text>
               </View>
             ) : (
@@ -289,7 +400,7 @@ export function DirectThermalPrintersModal({
                       </View>
 
                       <Text style={styles.printerMeta} numberOfLines={2}>
-                        {item.deviceName} · {item.target}
+                        {getSavedPrinterMeta(item)}
                       </Text>
 
                       <View style={styles.actionRow}>
@@ -313,9 +424,9 @@ export function DirectThermalPrintersModal({
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Discover Epson TM Printers</Text>
+            <Text style={styles.sectionTitle}>Discover Nearby Printers</Text>
             <Text style={styles.sectionSubtitle}>
-              Search the network or paired connections for supported Epson TM printers and save them into the app.
+              Scan for supported Bluetooth, USB, and network receipt printers available to this device.
             </Text>
 
             {thermalAvailable ? (
@@ -331,7 +442,7 @@ export function DirectThermalPrintersModal({
                       <Ionicons name="search-outline" size={18} color="#ffffff" />
                     )}
                     <Text style={styles.buttonText}>
-                      {isDiscovering ? 'Stop Discovery' : 'Discover Printers'}
+                      {isDiscovering ? 'Scanning...' : 'Discover Printers'}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -348,40 +459,55 @@ export function DirectThermalPrintersModal({
                     <Ionicons name="wifi-outline" size={42} color="#94A3B8" />
                     <Text style={styles.emptyTitle}>No printers discovered yet</Text>
                     <Text style={styles.emptySubtitle}>
-                      Start discovery to scan for Epson TM printers available to this device.
+                      Start discovery to scan for Bluetooth, USB, and network printers available to this device.
                     </Text>
                   </View>
                 ) : (
                   <FlatList
                     data={discoveredPrinters}
-                    keyExtractor={(item) => item.target}
+                    keyExtractor={(item) => item.id}
                     scrollEnabled={false}
                     contentContainerStyle={styles.listContent}
                     renderItem={({ item }) => {
-                      const isSaved = savedPrinterTargets.has(item.target);
+                      const isSaved = savedPrinterIds.has(item.id);
+                      const isSaving = savingPrinterId === item.id;
+
                       return (
                         <View style={styles.printerCard}>
                           <View style={styles.printerHeader}>
-                            <Text style={styles.printerName}>
-                              {item.deviceName || item.ipAddress || item.target}
-                            </Text>
+                            <Text style={styles.printerName}>{item.name}</Text>
                             <View style={[styles.statusBadge, isSaved && styles.statusBadgeActive]}>
                               <Text style={[styles.statusBadgeText, isSaved && styles.statusBadgeTextActive]}>
-                                {isSaved ? 'Saved' : 'Discovered'}
+                                {isSaved ? 'Saved' : getTechnologyLabel(item.technology)}
                               </Text>
                             </View>
                           </View>
 
                           <Text style={styles.printerMeta} numberOfLines={3}>
-                            {item.target}
-                            {item.ipAddress ? `\nIP: ${item.ipAddress}` : ''}
-                            {item.macAddress ? `\nMAC: ${item.macAddress}` : ''}
+                            {getDiscoveredPrinterMeta(item)}
                           </Text>
 
-                          <TouchableOpacity style={styles.secondaryButton} onPress={() => onSavePrinter(item)}>
-                            <Text style={styles.secondaryButtonText}>
-                              {isSaved ? 'Update Saved Printer' : 'Save in App'}
-                            </Text>
+                          <TouchableOpacity
+                            style={styles.secondaryButton}
+                            onPress={() => {
+                              void handleSaveDiscoveredPrinter(item);
+                            }}
+                            disabled={isSaving}
+                          >
+                            <View style={styles.buttonContent}>
+                              {isSaving ? (
+                                <ActivityIndicator size="small" color={ADMIN_COLORS.primary} />
+                              ) : (
+                                <Ionicons name="save-outline" size={18} color={ADMIN_COLORS.primary} />
+                              )}
+                              <Text style={styles.secondaryButtonText}>
+                                {isSaving
+                                  ? 'Saving...'
+                                  : isSaved
+                                    ? 'Update Saved Printer'
+                                    : 'Save in App'}
+                              </Text>
+                            </View>
                           </TouchableOpacity>
                         </View>
                       );
@@ -394,10 +520,77 @@ export function DirectThermalPrintersModal({
                 <Ionicons name="build-outline" size={42} color="#94A3B8" />
                 <Text style={styles.emptyTitle}>Native build required</Text>
                 <Text style={styles.emptySubtitle}>
-                  Direct thermal discovery is only available in a native dev or production build with the Epson module included.
+                  Direct thermal discovery is only available in a native dev or production build with the linked printer module included.
                 </Text>
               </View>
             )}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Add Network Printer Manually</Text>
+            <Text style={styles.sectionSubtitle}>
+              If discovery does not find your LAN printer, save it manually with its host or IP address and port.
+            </Text>
+
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Printer Name</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Front Counter Printer"
+                placeholderTextColor="#94A3B8"
+                value={manualName}
+                onChangeText={setManualName}
+              />
+            </View>
+
+            <View style={styles.formField}>
+              <Text style={styles.fieldLabel}>Host / IP Address</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="192.168.1.120"
+                placeholderTextColor="#94A3B8"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={manualHost}
+                onChangeText={setManualHost}
+              />
+            </View>
+
+            <View style={styles.portRow}>
+              <View style={[styles.formField, styles.portField]}>
+                <Text style={styles.fieldLabel}>Port</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="9100"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="number-pad"
+                  value={manualPort}
+                  onChangeText={setManualPort}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                (!manualHost.trim() || savingManualNetwork) && styles.primaryButtonDisabled,
+              ]}
+              onPress={() => {
+                void handleSaveManualNetworkPrinter();
+              }}
+              disabled={!manualHost.trim() || savingManualNetwork}
+            >
+              <View style={styles.buttonContent}>
+                {savingManualNetwork ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Ionicons name="save-outline" size={18} color="#ffffff" />
+                )}
+                <Text style={styles.buttonText}>
+                  {savingManualNetwork ? 'Saving...' : 'Save Network Printer'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
