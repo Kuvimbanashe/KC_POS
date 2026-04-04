@@ -9,6 +9,7 @@ import { fetchOperationalData } from '../../store/slices/userSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   buildPrintableReceiptFromSale,
+  isSilentPrintFailure,
   printReceiptDocument,
 } from '../../services/receiptPrinter';
 import { getPrinterPreferenceScope } from '../../services/printerPreferences';
@@ -215,8 +216,10 @@ const CashierHome = () => {
         },
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to print receipt';
-      Alert.alert('Printing Error', message);
+      if (!isSilentPrintFailure(error)) {
+        const message = error instanceof Error ? error.message : 'Failed to print receipt';
+        Alert.alert('Printing Error', message);
+      }
     } finally {
       setIsPrintingReceipt(false);
     }

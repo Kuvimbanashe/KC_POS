@@ -20,6 +20,7 @@ import type { PaymentMethod } from "../../store/types";
 import { fetchOperationalData } from "../../store/slices/userSlice";
 import {
   buildPrintableReceiptFromSale,
+  isSilentPrintFailure,
   printReceiptDocument,
 } from "../../services/receiptPrinter";
 import { getPrinterPreferenceScope } from "../../services/printerPreferences";
@@ -282,8 +283,10 @@ const AdminSales: React.FC = () => {
         },
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to print receipt";
-      Alert.alert("Printing Error", message);
+      if (!isSilentPrintFailure(error)) {
+        const message = error instanceof Error ? error.message : "Failed to print receipt";
+        Alert.alert("Printing Error", message);
+      }
     } finally {
       setIsPrinting(false);
     }
@@ -415,105 +418,107 @@ const AdminSales: React.FC = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedSale(null)}
       >
-        {selectedSale && (
-          <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sale Details</Text>
-              <TouchableOpacity onPress={() => setSelectedSale(null)}>
-                <Ionicons name="close" size={24} color="#374151" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
-              {/* Basic info */}
-              <View style={styles.modalSection}>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Invoice #</Text>
-                  <Text style={styles.detailLineValue}>{selectedSale.invoiceNumber || `INV-${selectedSale.id}`}</Text>
-                </View>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Date</Text>
-                  <Text style={styles.detailLineValue}>{new Date(selectedSale.date).toLocaleDateString()}</Text>
-                </View>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Cashier</Text>
-                  <Text style={styles.detailLineValue}>{selectedSale.cashier}</Text>
-                </View>
-                <View style={[styles.detailLine, styles.detailLineLast]}>
-                  <Text style={styles.detailLineLabel}>Payment</Text>
-                  {getPaymentBadge(selectedSale.paymentMethod)}
-                </View>
-              </View>
-
-              {/* Product details */}
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Product Details</Text>
-                {(selectedSale.items?.length ? selectedSale.items : [{
-                  productId: selectedSale.productId ?? 0,
-                  productName: selectedSale.productName ?? 'Item',
-                  quantity: selectedSale.quantity ?? 0,
-                  price: selectedSale.price ?? 0,
-                  subtotal: selectedSale.total ?? 0,
-                  unitType: 'single' as const,
-                  packSize: undefined,
-                }]).map((line, index) => (
-                  <View key={`${line.productId}-${index}`} style={styles.productCard}>
-                    <View style={styles.productHeader}>
-                      <Text style={styles.productName}>{line.productName}</Text>
-                      <Text style={styles.productPrice}>${(line.subtotal || 0).toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.productDetails}>
-                      <View style={styles.productDetailRow}>
-                        <Text style={styles.productDetailLabel}>Quantity</Text>
-                        <Text style={styles.productDetailValue}>{line.quantity || 0}</Text>
-                      </View>
-                      <View style={styles.productDetailRow}>
-                        <Text style={styles.productDetailLabel}>Unit Price</Text>
-                        <Text style={styles.productDetailValue}>${(line.price || 0).toFixed(2)}</Text>
-                      </View>
-                      <View style={[styles.productDetailRow, styles.productDetailRowLast]}>
-                        <Text style={styles.productDetailLabel}>Product ID</Text>
-                        <Text style={styles.productDetailValue}>{line.productId || '-'}</Text>
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </View>
-
-              {/* Summary */}
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryTitle}>Transaction Summary</Text>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal</Text>
-                  <Text style={styles.summaryValue}>
-                    ${(selectedSale.total || 0).toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Tax</Text>
-                  <Text style={styles.summaryValue}>$0.00</Text>
-                </View>
-                <View style={[styles.summaryRow, styles.totalRow]}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>
-                    ${(selectedSale.total || 0).toFixed(2)}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.printButton, isPrinting && styles.printButtonDisabled]}
-                  onPress={() => handlePrintSale(selectedSale)}
-                  disabled={isPrinting}
-                >
-                  <View style={styles.buttonContent}>
-                    {isPrinting && <ActivityIndicator size="small" color="#FFFFFF" />}
-                    <Text style={styles.printButtonText}>{isPrinting ? 'Printing...' : 'Print Receipt'}</Text>
-                  </View>
+        <SafeAreaView style={styles.modalContainer}>
+          {selectedSale && (
+            <>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Sale Details</Text>
+                <TouchableOpacity onPress={() => setSelectedSale(null)}>
+                  <Ionicons name="close" size={24} color="#374151" />
                 </TouchableOpacity>
               </View>
 
-            </ScrollView>
-          </SafeAreaView>
-        )}
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+                {/* Basic info */}
+                <View style={styles.modalSection}>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Invoice #</Text>
+                    <Text style={styles.detailLineValue}>{selectedSale.invoiceNumber || `INV-${selectedSale.id}`}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Date</Text>
+                    <Text style={styles.detailLineValue}>{new Date(selectedSale.date).toLocaleDateString()}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Cashier</Text>
+                    <Text style={styles.detailLineValue}>{selectedSale.cashier}</Text>
+                  </View>
+                  <View style={[styles.detailLine, styles.detailLineLast]}>
+                    <Text style={styles.detailLineLabel}>Payment</Text>
+                    {getPaymentBadge(selectedSale.paymentMethod)}
+                  </View>
+                </View>
+
+                {/* Product details */}
+                <View style={styles.modalSection}>
+                  <Text style={styles.sectionTitle}>Product Details</Text>
+                  {(selectedSale.items?.length ? selectedSale.items : [{
+                    productId: selectedSale.productId ?? 0,
+                    productName: selectedSale.productName ?? 'Item',
+                    quantity: selectedSale.quantity ?? 0,
+                    price: selectedSale.price ?? 0,
+                    subtotal: selectedSale.total ?? 0,
+                    unitType: 'single' as const,
+                    packSize: undefined,
+                  }]).map((line, index) => (
+                    <View key={`${line.productId}-${index}`} style={styles.productCard}>
+                      <View style={styles.productHeader}>
+                        <Text style={styles.productName}>{line.productName}</Text>
+                        <Text style={styles.productPrice}>${(line.subtotal || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.productDetails}>
+                        <View style={styles.productDetailRow}>
+                          <Text style={styles.productDetailLabel}>Quantity</Text>
+                          <Text style={styles.productDetailValue}>{line.quantity || 0}</Text>
+                        </View>
+                        <View style={styles.productDetailRow}>
+                          <Text style={styles.productDetailLabel}>Unit Price</Text>
+                          <Text style={styles.productDetailValue}>${(line.price || 0).toFixed(2)}</Text>
+                        </View>
+                        <View style={[styles.productDetailRow, styles.productDetailRowLast]}>
+                          <Text style={styles.productDetailLabel}>Product ID</Text>
+                          <Text style={styles.productDetailValue}>{line.productId || '-'}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Summary */}
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryTitle}>Transaction Summary</Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Subtotal</Text>
+                    <Text style={styles.summaryValue}>
+                      ${(selectedSale.total || 0).toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Tax</Text>
+                    <Text style={styles.summaryValue}>$0.00</Text>
+                  </View>
+                  <View style={[styles.summaryRow, styles.totalRow]}>
+                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalValue}>
+                      ${(selectedSale.total || 0).toFixed(2)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.printButton, isPrinting && styles.printButtonDisabled]}
+                    onPress={() => handlePrintSale(selectedSale)}
+                    disabled={isPrinting}
+                  >
+                    <View style={styles.buttonContent}>
+                      {isPrinting && <ActivityIndicator size="small" color="#FFFFFF" />}
+                      <Text style={styles.printButtonText}>{isPrinting ? 'Printing...' : 'Print Receipt'}</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+              </ScrollView>
+            </>
+          )}
+        </SafeAreaView>
       </Modal>
     </View>
   );

@@ -15,7 +15,7 @@ import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addSale, updateProductStock } from '../../store/slices/userSlice';
 import { fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -25,7 +25,7 @@ import {
   getPrinterPreferenceScope,
   getPrinterPreferences,
 } from '../../services/printerPreferences';
-import { printReceiptDocument } from '../../services/receiptPrinter';
+import { isSilentPrintFailure, printReceiptDocument } from '../../services/receiptPrinter';
 import {
   ADMIN_BUTTON_CONTENT,
   ADMIN_BUTTON_TEXT,
@@ -83,6 +83,13 @@ interface UnitTypeOption {
   label: string;
   description: string;
 }
+
+const formatBusinessContactDetails = (store: {
+  phone?: string;
+  email?: string;
+}) => {
+  return [store.phone, store.email].filter((value) => Boolean(value && value.trim())).join('  •  ');
+};
 
 const getUnitPrice = (product: Product, unitType: UnitType): number => {
   if (unitType === 'pack') {
@@ -153,6 +160,7 @@ const validateCartStock = (cartItems: CartItem[], referenceProducts: Product[]) 
 };
 
 const CashierSell = () => {
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const { products, currentStore } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
@@ -175,6 +183,12 @@ const CashierSell = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
   const printerScope = getPrinterPreferenceScope(user?.businessId, user?.id);
+  const businessName = currentStore?.name || user?.businessName || 'KC POS';
+  const businessAddress = currentStore?.address?.trim() || '';
+  const businessContactDetails = formatBusinessContactDetails({
+    phone: currentStore?.phone,
+    email: currentStore?.email,
+  });
 
   const printReceipt = async (
     receipt: ReceiptDetails,
@@ -209,8 +223,10 @@ const CashierSell = () => {
         },
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to print receipt';
-      Alert.alert('Printing Error', message);
+      if (!isSilentPrintFailure(error)) {
+        const message = error instanceof Error ? error.message : 'Failed to print receipt';
+        Alert.alert('Printing Error', message);
+      }
     } finally {
       setIsPrintingReceipt(false);
     }
@@ -948,7 +964,7 @@ const CashierSell = () => {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowReceipt(false)}
         >
-          <SafeAreaView style={styles.modalContainer}>
+          <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Receipt</Text>
               <TouchableOpacity 
@@ -959,16 +975,23 @@ const CashierSell = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.receiptContent}>
+            <ScrollView
+              style={styles.receiptScroll}
+              contentContainerStyle={[
+                styles.receiptContent,
+                { paddingBottom: 24 + insets.bottom },
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
               {/* Business Info */}
               <View style={styles.businessHeader}>
-                <Text style={styles.businessName}>KC Investments</Text>
-                <Text style={styles.businessAddress}>
-                  123 Business Street, City
-                </Text>
-                <Text style={styles.businessContact}>
-                  Contact: +1 (555) 123-4567
-                </Text>
+                <Text style={styles.businessName}>{businessName}</Text>
+                {businessAddress ? (
+                  <Text style={styles.businessAddress}>{businessAddress}</Text>
+                ) : null}
+                {businessContactDetails ? (
+                  <Text style={styles.businessContact}>{businessContactDetails}</Text>
+                ) : null}
               </View>
 
               {/* Receipt Info */}
@@ -1506,14 +1529,18 @@ const styles = StyleSheet.create({
   },
 
   // Receipt Modal
-  receiptContent: {
+  receiptScroll: {
     flex: 1,
-    padding: 16,
+  },
+  receiptContent: {
+    padding: 20,
+    paddingTop: 18,
     gap: 16,
   },
   businessHeader: {
     ...ADMIN_MODAL_SECTION,
     alignItems: 'center',
+    padding: 20,
   },
   businessName: {
     fontSize: 24,
@@ -1529,6 +1556,7 @@ const styles = StyleSheet.create({
   businessContact: {
     fontSize: 14,
     color: '#6B7280',
+    textAlign: 'center',
   },
   receiptInfo: {
     ...ADMIN_MODAL_SECTION,

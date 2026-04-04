@@ -685,86 +685,88 @@ const AdminAssets = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedAsset(null)}
       >
-        {selectedAsset && (
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
-              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Asset Details</Text>
-              <TouchableOpacity onPress={() => setSelectedAsset(null)}>
-                <Ionicons name="close" size={24} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
-              <View style={styles.detailsContainer}>
-                {/* Asset Header */}
-                <View style={styles.detailsHeader}>
-                  <Text style={[styles.assetNameLarge, { color: COLORS.primary }]}>{selectedAsset.name}</Text>
-                  <View style={[styles.conditionBadge, { 
-                    backgroundColor: `${getConditionColor(selectedAsset.condition)}15` 
-                  }]}>
-                    <Text style={[styles.conditionText, { color: getConditionColor(selectedAsset.condition) }]}>
-                      {selectedAsset.condition.charAt(0).toUpperCase() + selectedAsset.condition.slice(1)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Details Grid */}
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Category</Text>
-                    <Text style={styles.detailLineValue}>{selectedAsset.category}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Location</Text>
-                    <Text style={styles.detailLineValue}>{selectedAsset.location}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Purchase Date</Text>
-                    <Text style={styles.detailLineValue}>{new Date(selectedAsset.purchaseDate).toLocaleDateString()}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Purchase Value</Text>
-                    <Text style={styles.detailLineValue}>
-                      ${selectedAsset.purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Current Value</Text>
-                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>
-                      ${selectedAsset.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                  </View>
-                  <View style={[styles.detailLine, styles.detailLineLast]}>
-                    <Text style={styles.detailLineLabel}>Depreciation</Text>
-                    <Text style={[styles.detailLineValue, {
-                      color: (selectedAsset.purchaseValue - selectedAsset.currentValue) > 0 ? COLORS.danger : COLORS.success,
-                    }]}>
-                      ${(selectedAsset.purchaseValue - selectedAsset.currentValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
-                    onPress={() => handleDeleteAsset(selectedAsset)}
-                    disabled={isDeleting}
-                  >
-                    <View style={styles.buttonContent}>
-                      {isDeleting ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-                      )}
-                      <Text style={styles.deleteButtonText}>{isDeleting ? 'Deleting...' : 'Delete Asset'}</Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          {selectedAsset && (
+            <>
+              <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+                <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Asset Details</Text>
+                <TouchableOpacity onPress={() => setSelectedAsset(null)}>
+                  <Ionicons name="close" size={24} color={COLORS.primary} />
+                </TouchableOpacity>
               </View>
-            </ScrollView>
-          </SafeAreaView>
-        )}
+
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+                <View style={styles.detailsContainer}>
+                  {/* Asset Header */}
+                  <View style={styles.detailsHeader}>
+                    <Text style={[styles.assetNameLarge, { color: COLORS.primary }]}>{selectedAsset.name}</Text>
+                    <View style={[styles.conditionBadge, {
+                      backgroundColor: `${getConditionColor(selectedAsset.condition)}15`
+                    }]}>
+                      <Text style={[styles.conditionText, { color: getConditionColor(selectedAsset.condition) }]}>
+                        {selectedAsset.condition.charAt(0).toUpperCase() + selectedAsset.condition.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Details Grid */}
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Category</Text>
+                      <Text style={styles.detailLineValue}>{selectedAsset.category}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Location</Text>
+                      <Text style={styles.detailLineValue}>{selectedAsset.location}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Purchase Date</Text>
+                      <Text style={styles.detailLineValue}>{new Date(selectedAsset.purchaseDate).toLocaleDateString()}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Purchase Value</Text>
+                      <Text style={styles.detailLineValue}>
+                        ${selectedAsset.purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Current Value</Text>
+                      <Text style={[styles.detailLineValue, styles.detailLineAccent]}>
+                        ${selectedAsset.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    <View style={[styles.detailLine, styles.detailLineLast]}>
+                      <Text style={styles.detailLineLabel}>Depreciation</Text>
+                      <Text style={[styles.detailLineValue, {
+                        color: (selectedAsset.purchaseValue - selectedAsset.currentValue) > 0 ? COLORS.danger : COLORS.success,
+                      }]}>
+                        ${(selectedAsset.purchaseValue - selectedAsset.currentValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Action Buttons */}
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+                      onPress={() => handleDeleteAsset(selectedAsset)}
+                      disabled={isDeleting}
+                    >
+                      <View style={styles.buttonContent}>
+                        {isDeleting ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                        )}
+                        <Text style={styles.deleteButtonText}>{isDeleting ? 'Deleting...' : 'Delete Asset'}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </>
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );

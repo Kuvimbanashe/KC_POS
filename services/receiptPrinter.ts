@@ -65,10 +65,21 @@ export interface DirectPrinterDiscoveryHandle {
 }
 
 type EscPosModule = typeof import('react-native-esc-pos-printer');
+const PRINT_START_TIMEOUT_MS = 15_000;
 
 let escPosModulePromise: Promise<EscPosModule | null> | null = null;
 const expoExecutionEnvironment = Constants.executionEnvironment;
 const isExpoGoRuntime = expoExecutionEnvironment === 'storeClient';
+
+export class PrintStartTimeoutError extends Error {
+  constructor() {
+    super('Printing did not start within 15 seconds.');
+    this.name = 'PrintStartTimeoutError';
+  }
+}
+
+export const isSilentPrintFailure = (error: unknown): boolean =>
+  error instanceof PrintStartTimeoutError;
 
 const hasEscPosNativeModule = () => {
   if (Platform.OS === 'web') {
@@ -137,6 +148,23 @@ const getEscPosModule = async (): Promise<EscPosModule | null> => {
   }
 
   return escPosModulePromise;
+};
+
+const withPrintStartTimeout = async <T>(operation: Promise<T>): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new PrintStartTimeoutError()), PRINT_START_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
 };
 
 const getPrinterIdentity = (device: Pick<DeviceInfo, 'target'>) =>
@@ -589,13 +617,19 @@ export const printReceiptDocument = async (
 
   if (defaultDirectPrinter) {
     try {
-      await printReceiptWithDirectThermalPrinter(
-        receipt,
-        defaultDirectPrinter,
-        preferences,
+      await withPrintStartTimeout(
+        printReceiptWithDirectThermalPrinter(
+          receipt,
+          defaultDirectPrinter,
+          preferences,
+        ),
       );
       return { html, preferences, route: 'direct' as const };
     } catch (directError) {
+      if (isSilentPrintFailure(directError)) {
+        throw directError;
+      }
+
       const availability = await getDirectThermalAvailability();
       if (availability.available) {
         throw directError;
@@ -603,7 +637,9 @@ export const printReceiptDocument = async (
     }
   }
 
-  await printReceiptWithSystemPrinter(html, preferences.defaultSystemPrinter);
+  await withPrintStartTimeout(
+    printReceiptWithSystemPrinter(html, preferences.defaultSystemPrinter),
+  );
   return { html, preferences, route: 'system' as const };
 };
 

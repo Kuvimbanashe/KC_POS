@@ -19,6 +19,7 @@ import {
 import {
   buildSavedDirectPrinter,
   getDirectThermalAvailability,
+  isSilentPrintFailure,
   printReceiptDocument,
   selectDefaultSystemPrinter,
   startDirectThermalPrinterDiscovery,
@@ -223,8 +224,10 @@ export function ReceiptPrinterSection({
             : 'The receipt was sent through the system print route.',
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to print the test receipt';
-      Alert.alert('Error', message);
+      if (!isSilentPrintFailure(error)) {
+        const message = error instanceof Error ? error.message : 'Failed to print the test receipt';
+        Alert.alert('Error', message);
+      }
     } finally {
       setPrintingTestReceipt(false);
     }

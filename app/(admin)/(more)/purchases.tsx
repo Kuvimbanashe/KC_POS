@@ -626,45 +626,47 @@ const AdminPurchases = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedPurchase(null)}
       >
-        {selectedPurchase && (
-          <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Order #{selectedPurchase.id}</Text>
-              <TouchableOpacity onPress={() => setSelectedPurchase(null)}>
-                <Ionicons name="close" size={24} color="#374151" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
-              <View style={styles.detailsContainer}>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Product</Text>
-                  <Text style={styles.detailLineValue}>{selectedPurchase.productName}</Text>
-                </View>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Supplier</Text>
-                  <Text style={styles.detailLineValue}>{selectedPurchase.supplier}</Text>
-                </View>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Quantity</Text>
-                  <Text style={styles.detailLineValue}>{selectedPurchase.quantity} units</Text>
-                </View>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Unit Cost</Text>
-                  <Text style={styles.detailLineValue}>${selectedPurchase.unitCost}</Text>
-                </View>
-                <View style={styles.detailLine}>
-                  <Text style={styles.detailLineLabel}>Date</Text>
-                  <Text style={styles.detailLineValue}>{new Date(selectedPurchase.date).toLocaleDateString()}</Text>
-                </View>
-                <View style={[styles.detailLine, styles.detailLineLast]}>
-                  <Text style={styles.detailLineLabel}>Total Cost</Text>
-                  <Text style={[styles.detailLineValue, styles.totalCost]}>${selectedPurchase.total}</Text>
-                </View>
+        <SafeAreaView style={styles.modalContainer}>
+          {selectedPurchase && (
+            <>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Order #{selectedPurchase.id}</Text>
+                <TouchableOpacity onPress={() => setSelectedPurchase(null)}>
+                  <Ionicons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
               </View>
-            </ScrollView>
-          </SafeAreaView>
-        )}
+
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+                <View style={styles.detailsContainer}>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Product</Text>
+                    <Text style={styles.detailLineValue}>{selectedPurchase.productName}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Supplier</Text>
+                    <Text style={styles.detailLineValue}>{selectedPurchase.supplier}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Quantity</Text>
+                    <Text style={styles.detailLineValue}>{selectedPurchase.quantity} units</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Unit Cost</Text>
+                    <Text style={styles.detailLineValue}>${selectedPurchase.unitCost}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Date</Text>
+                    <Text style={styles.detailLineValue}>{new Date(selectedPurchase.date).toLocaleDateString()}</Text>
+                  </View>
+                  <View style={[styles.detailLine, styles.detailLineLast]}>
+                    <Text style={styles.detailLineLabel}>Total Cost</Text>
+                    <Text style={[styles.detailLineValue, styles.totalCost]}>${selectedPurchase.total}</Text>
+                  </View>
+                </View>
+              </ScrollView>
+            </>
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );

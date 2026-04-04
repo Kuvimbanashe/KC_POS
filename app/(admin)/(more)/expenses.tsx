@@ -559,79 +559,81 @@ const AdminExpenses = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedExpense(null)}
       >
-        {selectedExpense && (
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
-              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
-                Expense Details
-              </Text>
-              <TouchableOpacity onPress={() => setSelectedExpense(null)}>
-                <Ionicons name="close" size={24} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
-              <View style={styles.detailsContainer}>
-                {/* Details */}
-                <View style={styles.detailsSection}>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Total Amount</Text>
-                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedExpense.amount}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Description</Text>
-                    <Text style={styles.detailLineValue}>{selectedExpense.description}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Category</Text>
-                    <View style={[styles.categoryBadge, { 
-                      backgroundColor: getCategoryColor(selectedExpense.category).bg 
-                    }]}>
-                      <Text style={[styles.categoryText, { 
-                        color: getCategoryColor(selectedExpense.category).text 
-                      }]}>
-                        {selectedExpense.category}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Date</Text>
-                    <Text style={styles.detailLineValue}>{new Date(selectedExpense.date).toLocaleDateString()}</Text>
-                  </View>
-                  <View style={[styles.detailLine, styles.detailLineLast]}>
-                    <Text style={styles.detailLineLabel}>Expense ID</Text>
-                    <Text style={styles.detailLineValue}>#{selectedExpense.id.toString().padStart(4, '0')}</Text>
-                  </View>
-                </View>
-
-                {/* Category Statistics */}
-                <View style={[styles.statsSection, { backgroundColor: COLORS.mutedLight }]}>
-                  <Text style={[styles.statsTitle, { color: COLORS.primary }]}>
-                    Category Statistics
-                  </Text>
-                  <View style={styles.statsGrid}>
-                    <View style={styles.statRow}>
-                      <Text style={[styles.statLabel, { color: COLORS.muted }]}>
-                        Total in {selectedExpense.category}
-                      </Text>
-                      <Text style={[styles.statValue, { color: COLORS.primary }]}>
-                        ${categoryTotals[selectedExpense.category] || '0.00'}
-                      </Text>
-                    </View>
-                    <View style={styles.statRow}>
-                      <Text style={[styles.statLabel, { color: COLORS.muted }]}>
-                        Percentage of Total
-                      </Text>
-                      <Text style={[styles.statValue, { color: COLORS.primary }]}>
-                        {((categoryTotals[selectedExpense.category] / totalExpenses) * 100).toFixed(1)}%
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          {selectedExpense && (
+            <>
+              <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+                <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
+                  Expense Details
+                </Text>
+                <TouchableOpacity onPress={() => setSelectedExpense(null)}>
+                  <Ionicons name="close" size={24} color={COLORS.primary} />
+                </TouchableOpacity>
               </View>
-            </ScrollView>
-          </SafeAreaView>
-        )}
+
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+                <View style={styles.detailsContainer}>
+                  {/* Details */}
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Total Amount</Text>
+                      <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedExpense.amount}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Description</Text>
+                      <Text style={styles.detailLineValue}>{selectedExpense.description}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Category</Text>
+                      <View style={[styles.categoryBadge, {
+                        backgroundColor: getCategoryColor(selectedExpense.category).bg
+                      }]}>
+                        <Text style={[styles.categoryText, {
+                          color: getCategoryColor(selectedExpense.category).text
+                        }]}>
+                          {selectedExpense.category}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Date</Text>
+                      <Text style={styles.detailLineValue}>{new Date(selectedExpense.date).toLocaleDateString()}</Text>
+                    </View>
+                    <View style={[styles.detailLine, styles.detailLineLast]}>
+                      <Text style={styles.detailLineLabel}>Expense ID</Text>
+                      <Text style={styles.detailLineValue}>#{selectedExpense.id.toString().padStart(4, '0')}</Text>
+                    </View>
+                  </View>
+
+                  {/* Category Statistics */}
+                  <View style={[styles.statsSection, { backgroundColor: COLORS.mutedLight }]}>
+                    <Text style={[styles.statsTitle, { color: COLORS.primary }]}>
+                      Category Statistics
+                    </Text>
+                    <View style={styles.statsGrid}>
+                      <View style={styles.statRow}>
+                        <Text style={[styles.statLabel, { color: COLORS.muted }]}>
+                          Total in {selectedExpense.category}
+                        </Text>
+                        <Text style={[styles.statValue, { color: COLORS.primary }]}>
+                          ${categoryTotals[selectedExpense.category] || '0.00'}
+                        </Text>
+                      </View>
+                      <View style={styles.statRow}>
+                        <Text style={[styles.statLabel, { color: COLORS.muted }]}>
+                          Percentage of Total
+                        </Text>
+                        <Text style={[styles.statValue, { color: COLORS.primary }]}>
+                          {((categoryTotals[selectedExpense.category] / totalExpenses) * 100).toFixed(1)}%
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+            </>
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );

@@ -7,6 +7,7 @@ import type {
   PurchaseRecord,
   SaleItem,
   SaleRecord,
+  StoreInfo,
   UserProfile,
   UserState,
 } from '../types';
@@ -93,6 +94,17 @@ interface BackendExpense {
   receipt_number: string;
 }
 
+interface BackendBusiness {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  tax_id?: string;
+  currency?: string;
+  timezone?: string;
+}
+
 const initialState: UserState = {
   users: [],
   products: [],
@@ -117,7 +129,8 @@ const withBusiness = (businessId?: number | null) => (businessId ? { params: { b
 export const fetchOperationalData = createAsyncThunk(
   'user/fetchOperationalData',
   async (businessId?: number | null) => {
-    const [users, products, sales, purchases, expenses] = await Promise.all([
+    const [businesses, users, products, sales, purchases, expenses] = await Promise.all([
+      axiosClient.get('/businesses/', withBusiness(businessId)),
       axiosClient.get('/users/', withBusiness(businessId)),
       axiosClient.get('/products/', withBusiness(businessId)),
       axiosClient.get('/sales/', withBusiness(businessId)),
@@ -126,6 +139,7 @@ export const fetchOperationalData = createAsyncThunk(
     ]);
 
     const unwrap = <T>(data: { results?: T[] } | T[]) => (Array.isArray(data) ? data : (data.results ?? []));
+    const business = unwrap<BackendBusiness>(businesses.data)[0];
 
     const mappedUsers = unwrap<BackendUser>(users.data).map((u) => ({
       id: u.id,
@@ -216,7 +230,20 @@ export const fetchOperationalData = createAsyncThunk(
       receiptNumber: e.receipt_number,
     })) as ExpenseRecord[];
 
+    const mappedStore: StoreInfo = {
+      name: business?.name ?? '',
+      address: business?.address ?? '',
+      phone: business?.phone ?? '',
+      email: business?.email ?? '',
+      taxId: business?.tax_id ?? '',
+      currency: business?.currency ?? 'USD',
+      openingTime: '08:00',
+      closingTime: '22:00',
+      timezone: business?.timezone ?? 'UTC',
+    };
+
     return {
+      currentStore: mappedStore,
       users: mappedUsers,
       products: mappedProducts,
       sales: mappedSales,
@@ -346,6 +373,7 @@ const userSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(fetchOperationalData.fulfilled, (state, action) => {
+      state.currentStore = action.payload.currentStore;
       state.users = action.payload.users;
       state.products = action.payload.products;
       state.sales = action.payload.sales;

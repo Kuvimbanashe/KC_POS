@@ -855,101 +855,103 @@ const AdminStock = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedProduct(null)}
       >
-        {selectedProduct && (
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
-              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Product Details</Text>
-              <TouchableOpacity onPress={() => setSelectedProduct(null)}>
-                <Ionicons name="close" size={24} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
-              <View style={styles.detailsContainer}>
-                {/* Product Info */}
-                <View style={styles.detailsSection}>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Name</Text>
-                    <Text style={styles.detailLineValue}>{selectedProduct.name}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>SKU</Text>
-                    <Text style={styles.detailLineValue}>{selectedProduct.sku}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Barcode</Text>
-                    <Text style={styles.detailLineValue}>{selectedProduct.barcode || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Category</Text>
-                    <Text style={styles.detailLineValue}>{selectedProduct.category}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Price</Text>
-                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.price.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Stock</Text>
-                    <View style={styles.detailLineValueContent}>
-                      <Text style={styles.detailLineValue}>{selectedProduct.stock}</Text>
-                      {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
-                    </View>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Supplier</Text>
-                    <Text style={styles.detailLineValue}>{selectedProduct.supplier || 'Not specified'}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Unit Type</Text>
-                    <Text style={styles.detailLineValue}>
-                      {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
-                    </Text>
-                  </View>
-                  <View style={[styles.detailLine, styles.detailLineLast]}>
-                    <Text style={styles.detailLineLabel}>Min Stock</Text>
-                    <Text style={styles.detailLineValue}>{selectedProduct.minStockLevel || 10}</Text>
-                  </View>
-                </View>
-
-                {/* Pack Info if available */}
-                {(selectedProduct.packSize || selectedProduct.packPrice) && (
-                  <View style={styles.detailsSection}>
-                    <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Pack Information</Text>
-                    {selectedProduct.packSize && (
-                      <View style={styles.detailLine}>
-                        <Text style={styles.detailLineLabel}>Pack Size</Text>
-                        <Text style={styles.detailLineValue}>{selectedProduct.packSize} units</Text>
-                      </View>
-                    )}
-                    {selectedProduct.packPrice && (
-                      <View style={styles.detailLine}>
-                        <Text style={styles.detailLineLabel}>Pack Price</Text>
-                        <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.packPrice.toFixed(2)}</Text>
-                      </View>
-                    )}
-                    {selectedProduct.singlePrice && (
-                      <View style={[styles.detailLine, styles.detailLineLast]}>
-                        <Text style={styles.detailLineLabel}>Single Price</Text>
-                        <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.singlePrice.toFixed(2)}</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* Action Button */}
-                <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: COLORS.accent }]}
-                  onPress={() => {
-                    handleEditProduct(selectedProduct);
-                    setSelectedProduct(null);
-                  }}
-                >
-                  <Text style={styles.editButtonText}>Edit Product</Text>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          {selectedProduct && (
+            <>
+              <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+                <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Product Details</Text>
+                <TouchableOpacity onPress={() => setSelectedProduct(null)}>
+                  <Ionicons name="close" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
-            </ScrollView>
-          </SafeAreaView>
-        )}
+
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+                <View style={styles.detailsContainer}>
+                  {/* Product Info */}
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Name</Text>
+                      <Text style={styles.detailLineValue}>{selectedProduct.name}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>SKU</Text>
+                      <Text style={styles.detailLineValue}>{selectedProduct.sku}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Barcode</Text>
+                      <Text style={styles.detailLineValue}>{selectedProduct.barcode || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Category</Text>
+                      <Text style={styles.detailLineValue}>{selectedProduct.category}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Price</Text>
+                      <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.price.toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Stock</Text>
+                      <View style={styles.detailLineValueContent}>
+                        <Text style={styles.detailLineValue}>{selectedProduct.stock}</Text>
+                        {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
+                      </View>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Supplier</Text>
+                      <Text style={styles.detailLineValue}>{selectedProduct.supplier || 'Not specified'}</Text>
+                    </View>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.detailLineLabel}>Unit Type</Text>
+                      <Text style={styles.detailLineValue}>
+                        {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
+                      </Text>
+                    </View>
+                    <View style={[styles.detailLine, styles.detailLineLast]}>
+                      <Text style={styles.detailLineLabel}>Min Stock</Text>
+                      <Text style={styles.detailLineValue}>{selectedProduct.minStockLevel || 10}</Text>
+                    </View>
+                  </View>
+
+                  {/* Pack Info if available */}
+                  {(selectedProduct.packSize || selectedProduct.packPrice) && (
+                    <View style={styles.detailsSection}>
+                      <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Pack Information</Text>
+                      {selectedProduct.packSize && (
+                        <View style={styles.detailLine}>
+                          <Text style={styles.detailLineLabel}>Pack Size</Text>
+                          <Text style={styles.detailLineValue}>{selectedProduct.packSize} units</Text>
+                        </View>
+                      )}
+                      {selectedProduct.packPrice && (
+                        <View style={styles.detailLine}>
+                          <Text style={styles.detailLineLabel}>Pack Price</Text>
+                          <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.packPrice.toFixed(2)}</Text>
+                        </View>
+                      )}
+                      {selectedProduct.singlePrice && (
+                        <View style={[styles.detailLine, styles.detailLineLast]}>
+                          <Text style={styles.detailLineLabel}>Single Price</Text>
+                          <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.singlePrice.toFixed(2)}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Action Button */}
+                  <TouchableOpacity
+                    style={[styles.editButton, { backgroundColor: COLORS.accent }]}
+                    onPress={() => {
+                      handleEditProduct(selectedProduct);
+                      setSelectedProduct(null);
+                    }}
+                  >
+                    <Text style={styles.editButtonText}>Edit Product</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </>
+          )}
+        </SafeAreaView>
       </Modal>
     </View>
   );
