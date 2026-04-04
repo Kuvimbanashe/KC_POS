@@ -1,25 +1,17 @@
 {
-    "version": 2,
-    "builds": [
-        {
-        "src": "backend/wsgi.py",
-        "use": "@vercel/python",
-        "config": { "maxLambdaSize": "50mb", "runtime": "python3.10" }
-        },
-        {
-        "src": "build_files.sh",
-        "use": "@vercel/static-build",
-        "config": { "distDir": "staticfiles_build" }
-        }
-    ],
-    "routes": [
-        {
-        "src": "/static/(.*)",
-        "dest": "/static/$1"
-        },
-        {
-        "src": "/(.*)",
-        "dest": "/backend/wsgi.py"
-        }
-    ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "python manage.py collectstatic --noinput",
+  "functions": {
+    "backend/wsgi.py": {
+      "maxDuration": 30,
+      "includeFiles": "staticfiles/**",
+      "excludeFiles": "{README.md,build_files.sh,Procfile,.env.example,__pycache__/**,**/__pycache__/**}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/backend/wsgi.py"
+    }
+  ]
 }
