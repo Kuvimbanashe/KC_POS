@@ -6,6 +6,7 @@ import type { Ionicons as IoniconsType } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { SaleRecord } from '../../store/types';
 import { fetchOperationalData } from '../../store/slices/userSlice';
+import { printWithDefaultPrinter } from '../../services/printer';
 
 // Correct Ionicon type
 type IoniconName = keyof typeof Ionicons.glyphMap;
@@ -162,6 +163,10 @@ const CashierHome = () => {
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
+        return;
+      }
+      const printedDirectly = await printWithDefaultPrinter(text);
+      if (printedDirectly) {
         return;
       }
       await Share.share({ title: sale.invoiceNumber || `Receipt #${sale.id}`, message: text });

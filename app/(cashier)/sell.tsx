@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   Share,
+  ActivityIndicator,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
@@ -21,6 +22,16 @@ import { fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { PaymentMethod, Product, SaleItem, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
+import {
+  discoverPrinters,
+  getDefaultPrinterId,
+  getSavedPrinters,
+  printWithDefaultPrinter,
+  removePrinter,
+  savePrinter,
+  setDefaultPrinterId,
+  type SavedPrinter,
+} from '../../services/printer';
 
 // Types
 type PaymentMethodOption = 'cash' | 'card' | 'mobile';
@@ -75,6 +86,12 @@ const CashierSell = () => {
     dispatch(fetchOperationalData(user.businessId));
   }, [dispatch, user?.businessId]);
 
+  useEffect(() => {
+    refreshSavedPrinters().catch(() => {
+      // ignore silent startup errors
+    });
+  }, []);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -101,6 +118,42 @@ const CashierSell = () => {
     return lines.join('\n');
   };
 
+  const refreshSavedPrinters = async () => {
+    const [saved, defaultId] = await Promise.all([getSavedPrinters(), getDefaultPrinterId()]);
+    setSavedPrinters(saved);
+    setDefaultPrinterIdState(defaultId);
+  };
+
+  const handleOpenPrinterModal = async () => {
+    try {
+      setIsPrinterModalOpen(true);
+      setIsLoadingPrinters(true);
+      const discovered = await discoverPrinters();
+      setDiscoveredPrinters(discovered);
+      await refreshSavedPrinters();
+    } catch (error) {
+      console.error('Failed loading printers', error);
+      Alert.alert('Printers', 'Unable to scan printers on this device.');
+    } finally {
+      setIsLoadingPrinters(false);
+    }
+  };
+
+  const handleSavePrinter = async (printer: SavedPrinter) => {
+    await savePrinter(printer);
+    await refreshSavedPrinters();
+  };
+
+  const handleSetDefaultPrinter = async (printerId: string) => {
+    await setDefaultPrinterId(printerId);
+    setDefaultPrinterIdState(printerId);
+  };
+
+  const handleRemovePrinter = async (printerId: string) => {
+    await removePrinter(printerId);
+    await refreshSavedPrinters();
+  };
+
   const printReceipt = async (receipt: ReceiptDetails) => {
     try {
       const text = buildReceiptText(receipt);
@@ -113,6 +166,13 @@ const CashierSell = () => {
         printWindow.print();
         return;
       }
+
+      const printedDirectly = await printWithDefaultPrinter(text);
+      if (printedDirectly) {
+        Alert.alert('Printed', 'Receipt sent to default printer.');
+        return;
+      }
+
       await Share.share({ title: receipt.receiptNumber, message: text });
     } catch (error) {
       console.error('Print/share failed', error);
@@ -126,6 +186,11 @@ const CashierSell = () => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
+  const [savedPrinters, setSavedPrinters] = useState<SavedPrinter[]>([]);
+  const [discoveredPrinters, setDiscoveredPrinters] = useState<SavedPrinter[]>([]);
+  const [defaultPrinterId, setDefaultPrinterIdState] = useState<string | null>(null);
+  const [isLoadingPrinters, setIsLoadingPrinters] = useState(false);
 
   // Payment method configuration
   const paymentMethodConfig: PaymentMethodConfig[] = useMemo(
@@ -936,6 +1001,15 @@ const CashierSell = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
+                style={styles.managePrintersButton}
+                onPress={handleOpenPrinterModal}
+              >
+                <Text style={styles.managePrintersButtonText}>
+                  Manage Printers
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={styles.newSaleButton}
                 onPress={() => setShowReceipt(false)}
               >
@@ -947,6 +1021,75 @@ const CashierSell = () => {
           </SafeAreaView>
         </Modal>
       )}
+
+      <Modal
+        visible={isPrinterModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsPrinterModalOpen(false)}
+      >
+        <View style={styles.printerBackdrop}>
+          <View style={styles.printerModal}>
+            <View style={styles.printerHeader}>
+              <Text style={styles.printerTitle}>Saved Printers</Text>
+              <TouchableOpacity onPress={() => setIsPrinterModalOpen(false)}>
+                <Ionicons name="close" size={22} color="#0f172a" />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingPrinters ? (
+              <View style={styles.printerLoading}>
+                <ActivityIndicator color="#f97316" />
+                <Text style={styles.printerHint}>Scanning for printers...</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.printerList}>
+                {savedPrinters.length === 0 && (
+                  <Text style={styles.printerHint}>No saved printers yet.</Text>
+                )}
+                {savedPrinters.map((printer) => (
+                  <View key={`saved-${printer.id}`} style={styles.printerCard}>
+                    <View style={styles.printerInfo}>
+                      <Text style={styles.printerName}>{printer.name}</Text>
+                      <Text style={styles.printerMeta}>{printer.type.toUpperCase()} • {printer.id}</Text>
+                    </View>
+                    <View style={styles.printerActions}>
+                      <TouchableOpacity onPress={() => handleSetDefaultPrinter(printer.id)}>
+                        <Text style={styles.setDefaultText}>
+                          {defaultPrinterId === printer.id ? 'Default' : 'Set Default'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleRemovePrinter(printer.id)}>
+                        <Text style={styles.removePrinterText}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                <Text style={styles.printerSectionTitle}>Discovered Printers</Text>
+                {discoveredPrinters.length === 0 && (
+                  <Text style={styles.printerHint}>No printers discovered.</Text>
+                )}
+                {discoveredPrinters.map((printer) => (
+                  <View key={`scan-${printer.id}`} style={styles.printerCard}>
+                    <View style={styles.printerInfo}>
+                      <Text style={styles.printerName}>{printer.name}</Text>
+                      <Text style={styles.printerMeta}>{printer.type.toUpperCase()} • {printer.id}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => handleSavePrinter(printer)}>
+                      <Text style={styles.savePrinterText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity style={styles.scanAgainButton} onPress={handleOpenPrinterModal}>
+              <Text style={styles.scanAgainButtonText}>Scan Again</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1556,6 +1699,115 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
+  },
+  managePrintersButton: {
+    marginTop: 12,
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  managePrintersButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  printerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  printerModal: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    maxHeight: '85%',
+    padding: 16,
+  },
+  printerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  printerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  printerLoading: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 10,
+  },
+  printerList: {
+    maxHeight: 420,
+  },
+  printerHint: {
+    fontSize: 13,
+    color: '#64748b',
+    marginBottom: 10,
+  },
+  printerSectionTitle: {
+    marginTop: 12,
+    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  printerCard: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  printerInfo: {
+    flex: 1,
+  },
+  printerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  printerMeta: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#64748b',
+  },
+  printerActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  setDefaultText: {
+    color: '#f97316',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  removePrinterText: {
+    color: '#ef4444',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  savePrinterText: {
+    color: '#0f172a',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  scanAgainButton: {
+    marginTop: 12,
+    backgroundColor: '#f97316',
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  scanAgainButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
 });
 
