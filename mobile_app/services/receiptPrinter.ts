@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import * as Print from 'expo-print';
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 
 import type {
   IBLEPrinter,
@@ -100,6 +100,44 @@ const hasThermalPrinterNativeModule = () =>
       NativeModules.RNUSBPrinter ||
       NativeModules.RNNetPrinter,
   );
+
+const ensureAndroidPrinterDiscoveryPermissions = async () => {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
+  const permissions = new Set<string>([PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION]);
+
+  if (Platform.Version >= 31) {
+    permissions.add(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
+    permissions.add(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
+  }
+
+  const requiredPermissions = Array.from(permissions).filter(Boolean);
+  const missingPermissions: string[] = [];
+
+  for (const permission of requiredPermissions) {
+    const granted = await PermissionsAndroid.check(permission);
+    if (!granted) {
+      missingPermissions.push(permission);
+    }
+  }
+
+  if (!missingPermissions.length) {
+    return;
+  }
+
+  const results = await PermissionsAndroid.requestMultiple(missingPermissions);
+  const deniedPermissions = missingPermissions.filter(
+    (permission) => results[permission] !== PermissionsAndroid.RESULTS.GRANTED,
+  );
+
+  if (deniedPermissions.length) {
+    throw new Error(
+      'Bluetooth and location permissions are required to discover nearby receipt printers.',
+    );
+  }
+};
 
 let thermalModulePromise: Promise<ThermalPrinterModule | null> | null = null;
 
@@ -681,6 +719,10 @@ const printWithBluetoothPrinter = async (
   printer: SavedDirectPrinter,
   receiptText: string,
 ) => {
+  if (!module.BLEPrinter) {
+    throw new Error('Bluetooth printer support is not available in this build.');
+  }
+
   if (!printer.macAddress) {
     throw new Error('The saved Bluetooth printer is missing its MAC address.');
   }
@@ -708,6 +750,10 @@ const printWithUsbPrinter = async (
   printer: SavedDirectPrinter,
   receiptText: string,
 ) => {
+  if (!module.USBPrinter) {
+    throw new Error('USB printer support is not available in this build.');
+  }
+
   if (!printer.vendorId || !printer.productId) {
     throw new Error('The saved USB printer is missing its vendor or product id.');
   }
@@ -735,6 +781,10 @@ const printWithNetworkPrinter = async (
   printer: SavedDirectPrinter,
   receiptText: string,
 ) => {
+  if (!module.NetPrinter) {
+    throw new Error('Network printer support is not available in this build.');
+  }
+
   if (!printer.host || !printer.port) {
     throw new Error('The saved network printer is missing its host or port.');
   }
@@ -893,8 +943,12 @@ export const selectDefaultPrinter = selectDefaultSystemPrinter;
 const discoverBluetoothPrinters = async (
   module: ThermalPrinterModule,
   timeoutMs: number,
-) =>
-  withTimeout(
+) => {
+  if (!module.BLEPrinter) {
+    return [];
+  }
+
+  return withTimeout(
     (async () => {
       await module.BLEPrinter.init();
       return module.BLEPrinter.getDeviceList();
@@ -902,12 +956,17 @@ const discoverBluetoothPrinters = async (
     timeoutMs,
     () => new Error('Bluetooth printer discovery timed out.'),
   );
+};
 
 const discoverUsbPrinters = async (
   module: ThermalPrinterModule,
   timeoutMs: number,
-) =>
-  withTimeout(
+) => {
+  if (!module.USBPrinter) {
+    return [];
+  }
+
+  return withTimeout(
     (async () => {
       await module.USBPrinter.init();
       return module.USBPrinter.getDeviceList();
@@ -915,12 +974,17 @@ const discoverUsbPrinters = async (
     timeoutMs,
     () => new Error('USB printer discovery timed out.'),
   );
+};
 
 const discoverNetworkPrinters = async (
   module: ThermalPrinterModule,
   timeoutMs: number,
-) =>
-  withTimeout(
+) => {
+  if (!module.NetPrinter) {
+    return [];
+  }
+
+  return withTimeout(
     (async () => {
       await module.NetPrinter.init();
       return module.NetPrinter.getDeviceList();
@@ -928,11 +992,14 @@ const discoverNetworkPrinters = async (
     timeoutMs,
     () => new Error('Network printer discovery timed out.'),
   );
+};
 
 export const startDirectThermalPrinterDiscovery = async (
   callbacks: DirectPrinterDiscoveryCallbacks,
   params?: DiscoveryStartParams,
 ): Promise<DirectPrinterDiscoveryHandle> => {
+  await ensureAndroidPrinterDiscoveryPermissions();
+
   const module = await getThermalPrinterModule();
   if (!module) {
     throw new Error(
