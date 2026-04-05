@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class StaffUser(models.Model):
@@ -21,3 +22,52 @@ class StaffUser(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.role})'
+
+    @property
+    def is_active(self):
+        return self.status == 'active'
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    @property
+    def type(self):
+        return self.role
+
+
+class PasswordResetCode(models.Model):
+    user = models.ForeignKey(
+        StaffUser,
+        on_delete=models.CASCADE,
+        related_name='password_reset_codes',
+    )
+    code = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Password reset code for {self.user.email}'
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+
+class AuthToken(models.Model):
+    user = models.OneToOneField(
+        StaffUser,
+        on_delete=models.CASCADE,
+        related_name='auth_token',
+    )
+    key = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Auth token for {self.user.email}'

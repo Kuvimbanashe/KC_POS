@@ -1,50 +1,45 @@
-# Welcome to your Expo app 👋
+# KC POS Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo / React Native mobile client for KC POS.
 
-## Get started
+## Main folders
 
-1. Install dependencies
+- `app/` — Expo Router screens and layouts
+- `components/` — reusable UI
+- `services/` — API, printer, and sync logic
+- `store/` — Redux state
+- `theme/` — shared UI tokens
+- `assets/` — app images and static assets
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Local development
 
 ```bash
-npm run reset-project
+cd mobile_app
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Environment
 
-## Learn more
+Create `mobile_app/.env` with:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+EXPO_PUBLIC_API_BASE_URL=http://<your-ip>:8000/api
+EXPO_PUBLIC_ENABLE_BACKEND_SYNC=true
+EXPO_PUBLIC_WEBSOCKET_URL=
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Native builds
 
-## Join the community
+This app uses prebuild/native Android configuration.
 
-Join our community of developers creating universal apps.
+```bash
+cd mobile_app
+npx expo prebuild
+eas build --platform android --profile preview
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Notes
+
+- The active mobile app lives entirely inside `mobile_app/`.
+- Root-level duplicate mobile folders were removed so imports and tooling only target this directory.

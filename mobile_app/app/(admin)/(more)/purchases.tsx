@@ -12,11 +12,11 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
-import { addPurchase, fetchOperationalData, updateProduct } from '../../store/slices/userSlice';
-import type { PurchaseRecord, Product } from '../../store/types';
-import { apiClient } from '../../services/api';
+import { addPurchase, fetchOperationalData, updateProduct } from '../../../store/slices/userSlice';
+import type { PurchaseRecord, Product } from '../../../store/types';
+import { apiClient } from '../../../services/api';
 
 interface PurchaseFormData {
   quantity: string;
