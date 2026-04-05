@@ -19,25 +19,6 @@ class SaleSerializer(serializers.ModelSerializer):
         model = Sale
         fields = '__all__'
 
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        business = attrs.get('business') or getattr(getattr(self.context.get('request'), 'user', None), 'business', None)
-        items = attrs.get('items', [])
-
-        if business:
-            for item in items:
-                product = item['product']
-                if product.business_id != business.id:
-                    raise serializers.ValidationError({'items': 'All sale items must belong to your business.'})
-
-                unit_type = item.get('unit_type', 'single')
-                pack_size = item.get('pack_size') or product.pack_size or 1
-                required_stock = item['quantity'] * pack_size if unit_type == 'pack' else item['quantity']
-                if product.stock < required_stock:
-                    raise serializers.ValidationError({'items': f'Insufficient stock for {product.name}.'})
-
-        return attrs
-
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])
         sale = Sale.objects.create(**validated_data)

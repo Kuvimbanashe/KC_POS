@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 

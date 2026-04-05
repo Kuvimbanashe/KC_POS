@@ -1,8 +1,10 @@
+// app/(auth)/reset-password.js
 import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { apiClient } from '../../services/api';
+
 
 const styles = StyleSheet.create({
   container: {
@@ -20,11 +22,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#6b7280',
-    marginBottom: 12,
-  },
-  hint: {
-    fontSize: 13,
-    color: '#f97316',
     marginBottom: 24,
   },
   inputContainer: {
@@ -55,12 +52,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
   backButton: {
     paddingVertical: 12,
     borderRadius: 12,
@@ -75,11 +66,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-
 export default function ResetPasswordScreen() {
-  const params = useLocalSearchParams<{ email?: string; code?: string }>();
-  const email = Array.isArray(params.email) ? params.email[0] : params.email ?? '';
-  const code = Array.isArray(params.code) ? params.code[0] : params.code ?? '';
   const [passwords, setPasswords] = useState({
     newPassword: '',
     confirmPassword: '',
@@ -88,45 +75,52 @@ export default function ResetPasswordScreen() {
   const router = useRouter();
 
   const handleReset = async () => {
-    if (!email || !code) {
-      Alert.alert('Error', 'Reset session is missing. Start again from forgot password.');
-      return;
-    }
     if (!passwords.newPassword || !passwords.confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+
     if (passwords.newPassword !== passwords.confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
+
     if (passwords.newPassword.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
 
     setIsLoading(true);
+
     try {
-      await apiClient.resetPassword(email, code, passwords.newPassword);
-      Alert.alert('Success', 'Password has been reset successfully.', [
-        {
-          text: 'OK',
-          onPress: () => router.replace('/signin'),
-        },
-      ]);
+      // Simulate password reset
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      Alert.alert(
+        'Success', 
+        'Password has been reset successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/signin')
+          }
+        ]
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to reset password';
-      Alert.alert('Error', message);
+      Alert.alert('Error', 'Failed to reset password. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <View style={styles.container} >
-      <Text style={styles.title}>Reset Password</Text>
-      <Text style={styles.subtitle}>Enter your new password for {email || 'your account'}.</Text>
-      <Text style={styles.hint}>Your verification code has already been confirmed.</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>
+        Reset Password
+      </Text>
+      <Text style={styles.subtitle}>
+        Enter your new password
+      </Text>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -134,33 +128,40 @@ export default function ResetPasswordScreen() {
           placeholder="New Password"
           placeholderTextColor="#9ca3af"
           value={passwords.newPassword}
-          onChangeText={(text) => setPasswords({ ...passwords, newPassword: text })}
+          onChangeText={(text) => setPasswords({...passwords, newPassword: text})}
           secureTextEntry
         />
-
+        
         <TextInput
           style={styles.input}
           placeholder="Confirm New Password"
           placeholderTextColor="#9ca3af"
           value={passwords.confirmPassword}
-          onChangeText={(text) => setPasswords({ ...passwords, confirmPassword: text })}
+          onChangeText={(text) => setPasswords({...passwords, confirmPassword: text})}
           secureTextEntry
         />
       </View>
 
-      <TouchableOpacity
-        style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+      <TouchableOpacity 
+        style={[
+          styles.submitButton,
+          isLoading && styles.submitButtonDisabled,
+        ]}
         onPress={handleReset}
         disabled={isLoading}
       >
-        <View style={styles.buttonContent}>
-          {isLoading && <ActivityIndicator size="small" color="#ffffff" />}
-          <Text style={styles.submitButtonText}>{isLoading ? 'Resetting...' : 'Reset Password'}</Text>
-        </View>
+        <Text style={styles.submitButtonText}>
+          {isLoading ? 'Resetting...' : 'Reset Password'}
+        </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>Back</Text>
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Text style={styles.backButtonText}>
+          Back to OTP Verification
+        </Text>
       </TouchableOpacity>
     </View>
   );

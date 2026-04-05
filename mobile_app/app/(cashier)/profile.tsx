@@ -1,617 +1,477 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity, 
+  TextInput, 
   Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+  SafeAreaView 
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { StyleSheet } from 'react-native';
+import { updateProfile, logout } from '../../store/slices/authSlice';
+import { updateUser } from '../../store/slices/userManagementSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { logout, updateProfile } from '../../store/slices/authSlice';
-import { updateUser as updateManagedUser } from '../../store/slices/userManagementSlice';
-import { apiClient } from '../../services/api';
-import {
-  ADMIN_BUTTON_CONTENT,
-  ADMIN_BUTTON_TEXT,
-  ADMIN_COLORS,
-  ADMIN_DANGER_OUTLINE_BUTTON,
-  ADMIN_DANGER_OUTLINE_TEXT,
-  ADMIN_DETAIL_LABEL,
-  ADMIN_DETAIL_ROW,
-  ADMIN_DETAIL_VALUE,
-  ADMIN_INPUT_FIELD,
-  ADMIN_MODAL_HEADER,
-  ADMIN_PAGE_SUBTITLE,
-  ADMIN_PRIMARY_BUTTON,
-  ADMIN_PRIMARY_BUTTON_DISABLED,
-  ADMIN_SECONDARY_BUTTON,
-  ADMIN_SECONDARY_BUTTON_TEXT,
-  ADMIN_SECTION_CARD,
-  ADMIN_SECTION_TITLE,
-} from '../../theme/adminUi';
-import { ReceiptPrinterSection } from '../../components/profile/ReceiptPrinterSection';
+import type { UserProfile } from '../../store/types';
+import { useRouter } from 'expo-router';
 
-const formatDateValue = (value?: string | null, withTime = false) => {
-  if (!value) return 'Not available';
+interface ProfileFormData {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return withTime ? date.toLocaleString() : date.toLocaleDateString();
-};
-
-const formatValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return 'Not provided';
-  if (typeof value === 'string' && !value.trim()) return 'Not provided';
-  return `${value}`;
-};
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: ADMIN_COLORS.background },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: ADMIN_COLORS.background,
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    marginTop: 12,
-    fontSize: 18,
-    fontWeight: '700',
-    color: ADMIN_COLORS.text,
-  },
-  content: {
-    padding: 16,
-    gap: 14,
-    paddingBottom: 28,
-  },
-  heroCard: {
-    ...ADMIN_SECTION_CARD,
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 22,
-    backgroundColor: ADMIN_COLORS.primary,
-    borderColor: ADMIN_COLORS.primary,
-  },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: ADMIN_COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  avatarText: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#ffffff',
-    textAlign: 'center',
-  },
-  email: {
-    ...ADMIN_PAGE_SUBTITLE,
-    textAlign: 'center',
-    color: '#cbd5e1',
-  },
-  businessName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#e2e8f0',
-    textAlign: 'center',
-  },
-  roleBadge: {
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: ADMIN_COLORS.surfaceTint,
-    borderWidth: 1,
-    borderColor: '#fdba74',
-  },
-  roleText: {
-    color: ADMIN_COLORS.accentStrong,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-  sectionCard: {
-    ...ADMIN_SECTION_CARD,
-  },
-  sectionTitle: {
-    ...ADMIN_SECTION_TITLE,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    ...ADMIN_PAGE_SUBTITLE,
-    marginBottom: 12,
-  },
-  detailRow: {
-    ...ADMIN_DETAIL_ROW,
-  },
-  detailRowLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  detailLabel: {
-    ...ADMIN_DETAIL_LABEL,
-  },
-  detailValue: {
-    ...ADMIN_DETAIL_VALUE,
-    maxWidth: '65%',
-  },
-  mutedValue: {
-    color: ADMIN_COLORS.tertiaryText,
-  },
-  actionsCard: {
-    ...ADMIN_SECTION_CARD,
-    gap: 12,
-  },
-  actionButton: {
-    ...ADMIN_PRIMARY_BUTTON,
-  },
-  editButton: {
-    backgroundColor: ADMIN_COLORS.accent,
-  },
-  passwordButton: {
-    backgroundColor: ADMIN_COLORS.primary,
-  },
-  actionText: {
-    ...ADMIN_BUTTON_TEXT,
-    fontWeight: '700',
-  },
-  buttonContent: {
-    ...ADMIN_BUTTON_CONTENT,
-  },
-  logoutButton: {
-    ...ADMIN_DANGER_OUTLINE_BUTTON,
-  },
-  logoutText: {
-    ...ADMIN_DANGER_OUTLINE_TEXT,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: ADMIN_COLORS.background,
-  },
-  modalHeader: {
-    ...ADMIN_MODAL_HEADER,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: ADMIN_COLORS.text,
-  },
-  modalCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
-    borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
-  },
-  modalContent: {
-    padding: 20,
-    gap: 14,
-    paddingBottom: 28,
-  },
-  modalCard: {
-    ...ADMIN_SECTION_CARD,
-    gap: 12,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  input: {
-    ...ADMIN_INPUT_FIELD,
-    color: ADMIN_COLORS.text,
-  },
-  textArea: {
-    ...ADMIN_INPUT_FIELD,
-    minHeight: 96,
-    textAlignVertical: 'top',
-    color: ADMIN_COLORS.text,
-  },
-  primaryButton: {
-    ...ADMIN_PRIMARY_BUTTON,
-  },
-  primaryButtonDisabled: {
-    ...ADMIN_PRIMARY_BUTTON_DISABLED,
-  },
-  primaryButtonText: {
-    ...ADMIN_BUTTON_TEXT,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    ...ADMIN_SECONDARY_BUTTON,
-  },
-  secondaryButtonText: {
-    ...ADMIN_SECONDARY_BUTTON_TEXT,
-  },
-});
-
-export default function CashierProfileScreen() {
+const CashierProfileScreen = () => {
+  const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const user = useAppSelector((state) => state.auth.user);
-  const currentStore = useAppSelector((state) => state.user.currentStore);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<ProfileFormData>({
+    name: user?.name ?? '',
+    email: user?.email ?? '',
+    phone: user?.phone ?? '',
+    address: user?.address ?? '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
 
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [name, setName] = useState(user?.name ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [phone, setPhone] = useState(user?.phone ?? '');
-  const [address, setAddress] = useState(user?.address ?? '');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-
-  if (!user) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <Ionicons name="person-circle-outline" size={68} color="#94a3b8" />
-        <Text style={styles.emptyTitle}>Profile unavailable</Text>
-      </SafeAreaView>
-    );
-  }
-
-  const syncUserState = (updates: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-  }) => {
-    dispatch(updateProfile(updates));
-    dispatch(updateManagedUser({ id: user.id, ...updates }));
-  };
-
-  const openProfileModal = () => {
-    setName(user.name ?? '');
-    setEmail(user.email ?? '');
-    setPhone(user.phone ?? '');
-    setAddress(user.address ?? '');
-    setProfileModalOpen(true);
-  };
-
-  const openPasswordModal = () => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setPasswordModalOpen(true);
-  };
-
-  const handleSaveProfile = async () => {
-    if (!name.trim() || !email.trim()) {
-      Alert.alert('Error', 'Name and email are required.');
+  const handleSaveProfile = () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      Alert.alert('Error', 'Name and email are required');
       return;
     }
 
-    setSavingProfile(true);
-    try {
-      const updated = await apiClient.updateUser(user.id, {
-        businessId: user.businessId ?? undefined,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        role: user.type,
-        phone: phone.trim(),
-        address: address.trim(),
-      });
-
-      syncUserState({
-        name: updated.name,
-        email: updated.email,
-        phone: updated.phone,
-        address: updated.address,
-      });
-      setProfileModalOpen(false);
-      Alert.alert('Success', 'Profile updated successfully.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update profile';
-      Alert.alert('Error', message);
-    } finally {
-      setSavingProfile(false);
+    if (!user) {
+      Alert.alert('Error', 'Unable to update profile');
+      return;
     }
+
+    const updatedData: Partial<UserProfile> = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      address: formData.address.trim(),
+    };
+
+    dispatch(updateProfile(updatedData));
+    dispatch(updateUser({ id: user.id, ...updatedData }));
+    setIsEditing(false);
+    Alert.alert('Success', 'Profile updated successfully');
   };
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = () => {
+    const { currentPassword, newPassword, confirmPassword } = formData;
+
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all password fields.');
+      Alert.alert('Error', 'Please fill in all password fields');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match.');
+      Alert.alert('Error', 'New passwords do not match');
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long.');
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
-    setSavingPassword(true);
-    try {
-      await apiClient.changePassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordModalOpen(false);
-      Alert.alert('Success', 'Password updated successfully.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update password';
-      Alert.alert('Error', message);
-    } finally {
-      setSavingPassword(false);
-    }
+    Alert.alert('Success', 'Password changed successfully');
+    setFormData(prev => ({
+      ...prev,
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }));
   };
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: () => {
-          dispatch(logout());
-          router.replace('/(auth)');
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            dispatch(logout());
+            router.replace('/(auth)');
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  const initial = user.name?.trim().charAt(0).toUpperCase() || 'C';
-  const personalDetails = [
-    { label: 'Full Name', value: formatValue(user.name) },
-    { label: 'Email', value: formatValue(user.email) },
-    { label: 'Phone', value: formatValue(user.phone) },
-    { label: 'Address', value: formatValue(user.address) },
-  ];
-  const accountDetails = [
-    { label: 'Role', value: formatValue(user.type) },
-    { label: 'Status', value: formatValue(user.status ?? 'active') },
-    { label: 'Business', value: formatValue(user.businessName ?? 'Not linked') },
-    { label: 'Business ID', value: formatValue(user.businessId) },
-    {
-      label: 'Access',
-      value: user.permissions?.length ? user.permissions.join(', ') : 'Cashier sales access',
-    },
-    { label: 'Member Since', value: formatDateValue(user.joinDate) },
-    { label: 'Last Login', value: formatDateValue(user.lastLogin, true) },
-  ];
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setFormData({
+      name: user?.name ?? '',
+      email: user?.email ?? '',
+      phone: user?.phone ?? '',
+      address: user?.address ?? '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+  };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-          <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.email}>{user.email}</Text>
-          <Text style={styles.businessName}>{formatValue(user.businessName ?? 'No business linked')}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{user.type}</Text>
-          </View>
-        </View>
-
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Personal Details</Text>
-          {/* <Text style={styles.sectionSubtitle}>Your profile details stay visible here so the page feels like a clean account summary.</Text> */}
-
-          {personalDetails.map((detail, index) => (
-            <View
-              key={detail.label}
-              style={[styles.detailRow, index === personalDetails.length - 1 && styles.detailRowLast]}
-            >
-              <Text style={styles.detailLabel}>{detail.label}</Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  detail.value === 'Not provided' && styles.mutedValue,
-                ]}
-                numberOfLines={1}
-              >
-                {detail.value}
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={styles.profileInfo}>
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>
+                {user?.name?.charAt(0)?.toUpperCase() || 'C'}
               </Text>
             </View>
-          ))}
-        </View>
-
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Account Details</Text>
-          {/* <Text style={styles.sectionSubtitle}>Role, access, business linkage, and account activity are all surfaced in one place.</Text> */}
-
-          {accountDetails.map((detail, index) => (
-            <View
-              key={detail.label}
-              style={[styles.detailRow, index === accountDetails.length - 1 && styles.detailRowLast]}
-            >
-              <Text style={styles.detailLabel}>{detail.label}</Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  (detail.value === 'Not provided' || detail.value === 'Not available') && styles.mutedValue,
-                ]}
-                numberOfLines={1}
-              >
-                {detail.value}
-              </Text>
+            <Text style={styles.userName}>{user?.name}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>Cashier</Text>
             </View>
-          ))}
-        </View>
-
-        <ReceiptPrinterSection user={user} currentStore={currentStore} />
-
-        <View style={styles.actionsCard}>
-          <Text style={styles.sectionTitle}>Actions</Text>
-          <Text style={styles.sectionSubtitle}>Use the buttons below to open focused modals for editing personal information or updating your password.</Text>
-
-          <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={openProfileModal}>
-            <View style={styles.buttonContent}>
-              <Ionicons name="create-outline" size={18} color="#ffffff" />
-              <Text style={styles.actionText}>Edit Personal Info</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionButton, styles.passwordButton]} onPress={openPasswordModal}>
-            <View style={styles.buttonContent}>
-              <Ionicons name="lock-closed-outline" size={18} color="#ffffff" />
-              <Text style={styles.actionText}>Change Password</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <View style={styles.buttonContent}>
-            <Ionicons name="log-out-outline" size={18} color={ADMIN_COLORS.danger} />
-            <Text style={styles.logoutText}>Logout</Text>
           </View>
-        </TouchableOpacity>
-      </ScrollView>
+        </View>
 
-      <Modal
-        visible={profileModalOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setProfileModalOpen(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Edit Personal Info</Text>
-            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setProfileModalOpen(false)}>
-              <Ionicons name="close" size={22} color={ADMIN_COLORS.text} />
-            </TouchableOpacity>
+        {/* Personal Information */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Personal Information</Text>
+            <View style={styles.headerActions}>
+              {isEditing ? (
+                <>
+                  <TouchableOpacity onPress={handleCancelEdit}>
+                    <Text style={styles.cancelButton}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.saveButton}
+                    onPress={handleSaveProfile}
+                  >
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={() => setIsEditing(true)}
+                >
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.modalCard}>
-              <Text style={styles.label}>Full Name</Text>
-              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Full Name" />
-
-              <Text style={styles.label}>Email</Text>
+          <View style={styles.formContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Full Name</Text>
               <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
+                style={[
+                  styles.input,
+                  isEditing && styles.inputActive
+                ]}
+                value={formData.name}
+                onChangeText={(text) => setFormData({...formData, name: text})}
+                editable={isEditing}
+                placeholder="Enter your name"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  isEditing && styles.inputActive
+                ]}
+                value={formData.email}
+                onChangeText={(text) => setFormData({...formData, email: text})}
+                editable={isEditing}
+                placeholder="Enter your email"
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
+            </View>
 
-              <Text style={styles.label}>Phone</Text>
-              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone Number" />
-
-              <Text style={styles.label}>Address</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Phone Number</Text>
               <TextInput
-                style={styles.textArea}
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Address"
+                style={[
+                  styles.input,
+                  isEditing && styles.inputActive
+                ]}
+                value={formData.phone}
+                onChangeText={(text) => setFormData({...formData, phone: text})}
+                editable={isEditing}
+                placeholder="Enter your phone number"
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Address</Text>
+              <TextInput
+                style={[
+                  styles.textArea,
+                  isEditing && styles.inputActive
+                ]}
+                value={formData.address}
+                onChangeText={(text) => setFormData({...formData, address: text})}
+                editable={isEditing}
+                placeholder="Enter your address"
                 multiline
+                numberOfLines={3}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Change Password */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Change Password</Text>
+          
+          <View style={styles.formContainer}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Current Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter current password"
+                value={formData.currentPassword}
+                onChangeText={(text) => setFormData({...formData, currentPassword: text})}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>New Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter new password"
+                value={formData.newPassword}
+                onChangeText={(text) => setFormData({...formData, newPassword: text})}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Confirm New Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm new password"
+                value={formData.confirmPassword}
+                onChangeText={(text) => setFormData({...formData, confirmPassword: text})}
+                secureTextEntry
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.primaryButton, savingProfile && styles.primaryButtonDisabled]}
-              onPress={handleSaveProfile}
-              disabled={savingProfile}
+              style={styles.primaryButton}
+              onPress={handleChangePassword}
             >
-              <View style={styles.buttonContent}>
-                {savingProfile && <ActivityIndicator size="small" color="#ffffff" />}
-                <Text style={styles.primaryButtonText}>{savingProfile ? 'Saving...' : 'Save Changes'}</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => setProfileModalOpen(false)}>
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      <Modal
-        visible={passwordModalOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setPasswordModalOpen(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Change Password</Text>
-            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setPasswordModalOpen(false)}>
-              <Ionicons name="close" size={22} color={ADMIN_COLORS.text} />
+              <Text style={styles.primaryButtonText}>Change Password</Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.modalCard}>
-              <Text style={styles.label}>Current Password</Text>
-              <TextInput
-                style={styles.input}
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                placeholder="Current Password"
-                secureTextEntry
-              />
-
-              <Text style={styles.label}>New Password</Text>
-              <TextInput
-                style={styles.input}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                placeholder="New Password"
-                secureTextEntry
-              />
-
-              <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirm Password"
-                secureTextEntry
-              />
-            </View>
-
-            <TouchableOpacity
-              style={[styles.primaryButton, savingPassword && styles.primaryButtonDisabled]}
-              onPress={handleChangePassword}
-              disabled={savingPassword}
-            >
-              <View style={styles.buttonContent}>
-                {savingPassword && <ActivityIndicator size="small" color="#ffffff" />}
-                <Text style={styles.primaryButtonText}>{savingPassword ? 'Updating...' : 'Update Password'}</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => setPasswordModalOpen(false)}>
-              <Text style={styles.secondaryButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    </View>
+        {/* Logout Section */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Session</Text>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  scrollView: {
+    flex: 1,
+    padding: 16,
+  },
+  profileHeader: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  profileInfo: {
+    alignItems: 'center',
+  },
+  avatarPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  roleBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  roleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  editButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  editButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  saveButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  formContainer: {
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  input: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  inputActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#3B82F6',
+  },
+  textArea: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1F2937',
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  primaryButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  logoutButton: {
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  logoutButtonText: {
+    color: '#DC2626',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default CashierProfileScreen;
