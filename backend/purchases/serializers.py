@@ -8,6 +8,16 @@ class PurchaseSerializer(serializers.ModelSerializer):
         model = Purchase
         fields = '__all__'
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        business = attrs.get('business') or getattr(getattr(self.context.get('request'), 'user', None), 'business', None)
+        product = attrs.get('product')
+
+        if business and product and product.business_id != business.id:
+            raise serializers.ValidationError({'product': 'You can only purchase products from your business.'})
+
+        return attrs
+
     def create(self, validated_data):
         purchase = super().create(validated_data)
         product = purchase.product
