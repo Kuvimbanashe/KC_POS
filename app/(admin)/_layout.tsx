@@ -10,7 +10,8 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { logout } from '../../store/slices/authSlice';
 import { useRouter } from 'expo-router';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useEffect } from 'react';
 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
   const dispatch = useAppDispatch();
@@ -44,6 +45,15 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 }
 
 export default function AdminLayout() {
+  const router = useRouter();
+  const { isAuthenticated, userType } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (!isAuthenticated || userType !== 'admin') {
+      router.replace('/(auth)');
+    }
+  }, [isAuthenticated, router, userType]);
+
   return (
     <Drawer
       drawerContent={(props) => <CustomDrawerContent {...props} />}
