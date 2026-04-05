@@ -4,9 +4,9 @@ import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'reac
 import { StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
-import { addUser } from '../../store/slices/userManagementSlice';
+import { apiClient } from '../../services/api';
 import { useAppDispatch } from '../../store/hooks';
-import type { UserProfile, UserRole } from '../../store/types';
+import type { UserRole } from '../../store/types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SignUpFormData {
@@ -17,6 +17,11 @@ interface SignUpFormData {
   password: string;
   confirmPassword: string;
   userType: UserRole;
+  businessName: string;
+  businessEmail: string;
+  businessPhone: string;
+  businessAddress: string;
+  businessTaxId: string;
 }
 
 
@@ -30,14 +35,19 @@ export default function SignUpScreen() {
     address: '',
     password: '',
     confirmPassword: '',
-    userType: 'cashier',
+    userType: 'admin',
+    businessName: '',
+    businessEmail: '',
+    businessPhone: '',
+    businessAddress: '',
+    businessTaxId: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useAppDispatch();
   const router = useRouter();
 
   const handleSignUp = async () => {
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.name || !formData.email || !formData.password || !formData.businessName) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -55,48 +65,32 @@ export default function SignUpScreen() {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const newUser = {
+      const response = await apiClient.registerBusinessOwner({
+        businessName: formData.businessName,
+        businessEmail: formData.businessEmail || formData.email,
+        businessPhone: formData.businessPhone,
+        businessAddress: formData.businessAddress,
+        businessTaxId: formData.businessTaxId,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
         password: formData.password,
-        type: formData.userType,
-      };
-
-      // Add user to management system
-      dispatch(addUser(newUser));
-
-      // Auto-login the new user
-      const authUser: UserProfile = {
-        id: Date.now(),
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        phone: formData.phone,
-        address: formData.address,
-        type: formData.userType,
-        status: 'active',
-        permissions: formData.userType === 'admin' ? ['all'] : ['sales'],
-        lastLogin: new Date().toISOString(),
-        joinDate: new Date().toISOString().split('T')[0],
-      };
+        role: formData.userType,
+      });
 
       dispatch(
         setCredentials({
-          user: authUser,
-          token: 'mock-jwt-token',
-          userType: formData.userType,
+          user: response.user,
+          token: response.token,
+          userType: response.user.type,
         }),
       );
 
-      Alert.alert('Success', 'Account created successfully!');
-      router.replace(formData.userType === 'admin' ? '/(admin)' : '/(cashier)');
+      Alert.alert('Success', 'Business and owner account created successfully!');
+      router.replace(response.user.type === 'admin' ? '/(admin)' : '/(cashier)');
     } catch (error) {
-      Alert.alert('Error', 'Failed to create account. Please try again.');
+      Alert.alert('Error', 'Failed to create business account. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +140,49 @@ export default function SignUpScreen() {
           placeholderTextColor="#9ca3af"
           value={formData.address}
           onChangeText={(text) => setFormData({...formData, address: text})}
+        />
+
+
+        <TextInput
+          style={styles.input}
+          placeholder="Business Name *"
+          placeholderTextColor="#9ca3af"
+          value={formData.businessName}
+          onChangeText={(text) => setFormData({...formData, businessName: text})}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Business Email"
+          placeholderTextColor="#9ca3af"
+          value={formData.businessEmail}
+          onChangeText={(text) => setFormData({...formData, businessEmail: text})}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Business Phone"
+          placeholderTextColor="#9ca3af"
+          value={formData.businessPhone}
+          onChangeText={(text) => setFormData({...formData, businessPhone: text})}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Business Address"
+          placeholderTextColor="#9ca3af"
+          value={formData.businessAddress}
+          onChangeText={(text) => setFormData({...formData, businessAddress: text})}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Tax ID"
+          placeholderTextColor="#9ca3af"
+          value={formData.businessTaxId}
+          onChangeText={(text) => setFormData({...formData, businessTaxId: text})}
         />
 
         <View style={styles.accountTypeContainer}>

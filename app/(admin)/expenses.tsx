@@ -13,9 +13,10 @@ import {
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { addExpense } from '../../store/slices/userSlice';
+import { addExpense, fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { ExpenseRecord } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 const EXPENSE_CATEGORY_OPTIONS = [
   'Rent',
@@ -48,7 +49,13 @@ interface StatCard {
 
 const AdminExpenses = () => {
   const { expenses } = useAppSelector((state) => state.user);
+  const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
   
   const [filteredExpenses, setFilteredExpenses] = useState<ExpenseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -108,22 +115,35 @@ const AdminExpenses = () => {
     setFilteredExpenses(filtered);
   }, [searchQuery, categoryFilter, expenses]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.category || !formData.description || !formData.amount) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+    if (!user?.businessId) {
+      Alert.alert('Error', 'Business context missing. Please sign in again.');
+      return;
+    }
 
     try {
+      const amount = parseFloat(formData.amount);
+      await apiClient.createExpense({
+        category: formData.category,
+        description: formData.description,
+        amount,
+        businessId: user.businessId,
+      });
+
       dispatch(
         addExpense({
           category: formData.category,
           description: formData.description,
-          amount: parseFloat(formData.amount),
+          amount,
         }),
       );
+      dispatch(fetchOperationalData(user.businessId));
 
-      Alert.alert('Success', 'Expense added successfully');
+      Alert.alert('Success', 'Expense saved to backend successfully');
       setIsDialogOpen(false);
       setFormData({ category: '', description: '', amount: '' });
     } catch (error) {

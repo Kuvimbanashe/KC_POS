@@ -1,8 +1,20 @@
 // app/(cashier)/_layout.js
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { useAppSelector } from '../../store/hooks';
 
 export default function CashierLayout() {
+  const router = useRouter();
+  const { isAuthenticated, userType } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (!isAuthenticated || userType !== 'cashier') {
+      router.replace('/(auth)');
+    }
+  }, [isAuthenticated, router, userType]);
+
   return (
     <Tabs
       screenOptions={{

@@ -10,11 +10,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
+  Platform,
+  Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAppSelector } from "../../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import type { SaleRecord } from "../../store/types";
 import type { PaymentMethod } from "../../store/types";
+import { fetchOperationalData } from "../../store/slices/userSlice";
 
 const DEBOUNCE_MS = 300;
 
@@ -34,7 +37,14 @@ interface PaymentOption {
 }
 
 const AdminSales: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
   const { sales = [] } = useAppSelector((state) => state.user);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    dispatch(fetchOperationalData(user.businessId));
+  }, [dispatch, user?.businessId]);
 
   // UI state
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,9 +130,11 @@ const AdminSales: React.FC = () => {
       const query = debouncedQuery.toLowerCase();
       filtered = filtered.filter(sale => {
         const id = (sale.id || "").toString().toLowerCase();
+        const invoice = (sale.invoiceNumber || "").toLowerCase();
         const cashier = (sale.cashier || "").toLowerCase();
+        const productNames = (sale.items ?? []).map((line) => line.productName.toLowerCase()).join(" ");
         const productName = (sale.productName || "").toLowerCase();
-        return id.includes(query) || cashier.includes(query) || productName.includes(query);
+        return id.includes(query) || invoice.includes(query) || cashier.includes(query) || productName.includes(query) || productNames.includes(query);
       });
     }
 
@@ -169,6 +181,7 @@ const AdminSales: React.FC = () => {
     const date = new Date(item.date);
     const dateStr = date.toLocaleDateString();
     const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const itemCount = (item.items ?? []).reduce((sum, line) => sum + Number(line.quantity ?? 0), 0) || item.quantity || 0;
     
     return (
       <TouchableOpacity
@@ -178,7 +191,7 @@ const AdminSales: React.FC = () => {
       >
         <View style={styles.saleHeader}>
           <View style={styles.saleInfo}>
-            <Text style={styles.saleId}>#{item.id}</Text>
+            <Text style={styles.saleId}>{item.invoiceNumber || `INV-${item.id}`}</Text>
             <Text style={styles.saleCashier}>{item.cashier || "Unknown"}</Text>
           </View>
           <Text style={styles.saleAmount}>${(item.total || 0).toFixed(2)}</Text>
@@ -196,7 +209,7 @@ const AdminSales: React.FC = () => {
             </View>
             <View style={styles.saleDetail}>
               <Ionicons name="cube-outline" size={14} color="#6B7280" />
-              <Text style={styles.saleDetailText}>{item.quantity || 0} items</Text>
+              <Text style={styles.saleDetailText}>{itemCount} items</Text>
             </View>
           </View>
           {getPaymentBadge(item.paymentMethod)}
@@ -209,6 +222,56 @@ const AdminSales: React.FC = () => {
   const clearFilters = () => {
     setSearchQuery("");
     setPaymentFilter("all");
+  };
+
+  const handlePrintSale = async (sale: SaleRecord) => {
+    try {
+      const lines = sale.items?.length
+        ? sale.items
+        : [{
+          productId: sale.productId ?? 0,
+          productName: sale.productName ?? 'Item',
+          quantity: sale.quantity ?? 0,
+          price: sale.price ?? 0,
+          subtotal: sale.total ?? 0,
+          unitType: 'single' as const,
+          packSize: undefined,
+        }];
+      const rows = lines
+        .map((line) => `<tr><td>${line.productName}</td><td style="text-align:center;">${line.quantity}</td><td style="text-align:right;">$${(line.subtotal || 0).toFixed(2)}</td></tr>`)
+        .join("");
+      if (Platform.OS === "web") {
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) return;
+        const html = `
+          <html><body style="font-family: Arial, sans-serif; padding: 16px;">
+          <h2>${sale.invoiceNumber || `INV-${sale.id}`}</h2>
+          <p>Date: ${new Date(sale.date).toLocaleString()}</p>
+          <p>Cashier: ${sale.cashier}</p>
+          <p>Payment: ${sale.paymentMethod}</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead><tr><th align=\"left\">Item</th><th>Qty</th><th align=\"right\">Amount</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <h3 style="text-align:right;">Total: $${sale.total.toFixed(2)}</h3>
+          </body></html>
+        `;
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        return;
+      }
+      const text = lines
+        .map((line) => `${line.productName} x${line.quantity} - $${(line.subtotal || 0).toFixed(2)}`)
+        .join("\n");
+      await Share.share({
+        title: sale.invoiceNumber || `INV-${sale.id}`,
+        message: `${sale.invoiceNumber || `INV-${sale.id}`}\n${new Date(sale.date).toLocaleString()}\n${text}\nTotal: $${sale.total.toFixed(2)}`,
+      });
+    } catch (error) {
+      console.error("Print/share failed", error);
+    }
   };
 
   // Loading state
@@ -352,7 +415,7 @@ const AdminSales: React.FC = () => {
                   <View style={styles.modalRow}>
                     <View style={styles.modalInfo}>
                       <Text style={styles.modalLabel}>Invoice #</Text>
-                      <Text style={styles.modalValue}>INV{selectedSale.id.toString().padStart(4, '0')}</Text>
+                      <Text style={styles.modalValue}>{selectedSale.invoiceNumber || `INV-${selectedSale.id}`}</Text>
                     </View>
                     <View style={styles.modalInfo}>
                       <Text style={styles.modalLabel}>Date</Text>
@@ -377,25 +440,27 @@ const AdminSales: React.FC = () => {
                 {/* Product details */}
                 <View style={styles.modalSection}>
                   <Text style={styles.sectionTitle}>Product Details</Text>
-                  <View style={styles.productCard}>
-                    <View style={styles.productHeader}>
-                      <Text style={styles.productName}>{selectedSale.productName}</Text>
-                      <Text style={styles.productPrice}>
-                        ${(selectedSale.total || 0).toFixed(2)}
-                      </Text>
+                  {(selectedSale.items?.length ? selectedSale.items : [{
+                    productId: selectedSale.productId ?? 0,
+                    productName: selectedSale.productName ?? 'Item',
+                    quantity: selectedSale.quantity ?? 0,
+                    price: selectedSale.price ?? 0,
+                    subtotal: selectedSale.total ?? 0,
+                    unitType: 'single' as const,
+                    packSize: undefined,
+                  }]).map((line, index) => (
+                    <View key={`${line.productId}-${index}`} style={styles.productCard}>
+                      <View style={styles.productHeader}>
+                        <Text style={styles.productName}>{line.productName}</Text>
+                        <Text style={styles.productPrice}>${(line.subtotal || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.productDetails}>
+                        <Text style={styles.productDetail}>Quantity: {line.quantity || 0}</Text>
+                        <Text style={styles.productDetail}>Unit Price: ${(line.price || 0).toFixed(2)}</Text>
+                        <Text style={styles.productDetail}>Product ID: {line.productId || '-'}</Text>
+                      </View>
                     </View>
-                    <View style={styles.productDetails}>
-                      <Text style={styles.productDetail}>
-                        Quantity: {selectedSale.quantity || 0}
-                      </Text>
-                      <Text style={styles.productDetail}>
-                        Unit Price: ${(selectedSale.price || 0).toFixed(2)}
-                      </Text>
-                      <Text style={styles.productDetail}>
-                        Product ID: {selectedSale.productId}
-                      </Text>
-                    </View>
-                  </View>
+                  ))}
                 </View>
 
                 {/* Summary */}
@@ -417,6 +482,9 @@ const AdminSales: React.FC = () => {
                       ${(selectedSale.total || 0).toFixed(2)}
                     </Text>
                   </View>
+                  <TouchableOpacity style={styles.printButton} onPress={() => handlePrintSale(selectedSale)}>
+                    <Text style={styles.printButtonText}>Print Receipt</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </ScrollView>
@@ -805,6 +873,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  printButton: {
+    marginTop: 12,
+    backgroundColor: "#2563EB",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  printButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });
 
