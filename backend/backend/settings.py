@@ -4,26 +4,13 @@ import os
 from pathlib import Path
 
 import dj_database_url
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
-load_dotenv(BASE_DIR.parent / '.env')
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'change-me-in-production')
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 
-
-def env_list(name: str, default: str = '') -> list[str]:
-    return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
-
-
-def env_origin_list(name: str) -> list[str]:
-    return [item for item in env_list(name) if item != '*']
-
-
-allowed_hosts_env = os.getenv('DJANGO_ALLOWED_HOSTS', '*').strip()
-ALLOWED_HOSTS = ['*'] if allowed_hosts_env == '*' else env_list('DJANGO_ALLOWED_HOSTS')
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',') if host.strip()]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -45,9 +32,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,25 +62,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=not DEBUG,
-        )
-    }
-elif DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
-    raise RuntimeError('DATABASE_URL must be set when DJANGO_DEBUG=False.')
+DATABASES = {
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        ssl_require=not DEBUG,
+    )
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -109,31 +84,20 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = os.getenv(
-    'DJANGO_CORS_ALLOW_ALL',
-    'True' if DEBUG else 'False',
-).lower() == 'true'
-CORS_ALLOWED_ORIGINS = [] if CORS_ALLOW_ALL_ORIGINS else env_origin_list('DJANGO_CORS_ALLOWED_ORIGINS')
-CSRF_TRUSTED_ORIGINS = env_origin_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+CORS_ALLOW_ALL_ORIGINS = os.getenv('DJANGO_CORS_ALLOW_ALL', 'True').lower() == 'true'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'users.authentication.StaffUserTokenAuthentication',
-    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
 }
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0

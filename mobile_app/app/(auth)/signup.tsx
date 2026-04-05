@@ -1,6 +1,6 @@
 // app/(auth)/signup.js
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
@@ -90,7 +90,6 @@ export default function SignUpScreen() {
       Alert.alert('Success', 'Business and owner account created successfully!');
       router.replace(response.user.type === 'admin' ? '/(admin)' : '/(cashier)');
     } catch (error) {
-      console.error('Registration error:', error);
       Alert.alert('Error', 'Failed to create business account. Please try again.');
     } finally {
       setIsLoading(false);
@@ -98,8 +97,8 @@ export default function SignUpScreen() {
   };
 
   return (
-   <View style={styles.container} >
-     <ScrollView  contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+   <SafeAreaView style={styles.container}>
+     <ScrollView  contentContainerStyle={{ paddingBottom: 24 }}>
       <Text style={styles.title}>
         Create Account
       </Text>
@@ -180,13 +179,34 @@ export default function SignUpScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Tax ID ( Optional )"
+          placeholder="Tax ID"
           placeholderTextColor="#9ca3af"
           value={formData.businessTaxId}
           onChangeText={(text) => setFormData({...formData, businessTaxId: text})}
         />
 
-       
+        <View style={styles.accountTypeContainer}>
+          <Text style={styles.accountTypeLabel}>Account Type</Text>
+          <View style={styles.accountTypeRow}>
+            {(['cashier', 'admin'] as UserRole[]).map((type) => (
+              <TouchableOpacity
+                key={type}
+                style={[
+                  styles.accountTypeButton,
+                  formData.userType === type && styles.accountTypeButtonActive,
+                ]}
+                onPress={() => setFormData({...formData, userType: type})}
+              >
+                <Text style={[
+                  styles.accountTypeText,
+                  formData.userType === type && styles.accountTypeTextActive,
+                ]}>
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
         
         <TextInput
           style={styles.input}
@@ -215,12 +235,9 @@ export default function SignUpScreen() {
         onPress={handleSignUp}
         disabled={isLoading}
       >
-        <View style={styles.buttonContent}>
-          {isLoading && <ActivityIndicator size="small" color="#ffffff" />}
-          <Text style={styles.submitButtonText}>
-            {isLoading ? 'Creating Account...' : 'Create Account'}
-          </Text>
-        </View>
+        <Text style={styles.submitButtonText}>
+          {isLoading ? 'Creating Account...' : 'Create Account'}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.signInContainer}>
@@ -232,7 +249,7 @@ export default function SignUpScreen() {
         </Link>
       </View>
     </ScrollView>
-   </View>
+   </SafeAreaView>
   );
 }
 
@@ -319,12 +336,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
   },
   signInContainer: {
     flexDirection: 'row',

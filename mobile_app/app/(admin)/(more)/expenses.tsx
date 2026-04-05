@@ -8,37 +8,15 @@ import {
   Alert,
   Modal,
   FlatList,
-  ActivityIndicator,
-  RefreshControl,
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { addExpense, fetchOperationalData } from '../../../store/slices/userSlice';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import type { ExpenseRecord } from '../../../store/types';
-import { apiClient } from '../../../services/api';
-import {
-  ADMIN_BUTTON_CONTENT,
-  ADMIN_BUTTON_TEXT,
-  ADMIN_COLORS,
-  ADMIN_DETAIL_LABEL,
-  ADMIN_DETAIL_ROW,
-  ADMIN_DETAIL_VALUE,
-  ADMIN_INPUT_FIELD,
-  ADMIN_INPUT_SURFACE,
-  ADMIN_LIST_CARD,
-  ADMIN_MODAL_HEADER,
-  ADMIN_MODAL_SECTION,
-  ADMIN_PAGE_SUBTITLE,
-  ADMIN_PRIMARY_BUTTON,
-  ADMIN_PRIMARY_BUTTON_DISABLED,
-  ADMIN_PAGE_TITLE,
-  ADMIN_SECTION_CARD,
-  ADMIN_SECTION_SUBTITLE,
-  ADMIN_SECTION_TITLE,
-  ADMIN_STAT_CARD,
-} from '../../../theme/adminUi';
+import { addExpense, fetchOperationalData } from '../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import type { ExpenseRecord } from '../../store/types';
+import { apiClient } from '../../services/api';
 
 const EXPENSE_CATEGORY_OPTIONS = [
   'Rent',
@@ -81,8 +59,6 @@ const AdminExpenses = () => {
   
   const [filteredExpenses, setFilteredExpenses] = useState<ExpenseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
@@ -96,20 +72,20 @@ const AdminExpenses = () => {
 
   // Colors based on your Tailwind config
   const COLORS = {
-    primary: ADMIN_COLORS.text,
+    primary: '#0f172a', // hsl(220 90% 15%)
     primaryLight: '#1e293b',
-    accent: ADMIN_COLORS.accent,
+    accent: '#f97316', // hsl(25 95% 53%)
     accentLight: '#fb923c',
-    background: ADMIN_COLORS.background,
-    card: ADMIN_COLORS.surface,
-    border: ADMIN_COLORS.border,
-    input: ADMIN_COLORS.surfaceMuted,
-    destructive: ADMIN_COLORS.danger,
-    muted: ADMIN_COLORS.secondaryText,
-    mutedLight: ADMIN_COLORS.line,
-    success: ADMIN_COLORS.success,
-    warning: ADMIN_COLORS.warning,
-    danger: ADMIN_COLORS.danger,
+    background: '#ffffff',
+    card: '#ffffff',
+    border: '#e2e8f0', // hsl(220 20% 90%)
+    input: '#e2e8f0',
+    destructive: '#ef4444',
+    muted: '#64748b', // hsl(220 30% 45%)
+    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#dc2626',
   };
 
   useEffect(() => {
@@ -139,16 +115,6 @@ const AdminExpenses = () => {
     setFilteredExpenses(filtered);
   }, [searchQuery, categoryFilter, expenses]);
 
-  const handleRefresh = async () => {
-    if (!user?.businessId) return;
-    setIsRefreshing(true);
-    try {
-      await dispatch(fetchOperationalData(user.businessId));
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!formData.category || !formData.description || !formData.amount) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -159,7 +125,6 @@ const AdminExpenses = () => {
       return;
     }
 
-    setIsSubmitting(true);
     try {
       const amount = parseFloat(formData.amount);
       await apiClient.createExpense({
@@ -184,8 +149,6 @@ const AdminExpenses = () => {
     } catch (error) {
       console.error('Error creating expense:', error);
       Alert.alert('Error', 'Failed to add expense');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -203,7 +166,7 @@ const AdminExpenses = () => {
   const statCards: StatCard[] = [
     {
       title: "Total Expenses",
-      value: `$${totalExpenses}`,
+      value: `$${totalExpenses.toFixed(2)}`,
       icon: "cash-outline",
       color: COLORS.accent,
     },
@@ -260,7 +223,7 @@ const AdminExpenses = () => {
             </Text>
           </View>
           <Text style={[styles.expenseAmount, { color: COLORS.accent }]}>
-            ${item.amount}
+            ${item.amount.toFixed(2)}
           </Text>
         </View>
         
@@ -290,13 +253,7 @@ const AdminExpenses = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
-        }
-      >
+      <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: COLORS.primary }]}>Expenses</Text>
@@ -465,7 +422,7 @@ const AdminExpenses = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+          <ScrollView style={styles.modalScroll}>
             <View style={styles.formContainer}>
               {/* Category */}
               <View style={styles.formGroup}>
@@ -539,14 +496,10 @@ const AdminExpenses = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
             >
-              <View style={styles.buttonContent}>
-                {isSubmitting && <ActivityIndicator size="small" color="#FFFFFF" />}
-                <Text style={styles.submitButtonText}>{isSubmitting ? 'Saving...' : 'Add Expense'}</Text>
-              </View>
+              <Text style={styles.submitButtonText}>Add Expense</Text>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -559,81 +512,95 @@ const AdminExpenses = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedExpense(null)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
-          {selectedExpense && (
-            <>
-              <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
-                <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
-                  Expense Details
-                </Text>
-                <TouchableOpacity onPress={() => setSelectedExpense(null)}>
-                  <Ionicons name="close" size={24} color={COLORS.primary} />
-                </TouchableOpacity>
-              </View>
+        {selectedExpense && (
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
+                Expense Details
+              </Text>
+              <TouchableOpacity onPress={() => setSelectedExpense(null)}>
+                <Ionicons name="close" size={24} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
 
-              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
-                <View style={styles.detailsContainer}>
-                  {/* Details */}
-                  <View style={styles.detailsSection}>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Total Amount</Text>
-                      <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedExpense.amount}</Text>
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.detailsContainer}>
+                {/* Amount Display */}
+                <View style={[styles.amountDisplay, { backgroundColor: COLORS.primary }]}>
+                  <Text style={styles.amountValue}>${selectedExpense.amount.toFixed(2)}</Text>
+                  <Text style={styles.amountLabel}>Total Amount</Text>
+                </View>
+
+                {/* Details */}
+                <View style={styles.detailsSection}>
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Description</Text>
+                      <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                        {selectedExpense.description}
+                      </Text>
                     </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Description</Text>
-                      <Text style={styles.detailLineValue}>{selectedExpense.description}</Text>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Category</Text>
-                      <View style={[styles.categoryBadge, {
-                        backgroundColor: getCategoryColor(selectedExpense.category).bg
+                  </View>
+
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
+                      <View style={[styles.categoryBadge, { 
+                        backgroundColor: getCategoryColor(selectedExpense.category).bg 
                       }]}>
-                        <Text style={[styles.categoryText, {
-                          color: getCategoryColor(selectedExpense.category).text
+                        <Text style={[styles.categoryText, { 
+                          color: getCategoryColor(selectedExpense.category).text 
                         }]}>
                           {selectedExpense.category}
                         </Text>
                       </View>
                     </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Date</Text>
-                      <Text style={styles.detailLineValue}>{new Date(selectedExpense.date).toLocaleDateString()}</Text>
-                    </View>
-                    <View style={[styles.detailLine, styles.detailLineLast]}>
-                      <Text style={styles.detailLineLabel}>Expense ID</Text>
-                      <Text style={styles.detailLineValue}>#{selectedExpense.id.toString().padStart(4, '0')}</Text>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Date</Text>
+                      <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                        {new Date(selectedExpense.date).toLocaleDateString()}
+                      </Text>
                     </View>
                   </View>
 
-                  {/* Category Statistics */}
-                  <View style={[styles.statsSection, { backgroundColor: COLORS.mutedLight }]}>
-                    <Text style={[styles.statsTitle, { color: COLORS.primary }]}>
-                      Category Statistics
-                    </Text>
-                    <View style={styles.statsGrid}>
-                      <View style={styles.statRow}>
-                        <Text style={[styles.statLabel, { color: COLORS.muted }]}>
-                          Total in {selectedExpense.category}
-                        </Text>
-                        <Text style={[styles.statValue, { color: COLORS.primary }]}>
-                          ${categoryTotals[selectedExpense.category] || '0.00'}
-                        </Text>
-                      </View>
-                      <View style={styles.statRow}>
-                        <Text style={[styles.statLabel, { color: COLORS.muted }]}>
-                          Percentage of Total
-                        </Text>
-                        <Text style={[styles.statValue, { color: COLORS.primary }]}>
-                          {((categoryTotals[selectedExpense.category] / totalExpenses) * 100).toFixed(1)}%
-                        </Text>
-                      </View>
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailItem}>
+                      <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Expense ID</Text>
+                      <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                        #{selectedExpense.id.toString().padStart(4, '0')}
+                      </Text>
                     </View>
                   </View>
                 </View>
-              </ScrollView>
-            </>
-          )}
-        </SafeAreaView>
+
+                {/* Category Statistics */}
+                <View style={[styles.statsSection, { backgroundColor: COLORS.mutedLight }]}>
+                  <Text style={[styles.statsTitle, { color: COLORS.primary }]}>
+                    Category Statistics
+                  </Text>
+                  <View style={styles.statsGrid}>
+                    <View style={styles.statRow}>
+                      <Text style={[styles.statLabel, { color: COLORS.muted }]}>
+                        Total in {selectedExpense.category}
+                      </Text>
+                      <Text style={[styles.statValue, { color: COLORS.primary }]}>
+                        ${categoryTotals[selectedExpense.category]?.toFixed(2) || '0.00'}
+                      </Text>
+                    </View>
+                    <View style={styles.statRow}>
+                      <Text style={[styles.statLabel, { color: COLORS.muted }]}>
+                        Percentage of Total
+                      </Text>
+                      <Text style={[styles.statValue, { color: COLORS.primary }]}>
+                        {((categoryTotals[selectedExpense.category] / totalExpenses) * 100).toFixed(1)}%
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        )}
       </Modal>
     </SafeAreaView>
   );
@@ -643,13 +610,9 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
-    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
-  },
-  content: {
-    paddingBottom: 24,
   },
 
   // Loading
@@ -657,7 +620,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: ADMIN_COLORS.background,
   },
   loadingText: {
     marginTop: 12,
@@ -671,11 +633,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    ...ADMIN_PAGE_TITLE,
+    fontSize: 28,
+    fontWeight: "700",
     marginBottom: 4,
   },
   subtitle: {
-    ...ADMIN_PAGE_SUBTITLE,
+    fontSize: 14,
   },
 
   // Stats
@@ -687,10 +650,11 @@ const styles = StyleSheet.create({
     paddingRight: 40,
   },
   statCard: {
-    ...ADMIN_STAT_CARD,
+    borderRadius: 12,
     padding: 16,
     marginRight: 12,
     width: 140,
+    borderWidth: 1,
   },
   statIcon: {
     width: 40,
@@ -711,9 +675,11 @@ const styles = StyleSheet.create({
 
   // Search Section
   searchCard: {
-    ...ADMIN_SECTION_CARD,
     marginHorizontal: 20,
     marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
   },
   searchHeader: {
     flexDirection: "row",
@@ -722,10 +688,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    ...ADMIN_SECTION_TITLE,
+    fontSize: 18,
+    fontWeight: "700",
   },
   sectionSubtitle: {
-    ...ADMIN_SECTION_SUBTITLE,
+    fontSize: 13,
     marginTop: 2,
   },
   addButton: {
@@ -747,9 +714,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   searchBar: {
-    ...ADMIN_INPUT_SURFACE,
     flexDirection: "row",
     alignItems: "center",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   searchInput: {
     flex: 1,
@@ -783,8 +752,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   expenseCard: {
-    ...ADMIN_LIST_CARD,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
   },
   expenseHeader: {
     flexDirection: "row",
@@ -859,12 +830,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalHeader: {
-    ...ADMIN_MODAL_HEADER,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 20,
@@ -874,13 +845,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  modalContent: {
-    gap: 16,
-  },
 
   // Form
   formContainer: {
-    ...ADMIN_MODAL_SECTION,
     gap: 24,
   },
   formGroup: {
@@ -906,53 +873,57 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   descriptionInput: {
-    ...ADMIN_INPUT_FIELD,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
     minHeight: 100,
     textAlignVertical: "top",
   },
   amountInput: {
-    ...ADMIN_INPUT_FIELD,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 18,
     fontWeight: "600",
   },
   submitButton: {
-    ...ADMIN_PRIMARY_BUTTON,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
     marginTop: 20,
   },
-  submitButtonDisabled: {
-    ...ADMIN_PRIMARY_BUTTON_DISABLED,
-  },
-  buttonContent: {
-    ...ADMIN_BUTTON_CONTENT,
-  },
   submitButtonText: {
-    ...ADMIN_BUTTON_TEXT,
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   // Details Modal
   detailsContainer: {
     gap: 24,
   },
+  amountDisplay: {
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  amountValue: {
+    fontSize: 36,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  amountLabel: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.9,
+  },
   detailsSection: {
-    ...ADMIN_MODAL_SECTION,
     gap: 20,
-  },
-  detailLine: {
-    ...ADMIN_DETAIL_ROW,
-  },
-  detailLineLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  detailLineLabel: {
-    ...ADMIN_DETAIL_LABEL,
-  },
-  detailLineValue: {
-    ...ADMIN_DETAIL_VALUE,
-  },
-  detailLineAccent: {
-    color: ADMIN_COLORS.accent,
   },
   detailRow: {
     flexDirection: "row",
@@ -973,9 +944,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   statsSection: {
-    ...ADMIN_MODAL_SECTION,
+    borderRadius: 12,
     padding: 16,
-    gap: 12,
   },
   statsTitle: {
     fontSize: 16,

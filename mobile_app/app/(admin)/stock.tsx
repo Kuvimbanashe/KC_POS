@@ -8,8 +8,7 @@ import {
   Modal,
   FlatList,
   Alert,
-  ActivityIndicator,
-  RefreshControl,
+  ActivityIndicator
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,27 +18,6 @@ import { addProduct, fetchOperationalData, updateProduct } from '../../store/sli
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { Product, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
-import {
-  ADMIN_BUTTON_CONTENT,
-  ADMIN_BUTTON_TEXT,
-  ADMIN_COLORS,
-  ADMIN_DETAIL_LABEL,
-  ADMIN_DETAIL_ROW,
-  ADMIN_DETAIL_VALUE,
-  ADMIN_INPUT_FIELD,
-  ADMIN_INPUT_SURFACE,
-  ADMIN_LIST_CARD,
-  ADMIN_MODAL_HEADER,
-  ADMIN_MODAL_SECTION,
-  ADMIN_PAGE_SUBTITLE,
-  ADMIN_PRIMARY_BUTTON,
-  ADMIN_PRIMARY_BUTTON_DISABLED,
-  ADMIN_PAGE_TITLE,
-  ADMIN_SECTION_CARD,
-  ADMIN_SECTION_SUBTITLE,
-  ADMIN_SECTION_TITLE,
-  ADMIN_STAT_CARD,
-} from '../../theme/adminUi';
 
 interface ProductFormData {
   name: string;
@@ -78,8 +56,6 @@ const AdminStock = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -103,20 +79,20 @@ const AdminStock = () => {
 
   // Colors from your tailwind config
   const COLORS = {
-    primary: ADMIN_COLORS.text,
+    primary: '#0f172a', // hsl(220 90% 15%)
     primaryLight: '#1e293b',
-    accent: ADMIN_COLORS.accent,
+    accent: '#f97316', // hsl(25 95% 53%)
     accentLight: '#fb923c',
-    background: ADMIN_COLORS.background,
-    card: ADMIN_COLORS.surface,
-    border: ADMIN_COLORS.border,
-    input: ADMIN_COLORS.surfaceMuted,
-    destructive: ADMIN_COLORS.danger,
-    muted: ADMIN_COLORS.secondaryText,
-    mutedLight: ADMIN_COLORS.line,
-    success: ADMIN_COLORS.success,
-    warning: ADMIN_COLORS.warning,
-    danger: ADMIN_COLORS.danger,
+    background: '#ffffff',
+    card: '#ffffff',
+    border: '#e2e8f0', // hsl(220 20% 90%)
+    input: '#e2e8f0',
+    destructive: '#ef4444',
+    muted: '#64748b', // hsl(220 30% 45%)
+    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#dc2626',
   };
 
   // Simulate loading
@@ -138,16 +114,6 @@ const AdminStock = () => {
     );
     setFilteredProducts(filtered);
   }, [searchQuery, products]);
-
-  const handleRefresh = async () => {
-    if (!user?.businessId) return;
-    setIsRefreshing(true);
-    try {
-      await dispatch(fetchOperationalData(user.businessId));
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   // Calculate statistics
   const lowStockProducts = useMemo(() => 
@@ -207,6 +173,16 @@ const AdminStock = () => {
     'Sports',
     'Books',
     'Other'
+  ];
+
+  // Supplier options
+  const supplierOptions = [
+    'TechSuppliers Inc.',
+    'Fashion Distributors',
+    'Food Importers Ltd.',
+    'Home Essentials Co.',
+    'Beauty World',
+    'Global Suppliers',
   ];
 
   // Get stock badge styling
@@ -281,7 +257,6 @@ const AdminStock = () => {
     }
 
     try {
-      setIsSubmitting(true);
       const parsedPrice = Number.parseFloat(formData.price);
       const parsedStock = Number.parseInt(formData.stock, 10);
       const parsedPackSize = formData.packSize ? Number.parseInt(formData.packSize, 10) : undefined;
@@ -349,8 +324,6 @@ const AdminStock = () => {
       console.error('Error saving product:', error);
       const message = error instanceof Error ? error.message : 'Failed to save product';
       Alert.alert('Error', message);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -431,22 +404,16 @@ const AdminStock = () => {
   // Loading state
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
         <ActivityIndicator size="large" color={COLORS.accent} />
         <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading inventory...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: COLORS.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
-        }
-      >
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
+      <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: COLORS.primary }]}>Inventory</Text>
@@ -463,7 +430,13 @@ const AdminStock = () => {
           {statCards.map((stat, index) => (
             <View 
               key={index} 
-              style={styles.statCard}
+              style={[
+                styles.statCard, 
+                { 
+                  backgroundColor: stat.bgColor,
+                  borderColor: COLORS.border 
+                }
+              ]}
             >
               <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
                 <Ionicons name={stat.icon} size={20} color={stat.color} />
@@ -579,7 +552,7 @@ const AdminStock = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+          <ScrollView style={styles.modalScroll}>
             <View style={styles.formContainer}>
               {/* Basic Info */}
               <View style={styles.formGroup}>
@@ -655,20 +628,32 @@ const AdminStock = () => {
               {/* Supplier */}
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: COLORS.primary }]}>Supplier *</Text>
-                <TextInput
-                  value={formData.supplier}
-                  onChangeText={(text) => setFormData({ ...formData, supplier: text })}
-                  placeholder="Enter supplier name"
-                  style={[
-                    styles.formInput,
-                    {
-                      backgroundColor: COLORS.input,
-                      borderColor: COLORS.border,
-                      color: COLORS.primary,
-                    },
-                  ]}
-                  placeholderTextColor={COLORS.muted}
-                />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.tagContainer}>
+                    {supplierOptions.map((supplier) => (
+                      <TouchableOpacity
+                        key={supplier}
+                        style={[
+                          styles.tag,
+                          { 
+                            backgroundColor: formData.supplier === supplier ? COLORS.primary : COLORS.input,
+                            borderColor: formData.supplier === supplier ? COLORS.primary : COLORS.border
+                          }
+                        ]}
+                        onPress={() => setFormData({ ...formData, supplier })}
+                      >
+                        <Text style={[
+                          styles.tagText,
+                          { 
+                            color: formData.supplier === supplier ? '#FFFFFF' : COLORS.primary 
+                          }
+                        ]}>
+                          {supplier}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
               </View>
 
               {/* Unit Type */}
@@ -809,16 +794,12 @@ const AdminStock = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
             >
-              <View style={styles.buttonContent}>
-                {isSubmitting && <ActivityIndicator size="small" color="#FFFFFF" />}
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting ? 'Saving...' : isEditMode ? 'Update Product' : 'Add Product'}
-                </Text>
-              </View>
+              <Text style={styles.submitButtonText}>
+                {isEditMode ? 'Update Product' : 'Add Product'}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -855,105 +836,120 @@ const AdminStock = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedProduct(null)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
-          {selectedProduct && (
-            <>
-              <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
-                <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Product Details</Text>
-                <TouchableOpacity onPress={() => setSelectedProduct(null)}>
-                  <Ionicons name="close" size={24} color={COLORS.primary} />
-                </TouchableOpacity>
-              </View>
+        {selectedProduct && (
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Product Details</Text>
+              <TouchableOpacity onPress={() => setSelectedProduct(null)}>
+                <Ionicons name="close" size={24} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
 
-              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
-                <View style={styles.detailsContainer}>
-                  {/* Product Info */}
-                  <View style={styles.detailsSection}>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Name</Text>
-                      <Text style={styles.detailLineValue}>{selectedProduct.name}</Text>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>SKU</Text>
-                      <Text style={styles.detailLineValue}>{selectedProduct.sku}</Text>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Barcode</Text>
-                      <Text style={styles.detailLineValue}>{selectedProduct.barcode || 'N/A'}</Text>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Category</Text>
-                      <Text style={styles.detailLineValue}>{selectedProduct.category}</Text>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Price</Text>
-                      <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.price.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Stock</Text>
-                      <View style={styles.detailLineValueContent}>
-                        <Text style={styles.detailLineValue}>{selectedProduct.stock}</Text>
-                        {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
-                      </View>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Supplier</Text>
-                      <Text style={styles.detailLineValue}>{selectedProduct.supplier || 'Not specified'}</Text>
-                    </View>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.detailLineLabel}>Unit Type</Text>
-                      <Text style={styles.detailLineValue}>
-                        {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
-                      </Text>
-                    </View>
-                    <View style={[styles.detailLine, styles.detailLineLast]}>
-                      <Text style={styles.detailLineLabel}>Min Stock</Text>
-                      <Text style={styles.detailLineValue}>{selectedProduct.minStockLevel || 10}</Text>
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.detailsContainer}>
+                {/* Product Info */}
+                <View style={styles.detailsSection}>
+                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Name</Text>
+                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.name}</Text>
+                </View>
+
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>SKU</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.sku}</Text>
+                    <Text style={[styles.detailSubValue, { color: COLORS.muted }]}>Barcode: {selectedProduct.barcode || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.category}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Price</Text>
+                    <Text style={[styles.detailPrice, { color: COLORS.accent }]}>${selectedProduct.price.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Stock</Text>
+                    <View style={styles.stockContainer}>
+                      <Text style={[styles.detailStock, { color: COLORS.primary }]}>{selectedProduct.stock}</Text>
+                      {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
                     </View>
                   </View>
+                </View>
 
-                  {/* Pack Info if available */}
-                  {(selectedProduct.packSize || selectedProduct.packPrice) && (
-                    <View style={styles.detailsSection}>
-                      <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Pack Information</Text>
+                <View style={styles.detailsSection}>
+                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Supplier</Text>
+                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                    {selectedProduct.supplier || 'Not specified'}
+                  </Text>
+                </View>
+
+                <View style={styles.detailsGrid}>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Unit Type</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                      {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
+                    </Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Min Stock</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                      {selectedProduct.minStockLevel || 10}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Pack Info if available */}
+                {(selectedProduct.packSize || selectedProduct.packPrice) && (
+                  <View style={styles.detailsSection}>
+                    <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Pack Information</Text>
+                    <View style={styles.detailsGrid}>
                       {selectedProduct.packSize && (
-                        <View style={styles.detailLine}>
-                          <Text style={styles.detailLineLabel}>Pack Size</Text>
-                          <Text style={styles.detailLineValue}>{selectedProduct.packSize} units</Text>
+                        <View style={styles.detailItem}>
+                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Size</Text>
+                          <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                            {selectedProduct.packSize} units
+                          </Text>
                         </View>
                       )}
                       {selectedProduct.packPrice && (
-                        <View style={styles.detailLine}>
-                          <Text style={styles.detailLineLabel}>Pack Price</Text>
-                          <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.packPrice.toFixed(2)}</Text>
+                        <View style={styles.detailItem}>
+                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Price</Text>
+                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
+                            ${selectedProduct.packPrice.toFixed(2)}
+                          </Text>
                         </View>
                       )}
                       {selectedProduct.singlePrice && (
-                        <View style={[styles.detailLine, styles.detailLineLast]}>
-                          <Text style={styles.detailLineLabel}>Single Price</Text>
-                          <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedProduct.singlePrice.toFixed(2)}</Text>
+                        <View style={styles.detailItem}>
+                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Single Price</Text>
+                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
+                            ${selectedProduct.singlePrice.toFixed(2)}
+                          </Text>
                         </View>
                       )}
                     </View>
-                  )}
+                  </View>
+                )}
 
-                  {/* Action Button */}
-                  <TouchableOpacity
-                    style={[styles.editButton, { backgroundColor: COLORS.accent }]}
-                    onPress={() => {
-                      handleEditProduct(selectedProduct);
-                      setSelectedProduct(null);
-                    }}
-                  >
-                    <Text style={styles.editButtonText}>Edit Product</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </>
-          )}
-        </SafeAreaView>
+                {/* Action Button */}
+                <TouchableOpacity
+                  style={[styles.editButton, { backgroundColor: COLORS.accent }]}
+                  onPress={() => {
+                    handleEditProduct(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                >
+                  <Text style={styles.editButtonText}>Edit Product</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        )}
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -961,13 +957,9 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
-    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
-  },
-  content: {
-    paddingBottom: 24,
   },
 
   // Loading
@@ -975,7 +967,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: ADMIN_COLORS.background,
   },
   loadingText: {
     marginTop: 12,
@@ -989,11 +980,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    ...ADMIN_PAGE_TITLE,
+    fontSize: 28,
+    fontWeight: "700",
     marginBottom: 4,
   },
   subtitle: {
-    ...ADMIN_PAGE_SUBTITLE,
+    fontSize: 14,
   },
 
   // Stats
@@ -1005,10 +997,11 @@ const styles = StyleSheet.create({
     paddingRight: 40,
   },
   statCard: {
-    ...ADMIN_STAT_CARD,
+    borderRadius: 12,
     padding: 16,
     marginRight: 12,
     width: 120,
+    borderWidth: 1,
   },
   statIcon: {
     width: 40,
@@ -1029,9 +1022,11 @@ const styles = StyleSheet.create({
 
   // Search Section
   searchCard: {
-    ...ADMIN_SECTION_CARD,
     marginHorizontal: 20,
     marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
   },
   searchHeader: {
     flexDirection: "row",
@@ -1040,10 +1035,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    ...ADMIN_SECTION_TITLE,
+    fontSize: 18,
+    fontWeight: "700",
   },
   sectionSubtitle: {
-    ...ADMIN_SECTION_SUBTITLE,
+    fontSize: 13,
     marginTop: 2,
   },
   addButton: {
@@ -1070,9 +1066,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   searchBar: {
-    ...ADMIN_INPUT_SURFACE,
     flexDirection: "row",
     alignItems: "center",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   searchInput: {
     flex: 1,
@@ -1089,8 +1087,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   productCard: {
-    ...ADMIN_LIST_CARD,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
   },
   productHeader: {
     flexDirection: "row",
@@ -1182,12 +1182,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalHeader: {
-    ...ADMIN_MODAL_HEADER,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 20,
@@ -1197,13 +1197,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  modalContent: {
-    gap: 16,
-  },
 
   // Form
   formContainer: {
-    ...ADMIN_MODAL_SECTION,
     gap: 20,
   },
   formGroup: {
@@ -1240,7 +1236,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   formInput: {
-    ...ADMIN_INPUT_FIELD,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
   },
 
@@ -1279,17 +1278,15 @@ const styles = StyleSheet.create({
 
   // Submit Button
   submitButton: {
-    ...ADMIN_PRIMARY_BUTTON,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
     marginTop: 20,
   },
-  submitButtonDisabled: {
-    ...ADMIN_PRIMARY_BUTTON_DISABLED,
-  },
-  buttonContent: {
-    ...ADMIN_BUTTON_CONTENT,
-  },
   submitButtonText: {
-    ...ADMIN_BUTTON_TEXT,
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   // Details Modal
@@ -1297,30 +1294,7 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   detailsSection: {
-    ...ADMIN_MODAL_SECTION,
     gap: 8,
-  },
-  detailLine: {
-    ...ADMIN_DETAIL_ROW,
-  },
-  detailLineLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  detailLineLabel: {
-    ...ADMIN_DETAIL_LABEL,
-  },
-  detailLineValue: {
-    ...ADMIN_DETAIL_VALUE,
-  },
-  detailLineAccent: {
-    color: ADMIN_COLORS.accent,
-  },
-  detailLineValueContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    maxWidth: '62%',
   },
   detailsGrid: {
     flexDirection: "row",
@@ -1359,6 +1333,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
+    marginTop: 8,
   },
   editButtonText: {
     color: "#FFFFFF",
