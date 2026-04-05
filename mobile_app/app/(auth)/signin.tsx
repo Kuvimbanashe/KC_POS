@@ -1,23 +1,20 @@
 // app/(auth)/signin.js
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
 import Feather from '@expo/vector-icons/Feather';
 import { useAppDispatch } from '../../store/hooks';
 import { apiClient } from '../../services/api';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useAppDispatch();
   const router = useRouter();
 
   const handleSignIn = async () => {
-    setIsLoading(true);
     try {
       const response = await apiClient.login(email, password);
       dispatch(
@@ -30,13 +27,11 @@ export default function SignInScreen() {
       router.replace(response.user.type === 'admin' ? '/(admin)' : '/(cashier)');
     } catch (_apiError) {
       Alert.alert('Error', 'Invalid email or password');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <View style={styles.container} >
+    <View style={styles.container}>
       <View style={styles.backRow}>
         <Link href="/" style={styles.backLink}>
           <Feather name="arrow-left-circle" size={30} color="#0f172a" />
@@ -79,11 +74,8 @@ export default function SignInScreen() {
           </Link>
         </View>
 
-        <TouchableOpacity style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]} onPress={handleSignIn} disabled={isLoading}>
-          <View style={styles.buttonContent}>
-            {isLoading && <ActivityIndicator size="small" color="#ffffff" />}
-            <Text style={styles.primaryButtonText}>{isLoading ? 'Signing In...' : 'Sign In'}</Text>
-          </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={handleSignIn}>
+          <Text style={styles.primaryButtonText}>Sign In</Text>
         </TouchableOpacity>
 
         <View style={styles.inlineRow}>
@@ -169,15 +161,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 8,
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#94a3b8',
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
   },
   primaryButtonText: {
     color: "#ffffff",

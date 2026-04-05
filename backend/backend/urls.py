@@ -3,23 +3,11 @@ from django.http import JsonResponse
 from django.urls import include, path
 
 
-def api_home(_request):
-    return JsonResponse(
-        {
-            'service': 'KC POS API',
-            'status': 'ok',
-            'health': '/healthz/',
-            'base_api': '/api/',
-        }
-    )
-
-
 def healthz(_request):
     return JsonResponse({'status': 'ok'})
 
 
 urlpatterns = [
-    path('', api_home),
     path('admin/', admin.site.urls),
     path('healthz/', healthz),
     path('api/', include('businesses.urls')),

@@ -9,41 +9,15 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  Alert,
-  RefreshControl,
+  SafeAreaView,
+  Platform,
+  Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import type { SaleRecord } from "../../store/types";
 import type { PaymentMethod } from "../../store/types";
 import { fetchOperationalData } from "../../store/slices/userSlice";
-import {
-  buildPrintableReceiptFromSale,
-  isSilentPrintFailure,
-  printReceiptDocument,
-} from "../../services/receiptPrinter";
-import { getPrinterPreferenceScope } from "../../services/printerPreferences";
-import {
-  ADMIN_BUTTON_CONTENT,
-  ADMIN_BUTTON_TEXT,
-  ADMIN_COLORS,
-  ADMIN_DETAIL_LABEL,
-  ADMIN_DETAIL_ROW,
-  ADMIN_DETAIL_VALUE,
-  ADMIN_INPUT_SURFACE,
-  ADMIN_LIST_CARD,
-  ADMIN_MODAL_HEADER,
-  ADMIN_MODAL_SECTION,
-  ADMIN_PAGE_SUBTITLE,
-  ADMIN_PRIMARY_BUTTON,
-  ADMIN_PRIMARY_BUTTON_DISABLED,
-  ADMIN_PAGE_TITLE,
-  ADMIN_SECTION_CARD,
-  ADMIN_SECTION_SUBTITLE,
-  ADMIN_SECTION_TITLE,
-  ADMIN_STAT_CARD,
-} from "../../theme/adminUi";
 
 const DEBOUNCE_MS = 300;
 
@@ -65,7 +39,7 @@ interface PaymentOption {
 const AdminSales: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { sales = [], currentStore } = useAppSelector((state) => state.user);
+  const { sales = [] } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     if (!user?.businessId) return;
@@ -78,8 +52,6 @@ const AdminSales: React.FC = () => {
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [selectedSale, setSelectedSale] = useState<SaleRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -93,16 +65,6 @@ const AdminSales: React.FC = () => {
     return () => clearTimeout(timeout);
   }, []);
 
-  const handleRefresh = async () => {
-    if (!user?.businessId) return;
-    setIsRefreshing(true);
-    try {
-      await dispatch(fetchOperationalData(user.businessId));
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   // Payment options configuration
   const paymentOptions: PaymentOption[] = [
     { value: "all", label: "All", color: "#374151", bgColor: "#F3F4F6" },
@@ -112,13 +74,13 @@ const AdminSales: React.FC = () => {
   ];
 
   // Calculate metrics
-  const totalRevenue = useMemo(() =>
-    sales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+  const totalRevenue = useMemo(() => 
+    sales.reduce((sum, sale) => sum + (sale.total || 0), 0), 
     [sales]
   );
 
-  const averageSale = useMemo(() =>
-    sales.length > 0 ? totalRevenue / sales.length : 0,
+  const averageSale = useMemo(() => 
+    sales.length > 0 ? totalRevenue / sales.length : 0, 
     [sales.length, totalRevenue]
   );
 
@@ -182,26 +144,23 @@ const AdminSales: React.FC = () => {
     }
 
     // Sort by date (newest first)
-    return filtered.sort((a, b) =>
+    return filtered.sort((a, b) => 
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   }, [sales, debouncedQuery, paymentFilter]);
 
   // Render metric card
   const renderMetricCard = (metric: StatMetric) => (
-    <View style={styles.metricCard}>
+    <View style={[styles.metricCard, { backgroundColor: metric.bgColor }]}>
       <View style={styles.metricContent}>
-
-        <View style={[styles.metricIcon, { backgroundColor: metric.bgColor }]}>
-          <Ionicons name={metric.icon} size={20} color={metric.color} />
-        </View>
-
-        <Text style={styles.metricValue}>
+        <Text style={styles.metricLabel}>{metric.label}</Text>
+        <Text style={[styles.metricValue, { color: metric.color }]}>
           {metric.value}
         </Text>
-        <Text style={styles.metricLabel}>{metric.label}</Text>
       </View>
-
+      <View style={[styles.metricIcon, { backgroundColor: metric.color }]}>
+        <Ionicons name={metric.icon} size={20} color="#FFFFFF" />
+      </View>
     </View>
   );
 
@@ -223,7 +182,7 @@ const AdminSales: React.FC = () => {
     const dateStr = date.toLocaleDateString();
     const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const itemCount = (item.items ?? []).reduce((sum, line) => sum + Number(line.quantity ?? 0), 0) || item.quantity || 0;
-
+    
     return (
       <TouchableOpacity
         style={styles.saleCard}
@@ -237,7 +196,7 @@ const AdminSales: React.FC = () => {
           </View>
           <Text style={styles.saleAmount}>${(item.total || 0).toFixed(2)}</Text>
         </View>
-
+        
         <View style={styles.saleFooter}>
           <View style={styles.saleDetails}>
             <View style={styles.saleDetail}>
@@ -266,65 +225,87 @@ const AdminSales: React.FC = () => {
   };
 
   const handlePrintSale = async (sale: SaleRecord) => {
-    setIsPrinting(true);
     try {
-      await printReceiptDocument(
-        buildPrintableReceiptFromSale(sale, {
-          fallbackCashier: user?.name,
-          business: {
-            name: currentStore?.name || user?.businessName || 'KC POS',
-            address: currentStore?.address,
-            phone: currentStore?.phone,
-            email: currentStore?.email,
-          },
-        }),
-        {
-          preferenceScope: getPrinterPreferenceScope(user?.businessId, user?.id),
-        },
-      );
-    } catch (error) {
-      if (!isSilentPrintFailure(error)) {
-        const message = error instanceof Error ? error.message : "Failed to print receipt";
-        Alert.alert("Printing Error", message);
+      const lines = sale.items?.length
+        ? sale.items
+        : [{
+          productId: sale.productId ?? 0,
+          productName: sale.productName ?? 'Item',
+          quantity: sale.quantity ?? 0,
+          price: sale.price ?? 0,
+          subtotal: sale.total ?? 0,
+          unitType: 'single' as const,
+          packSize: undefined,
+        }];
+      const rows = lines
+        .map((line) => `<tr><td>${line.productName}</td><td style="text-align:center;">${line.quantity}</td><td style="text-align:right;">$${(line.subtotal || 0).toFixed(2)}</td></tr>`)
+        .join("");
+      if (Platform.OS === "web") {
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) return;
+        const html = `
+          <html><body style="font-family: Arial, sans-serif; padding: 16px;">
+          <h2>${sale.invoiceNumber || `INV-${sale.id}`}</h2>
+          <p>Date: ${new Date(sale.date).toLocaleString()}</p>
+          <p>Cashier: ${sale.cashier}</p>
+          <p>Payment: ${sale.paymentMethod}</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead><tr><th align=\"left\">Item</th><th>Qty</th><th align=\"right\">Amount</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <h3 style="text-align:right;">Total: $${sale.total.toFixed(2)}</h3>
+          </body></html>
+        `;
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        return;
       }
-    } finally {
-      setIsPrinting(false);
+      const text = lines
+        .map((line) => `${line.productName} x${line.quantity} - $${(line.subtotal || 0).toFixed(2)}`)
+        .join("\n");
+      await Share.share({
+        title: sale.invoiceNumber || `INV-${sale.id}`,
+        message: `${sale.invoiceNumber || `INV-${sale.id}`}\n${new Date(sale.date).toLocaleString()}\n${text}\nTotal: $${sale.total.toFixed(2)}`,
+      });
+    } catch (error) {
+      console.error("Print/share failed", error);
     }
   };
 
   // Loading state
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563EB" />
         <Text style={styles.loadingText}>Loading sales...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header with metrics */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
-        }
-      >
+      <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.title}>Sales Overview</Text>
           <Text style={styles.subtitle}>Manage and track all transactions</Text>
         </View>
 
         {/* Metrics grid */}
-        <View style={styles.metricsGrid}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.metricsScroll}
+          contentContainerStyle={styles.metricsContent}
+        >
           {metrics.map((metric, index) => (
             <View key={index} style={styles.metricWrapper}>
               {renderMetricCard(metric)}
             </View>
           ))}
-        </View>
+        </ScrollView>
 
         {/* Filters section */}
         <View style={styles.filtersCard}>
@@ -358,8 +339,8 @@ const AdminSales: React.FC = () => {
           </View>
 
           {/* Payment filters */}
-          <ScrollView
-            horizontal
+          <ScrollView 
+            horizontal 
             showsHorizontalScrollIndicator={false}
             style={styles.paymentScroll}
             contentContainerStyle={styles.paymentContent}
@@ -394,8 +375,8 @@ const AdminSales: React.FC = () => {
             <Ionicons name="receipt-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>No sales found</Text>
             <Text style={styles.emptyText}>
-              {searchQuery || paymentFilter !== "all"
-                ? "Try adjusting your filters"
+              {searchQuery || paymentFilter !== "all" 
+                ? "Try adjusting your filters" 
                 : "No sales recorded yet"}
             </Text>
           </View>
@@ -418,34 +399,41 @@ const AdminSales: React.FC = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedSale(null)}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          {selectedSale && (
-            <>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Sale Details</Text>
-                <TouchableOpacity onPress={() => setSelectedSale(null)}>
-                  <Ionicons name="close" size={24} color="#374151" />
-                </TouchableOpacity>
-              </View>
+        {selectedSale && (
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sale Details</Text>
+              <TouchableOpacity onPress={() => setSelectedSale(null)}>
+                <Ionicons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
 
-              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+            <ScrollView style={styles.modalScroll}>
+              <View style={styles.modalContent}>
                 {/* Basic info */}
                 <View style={styles.modalSection}>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Invoice #</Text>
-                    <Text style={styles.detailLineValue}>{selectedSale.invoiceNumber || `INV-${selectedSale.id}`}</Text>
+                  <View style={styles.modalRow}>
+                    <View style={styles.modalInfo}>
+                      <Text style={styles.modalLabel}>Invoice #</Text>
+                      <Text style={styles.modalValue}>{selectedSale.invoiceNumber || `INV-${selectedSale.id}`}</Text>
+                    </View>
+                    <View style={styles.modalInfo}>
+                      <Text style={styles.modalLabel}>Date</Text>
+                      <Text style={styles.modalValue}>
+                        {new Date(selectedSale.date).toLocaleDateString()}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Date</Text>
-                    <Text style={styles.detailLineValue}>{new Date(selectedSale.date).toLocaleDateString()}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Cashier</Text>
-                    <Text style={styles.detailLineValue}>{selectedSale.cashier}</Text>
-                  </View>
-                  <View style={[styles.detailLine, styles.detailLineLast]}>
-                    <Text style={styles.detailLineLabel}>Payment</Text>
-                    {getPaymentBadge(selectedSale.paymentMethod)}
+                  
+                  <View style={styles.modalRow}>
+                    <View style={styles.modalInfo}>
+                      <Text style={styles.modalLabel}>Cashier</Text>
+                      <Text style={styles.modalValue}>{selectedSale.cashier}</Text>
+                    </View>
+                    <View style={styles.modalInfo}>
+                      <Text style={styles.modalLabel}>Payment Method</Text>
+                      {getPaymentBadge(selectedSale.paymentMethod)}
+                    </View>
                   </View>
                 </View>
 
@@ -467,18 +455,9 @@ const AdminSales: React.FC = () => {
                         <Text style={styles.productPrice}>${(line.subtotal || 0).toFixed(2)}</Text>
                       </View>
                       <View style={styles.productDetails}>
-                        <View style={styles.productDetailRow}>
-                          <Text style={styles.productDetailLabel}>Quantity</Text>
-                          <Text style={styles.productDetailValue}>{line.quantity || 0}</Text>
-                        </View>
-                        <View style={styles.productDetailRow}>
-                          <Text style={styles.productDetailLabel}>Unit Price</Text>
-                          <Text style={styles.productDetailValue}>${(line.price || 0).toFixed(2)}</Text>
-                        </View>
-                        <View style={[styles.productDetailRow, styles.productDetailRowLast]}>
-                          <Text style={styles.productDetailLabel}>Product ID</Text>
-                          <Text style={styles.productDetailValue}>{line.productId || '-'}</Text>
-                        </View>
+                        <Text style={styles.productDetail}>Quantity: {line.quantity || 0}</Text>
+                        <Text style={styles.productDetail}>Unit Price: ${(line.price || 0).toFixed(2)}</Text>
+                        <Text style={styles.productDetail}>Product ID: {line.productId || '-'}</Text>
                       </View>
                     </View>
                   ))}
@@ -503,24 +482,16 @@ const AdminSales: React.FC = () => {
                       ${(selectedSale.total || 0).toFixed(2)}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={[styles.printButton, isPrinting && styles.printButtonDisabled]}
-                    onPress={() => handlePrintSale(selectedSale)}
-                    disabled={isPrinting}
-                  >
-                    <View style={styles.buttonContent}>
-                      {isPrinting && <ActivityIndicator size="small" color="#FFFFFF" />}
-                      <Text style={styles.printButtonText}>{isPrinting ? 'Printing...' : 'Print Receipt'}</Text>
-                    </View>
+                  <TouchableOpacity style={styles.printButton} onPress={() => handlePrintSale(selectedSale)}>
+                    <Text style={styles.printButtonText}>Print Receipt</Text>
                   </TouchableOpacity>
                 </View>
-
-              </ScrollView>
-            </>
-          )}
-        </SafeAreaView>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        )}
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -528,13 +499,10 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
-    backgroundColor: ADMIN_COLORS.background,
+    backgroundColor: "#F9FAFB",
   },
   scrollView: {
     flex: 1,
-  },
-  content: {
-    paddingBottom: 24,
   },
 
   // Loading state
@@ -542,12 +510,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: ADMIN_COLORS.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
+    color: "#6B7280",
   },
 
   // Header
@@ -557,50 +524,47 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   title: {
-    ...ADMIN_PAGE_TITLE,
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 4,
   },
   subtitle: {
-    ...ADMIN_PAGE_SUBTITLE,
+    fontSize: 14,
+    color: "#6B7280",
   },
 
   // Metrics section
-  metricsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 20,
-    gap: 12,
+  metricsScroll: {
     marginBottom: 24,
   },
+  metricsContent: {
+    paddingHorizontal: 20,
+    paddingRight: 40,
+  },
   metricWrapper: {
-    width: "48%",
+    marginRight: 12,
   },
   metricCard: {
-    ...ADMIN_STAT_CARD,
-    width: "100%",
-    minHeight: 126,
+    width: 140,
+    borderRadius: 12,
     padding: 16,
-    flexDirection: "column",
+    flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 18,
+    alignItems: "center",
   },
   metricContent: {
-    width: "100%",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 8,
+    flex: 1,
   },
   metricLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: ADMIN_COLORS.secondaryText,
+    color: "#374151",
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: ADMIN_COLORS.text,
   },
   metricIcon: {
     width: 36,
@@ -612,9 +576,13 @@ const styles = StyleSheet.create({
 
   // Filters section
   filtersCard: {
-    ...ADMIN_SECTION_CARD,
+    backgroundColor: "#FFFFFF",
     marginHorizontal: 20,
     marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   filterHeader: {
     flexDirection: "row",
@@ -623,10 +591,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   filterTitle: {
-    ...ADMIN_SECTION_TITLE,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
   },
   filterSubtitle: {
-    ...ADMIN_SECTION_SUBTITLE,
+    fontSize: 13,
+    color: "#6B7280",
     marginTop: 2,
   },
   clearButton: {
@@ -635,9 +606,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: "#FEF2F2",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#fecaca",
+    borderRadius: 8,
   },
   clearButtonText: {
     fontSize: 12,
@@ -651,14 +620,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   searchBar: {
-    ...ADMIN_INPUT_SURFACE,
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: ADMIN_COLORS.text,
+    color: "#111827",
     marginLeft: 8,
   },
 
@@ -674,14 +646,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
+    borderColor: "#E5E7EB",
   },
   paymentFilterText: {
     fontSize: 13,
     fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    color: "#374151",
   },
   paymentFilterTextActive: {
     color: "#FFFFFF",
@@ -706,8 +678,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   saleCard: {
-    ...ADMIN_LIST_CARD,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   saleHeader: {
     flexDirection: "row",
@@ -721,29 +697,26 @@ const styles = StyleSheet.create({
   saleId: {
     fontSize: 16,
     fontWeight: "700",
-    color: ADMIN_COLORS.text,
+    color: "#111827",
     marginBottom: 4,
   },
   saleCashier: {
     fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
+    color: "#6B7280",
   },
   saleAmount: {
     fontSize: 18,
     fontWeight: "700",
-    color: ADMIN_COLORS.success,
+    color: "#059669",
   },
   saleFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
   },
   saleDetails: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 16,
-    flex: 1,
   },
   saleDetail: {
     flexDirection: "row",
@@ -752,7 +725,7 @@ const styles = StyleSheet.create({
   },
   saleDetailText: {
     fontSize: 12,
-    color: ADMIN_COLORS.secondaryText,
+    color: "#6B7280",
   },
 
   // Empty state
@@ -765,86 +738,75 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    color: "#111827",
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
+    color: "#6B7280",
     textAlign: "center",
   },
 
   // Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: ADMIN_COLORS.background,
+    backgroundColor: "#FFFFFF",
   },
   modalHeader: {
-    ...ADMIN_MODAL_HEADER,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: ADMIN_COLORS.text,
+    color: "#111827",
   },
   modalScroll: {
     flex: 1,
   },
   modalContent: {
     padding: 20,
-    gap: 16,
   },
   modalSection: {
-    ...ADMIN_MODAL_SECTION,
-  },
-  detailLine: {
-    ...ADMIN_DETAIL_ROW,
-  },
-  detailLineLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  detailLineLabel: {
-    ...ADMIN_DETAIL_LABEL,
-  },
-  detailLineValue: {
-    ...ADMIN_DETAIL_VALUE,
+    marginBottom: 24,
   },
   modalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 16,
+    marginBottom: 16,
   },
   modalInfo: {
     flex: 1,
+    marginRight: 16,
   },
   modalLabel: {
     fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
+    color: "#6B7280",
     marginBottom: 4,
   },
   modalValue: {
     fontSize: 15,
     fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    color: "#111827",
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: ADMIN_COLORS.text,
+    color: "#111827",
     marginBottom: 12,
   },
   productCard: {
-    ...ADMIN_LIST_CARD,
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
+    borderColor: "#E5E7EB",
   },
   productHeader: {
     flexDirection: "row",
@@ -855,40 +817,31 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    color: "#111827",
     flex: 1,
     marginRight: 16,
   },
   productPrice: {
     fontSize: 18,
     fontWeight: "700",
-    color: ADMIN_COLORS.success,
+    color: "#059669",
   },
   productDetails: {
-    gap: 0,
+    gap: 8,
   },
-  productDetailRow: {
-    ...ADMIN_DETAIL_ROW,
-    paddingVertical: 10,
-  },
-  productDetailRowLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 0,
-  },
-  productDetailLabel: {
-    ...ADMIN_DETAIL_LABEL,
-  },
-  productDetailValue: {
-    ...ADMIN_DETAIL_VALUE,
+  productDetail: {
+    fontSize: 14,
+    color: "#6B7280",
   },
   summaryCard: {
-    ...ADMIN_SECTION_CARD,
+    backgroundColor: "#111827",
+    borderRadius: 12,
     padding: 20,
   },
   summaryTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    color: "#FFFFFF",
     marginBottom: 16,
   },
   summaryRow: {
@@ -900,39 +853,37 @@ const styles = StyleSheet.create({
   totalRow: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: ADMIN_COLORS.line,
+    borderTopColor: "#374151",
   },
   summaryLabel: {
     fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
+    color: "#D1D5DB",
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    color: "#FFFFFF",
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: ADMIN_COLORS.text,
+    color: "#FFFFFF",
   },
   totalValue: {
     fontSize: 20,
     fontWeight: "700",
-    color: ADMIN_COLORS.accent,
+    color: "#FFFFFF",
   },
   printButton: {
     marginTop: 12,
-    ...ADMIN_PRIMARY_BUTTON,
-  },
-  printButtonDisabled: {
-    ...ADMIN_PRIMARY_BUTTON_DISABLED,
-  },
-  buttonContent: {
-    ...ADMIN_BUTTON_CONTENT,
+    backgroundColor: "#2563EB",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
   },
   printButtonText: {
-    ...ADMIN_BUTTON_TEXT,
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });
 
