@@ -161,7 +161,7 @@ export function PrinterManagementCard({
     <View style={styles.card}>
       <Text style={styles.sectionTitle}>Receipt Printing</Text>
       <Text style={styles.sectionSubtitle}>
-        Manage saved Bluetooth, USB, and network printers for instant receipt output, while keeping system printing as a fallback path.
+        Manage paired Bluetooth, saved USB, and manual network printers for instant receipt output, while keeping system printing as a fallback path.
       </Text>
 
       {loading ? (

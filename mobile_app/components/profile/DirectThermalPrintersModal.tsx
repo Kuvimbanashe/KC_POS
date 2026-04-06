@@ -40,6 +40,7 @@ interface DirectThermalPrintersModalProps {
   onStartDiscovery: () => void;
   onStopDiscovery: () => void;
   onSavePrinter: (device: DiscoveredDirectPrinter) => Promise<void>;
+  onSaveUsbPrinter: () => Promise<void>;
   onSaveNetworkPrinter: (printer: {
     name?: string;
     host: string;
@@ -267,7 +268,11 @@ const getSavedPrinterMeta = (printer: SavedDirectPrinter) => {
   }
 
   if (printer.technology === 'usb') {
-    return `${getTechnologyLabel(printer.technology)} · VID ${printer.vendorId} / PID ${printer.productId}`;
+    if (printer.vendorId && printer.productId) {
+      return `${getTechnologyLabel(printer.technology)} · VID ${printer.vendorId} / PID ${printer.productId}`;
+    }
+
+    return `${getTechnologyLabel(printer.technology)} · connected by cable`;
   }
 
   return `${getTechnologyLabel(printer.technology)} · ${printer.host}:${printer.port}`;
@@ -298,6 +303,7 @@ export function DirectThermalPrintersModal({
   onStartDiscovery,
   onStopDiscovery,
   onSavePrinter,
+  onSaveUsbPrinter,
   onSaveNetworkPrinter,
   onSetDefaultPrinter,
   onRemovePrinter,
@@ -307,6 +313,7 @@ export function DirectThermalPrintersModal({
   const [manualPort, setManualPort] = useState('9100');
   const [savingPrinterId, setSavingPrinterId] = useState<string | null>(null);
   const [savingManualNetwork, setSavingManualNetwork] = useState(false);
+  const [savingUsbPrinter, setSavingUsbPrinter] = useState(false);
 
   const savedPrinterIds = useMemo(
     () => new Set(savedPrinters.map((printer) => printer.id)),
@@ -342,6 +349,15 @@ export function DirectThermalPrintersModal({
       setManualPort('9100');
     } finally {
       setSavingManualNetwork(false);
+    }
+  };
+
+  const handleSaveUsbPrinter = async () => {
+    setSavingUsbPrinter(true);
+    try {
+      await onSaveUsbPrinter();
+    } finally {
+      setSavingUsbPrinter(false);
     }
   };
 
@@ -424,9 +440,9 @@ export function DirectThermalPrintersModal({
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Discover Nearby Printers</Text>
+            <Text style={styles.sectionTitle}>Load Paired Bluetooth Printers</Text>
             <Text style={styles.sectionSubtitle}>
-              Scan for supported Bluetooth, USB, and network receipt printers available to this device.
+              The Sincpro printer module loads Bluetooth printers that are already paired with this Android device. Save LAN printers below by host or IP, and save USB separately.
             </Text>
 
             {thermalAvailable ? (
@@ -439,10 +455,10 @@ export function DirectThermalPrintersModal({
                     {isDiscovering ? (
                       <ActivityIndicator size="small" color="#ffffff" />
                     ) : (
-                      <Ionicons name="search-outline" size={18} color="#ffffff" />
+                      <Ionicons name="bluetooth-outline" size={18} color="#ffffff" />
                     )}
                     <Text style={styles.buttonText}>
-                      {isDiscovering ? 'Scanning...' : 'Discover Printers'}
+                      {isDiscovering ? 'Loading...' : 'Load Paired Printers'}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -456,10 +472,10 @@ export function DirectThermalPrintersModal({
 
                 {discoveredPrinters.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Ionicons name="wifi-outline" size={42} color="#94A3B8" />
-                    <Text style={styles.emptyTitle}>No printers discovered yet</Text>
+                    <Ionicons name="bluetooth-outline" size={42} color="#94A3B8" />
+                    <Text style={styles.emptyTitle}>No paired Bluetooth printers found</Text>
                     <Text style={styles.emptySubtitle}>
-                      Start discovery to scan for Bluetooth, USB, and network printers available to this device.
+                      Pair the printer in Android settings first, then load the paired list here and save the printer in the app.
                     </Text>
                   </View>
                 ) : (
@@ -520,10 +536,36 @@ export function DirectThermalPrintersModal({
                 <Ionicons name="build-outline" size={42} color="#94A3B8" />
                 <Text style={styles.emptyTitle}>Native build required</Text>
                 <Text style={styles.emptySubtitle}>
-                  Direct thermal discovery is only available in a native dev or production build with the linked printer module included.
+                  Direct thermal printer management is only available in a native Android build with the linked printer module included.
                 </Text>
               </View>
             )}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Save USB Printer</Text>
+            <Text style={styles.sectionSubtitle}>
+              USB printers connect directly to the active cable connection, so there is no USB discovery list here. Save the USB route once, then make it the default printer if needed.
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.primaryButton, (!thermalAvailable || savingUsbPrinter) && styles.primaryButtonDisabled]}
+              onPress={() => {
+                void handleSaveUsbPrinter();
+              }}
+              disabled={!thermalAvailable || savingUsbPrinter}
+            >
+              <View style={styles.buttonContent}>
+                {savingUsbPrinter ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Ionicons name="usb-outline" size={18} color="#ffffff" />
+                )}
+                <Text style={styles.buttonText}>
+                  {savingUsbPrinter ? 'Saving...' : 'Save USB Printer'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.card}>

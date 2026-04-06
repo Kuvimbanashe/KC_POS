@@ -188,14 +188,17 @@ const normalizeSavedDirectPrinter = (value: unknown): SavedDirectPrinter | null 
 
   if (printer.technology === 'usb') {
     const vendorId =
-      typeof printer.vendorId === 'string'
-        ? printer.vendorId.trim()
-        : '';
+      typeof printer.vendorId === 'string' ? printer.vendorId.trim() : '';
     const productId =
-      typeof printer.productId === 'string'
-        ? printer.productId.trim()
-        : '';
-    if (!printer.id || !printer.name || !vendorId || !productId) {
+      typeof printer.productId === 'string' ? printer.productId.trim() : '';
+    const identifier =
+      typeof printer.identifier === 'string' && printer.identifier.trim()
+        ? printer.identifier.trim()
+        : vendorId && productId
+          ? `${vendorId}:${productId}`
+          : '';
+
+    if (!printer.id || !printer.name || !identifier) {
       return null;
     }
 
@@ -203,13 +206,10 @@ const normalizeSavedDirectPrinter = (value: unknown): SavedDirectPrinter | null 
       id: printer.id,
       technology: 'usb',
       name: printer.name,
-      identifier:
-        typeof printer.identifier === 'string' && printer.identifier.trim()
-          ? printer.identifier
-          : `${vendorId}:${productId}`,
+      identifier,
       deviceName: printer.deviceName,
-      vendorId,
-      productId,
+      vendorId: vendorId || undefined,
+      productId: productId || undefined,
       addedAt,
     };
   }

@@ -1,1 +1,1 @@
-from backend.wsgi import app
+from api.index import app

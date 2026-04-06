@@ -1,12 +1,15 @@
 import Constants from 'expo-constants';
+import { NativeModulesProxy } from 'expo-modules-core';
 import * as Print from 'expo-print';
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 
 import type {
-  IBLEPrinter,
-  INetPrinter,
-  IUSBPrinter,
-} from '@conodene/react-native-thermal-receipt-printer-image-qr';
+  BluetoothDevice,
+  MediaPreset,
+  PrinterConfig,
+  Receipt,
+  ReceiptLine,
+} from '@sincpro/printer-expo';
 
 import type { SaleRecord, UnitType } from '../store/types';
 import {
@@ -82,23 +85,22 @@ interface DiscoveryStartParams {
   timeout?: number;
 }
 
-type ThermalPrinterModule = typeof import('@conodene/react-native-thermal-receipt-printer-image-qr');
+type SincproPrinterModule = typeof import('@sincpro/printer-expo');
 
 const PRINT_START_TIMEOUT_MS = 15000;
 const NETWORK_DISCOVERY_PORT = 9100;
 const DISCOVERY_TIMEOUT_MS = 8000;
-const NETWORK_CONNECT_TIMEOUT_MS = 6000;
+const PRINTER_CONNECT_TIMEOUT_MS = 6000;
 
 const executionEnvironment =
   'executionEnvironment' in Constants ? Constants.executionEnvironment : undefined;
 const isExpoGoRuntime =
   executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
 
-const hasThermalPrinterNativeModule = () =>
+const hasSincproNativeModule = () =>
   Boolean(
-    NativeModules.RNBLEPrinter ||
-      NativeModules.RNUSBPrinter ||
-      NativeModules.RNNetPrinter,
+    (NativeModulesProxy as Record<string, unknown> | undefined)?.SincproPrinter ||
+      (NativeModules as Record<string, unknown> | undefined)?.SincproPrinter,
   );
 
 const ensureAndroidPrinterDiscoveryPermissions = async () => {
@@ -106,11 +108,17 @@ const ensureAndroidPrinterDiscoveryPermissions = async () => {
     return;
   }
 
-  const permissions = new Set<string>([PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION]);
+  const permissions = new Set<string>([
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+  ]);
 
   if (Platform.Version >= 31) {
     permissions.add(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN);
     permissions.add(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
+  } else {
+    permissions.add(PermissionsAndroid.PERMISSIONS.BLUETOOTH);
+    permissions.add(PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN);
   }
 
   const requiredPermissions = Array.from(permissions).filter(Boolean);
@@ -134,12 +142,12 @@ const ensureAndroidPrinterDiscoveryPermissions = async () => {
 
   if (deniedPermissions.length) {
     throw new Error(
-      'Bluetooth and location permissions are required to discover nearby receipt printers.',
+      'Bluetooth permissions are required to load paired receipt printers on this device.',
     );
   }
 };
 
-let thermalModulePromise: Promise<ThermalPrinterModule | null> | null = null;
+let sincproModulePromise: Promise<SincproPrinterModule | null> | null = null;
 
 export class PrintStartTimeoutError extends Error {
   constructor() {
@@ -151,18 +159,22 @@ export class PrintStartTimeoutError extends Error {
 export const isSilentPrintFailure = (error: unknown): boolean =>
   error instanceof PrintStartTimeoutError;
 
-const getThermalPrinterModule = async (): Promise<ThermalPrinterModule | null> => {
-  if (Platform.OS === 'web' || isExpoGoRuntime || !hasThermalPrinterNativeModule()) {
+const getSincproPrinterModule = async (): Promise<SincproPrinterModule | null> => {
+  if (
+    Platform.OS !== 'android' ||
+    isExpoGoRuntime ||
+    !hasSincproNativeModule()
+  ) {
     return null;
   }
 
-  if (!thermalModulePromise) {
-    thermalModulePromise = import('@conodene/react-native-thermal-receipt-printer-image-qr')
+  if (!sincproModulePromise) {
+    sincproModulePromise = import('@sincpro/printer-expo')
       .then((module) => module)
       .catch(() => null);
   }
 
-  return thermalModulePromise;
+  return sincproModulePromise;
 };
 
 const withTimeout = async <T>(
@@ -225,74 +237,47 @@ const openWebPrintPreview = (html: string) => {
   previewWindow.print();
 };
 
-const truncateReceiptText = (value: string, maxLength: number) => {
-  if (value.length <= maxLength) {
-    return value;
-  }
-
-  if (maxLength <= 3) {
-    return value.slice(0, maxLength);
-  }
-
-  return `${value.slice(0, maxLength - 3)}...`;
-};
-
-const padReceiptLine = (left: string, right: string, lineWidth: number) => {
-  const safeRight = right.trim();
-  const minimumGap = 2;
-  const maxLeftLength = Math.max(4, lineWidth - safeRight.length - minimumGap);
-  const safeLeft = truncateReceiptText(left.trim(), maxLeftLength);
-  const gap = Math.max(minimumGap, lineWidth - safeLeft.length - safeRight.length);
-  return `${safeLeft}${' '.repeat(gap)}${safeRight}`;
-};
-
-const getReceiptLineWidth = (preferences: ReceiptPrinterPreferences) =>
-  preferences.paperWidth === '58mm' ? 30 : 46;
-
 const createPrinterId = (
   technology: SavedDirectPrinter['technology'],
   identifier: string,
 ) => `${technology}:${identifier}`;
 
-const mapBluetoothPrinter = (printer: IBLEPrinter): DiscoveredDirectPrinter => {
-  const macAddress = printer.inner_mac_address;
+const mapBluetoothPrinter = (
+  printer: { address: string; name?: string | null } | BluetoothDevice,
+): DiscoveredDirectPrinter => {
+  const macAddress = printer.address;
+  const deviceName = printer.name?.trim() || undefined;
   const identifier = macAddress;
+
   return {
     id: createPrinterId('bluetooth', identifier),
     technology: 'bluetooth',
-    name: printer.device_name || macAddress,
+    name: deviceName || macAddress,
     identifier,
-    deviceName: printer.device_name,
+    deviceName,
     macAddress,
   };
 };
 
-const mapUsbPrinter = (printer: IUSBPrinter): DiscoveredDirectPrinter => {
-  const identifier = `${printer.vendor_id}:${printer.product_id}`;
-  return {
-    id: createPrinterId('usb', identifier),
-    technology: 'usb',
-    name: printer.device_name || `USB Printer ${identifier}`,
-    identifier,
-    deviceName: printer.device_name,
-    vendorId: printer.vendor_id,
-    productId: printer.product_id,
-  };
-};
+const getMediaPreset = (
+  preferences: ReceiptPrinterPreferences,
+): MediaPreset =>
+  preferences.paperWidth === '58mm' ? 'continuous58mm' : 'continuous80mm';
 
-const mapNetworkPrinter = (printer: INetPrinter): DiscoveredDirectPrinter => {
-  const host = printer.host;
-  const port = printer.port || NETWORK_DISCOVERY_PORT;
-  const identifier = `${host}:${port}`;
-  return {
-    id: createPrinterId('network', identifier),
-    technology: 'network',
-    name: `Network Printer ${host}`,
-    identifier,
-    host,
-    port,
-  };
-};
+const getPrinterConfig = (
+  preferences: ReceiptPrinterPreferences,
+): PrinterConfig => ({
+  density: preferences.paperWidth === '58mm' ? 'dark' : 'medium',
+  speed: 'medium',
+  orientation: 'top_to_bottom',
+  autoCutter: { enabled: true, fullCut: true },
+});
+
+const createSeparatorLine = (): ReceiptLine => ({
+  type: 'separator',
+  char: '-',
+  length: 32,
+});
 
 export const supportsPrinterSelection = Platform.OS === 'ios';
 
@@ -316,6 +301,14 @@ export const getDirectThermalAvailability = async (): Promise<DirectThermalAvail
     };
   }
 
+  if (Platform.OS !== 'android') {
+    return {
+      available: false,
+      message:
+        '@sincpro/printer-expo direct printing is Android-only. iOS will keep using the system print route.',
+    };
+  }
+
   if (isExpoGoRuntime) {
     return {
       available: false,
@@ -324,27 +317,27 @@ export const getDirectThermalAvailability = async (): Promise<DirectThermalAvail
     };
   }
 
-  if (!hasThermalPrinterNativeModule()) {
+  if (!hasSincproNativeModule()) {
     return {
       available: false,
       message:
-        'This app build does not include the native thermal printer module yet. Rebuild the app natively to enable direct receipt printing.',
+        'This app build does not include the Sincpro printer module yet. Rebuild the app natively to enable direct receipt printing.',
     };
   }
 
-  const module = await getThermalPrinterModule();
+  const module = await getSincproPrinterModule();
   if (!module) {
     return {
       available: false,
       message:
-        'The thermal printer library could not be loaded in this runtime. Rebuild the native app after prebuild so the direct printer modules are linked.',
+        'The Sincpro thermal printer library could not be loaded in this runtime. Rebuild the native app after installing the package.',
     };
   }
 
   return {
     available: true,
     message:
-      'Direct thermal printing is available for saved Bluetooth, USB, and network receipt printers on this build.',
+      'Direct thermal printing is available on this Android build for paired Bluetooth printers, manually saved network printers, and connected USB printers.',
   };
 };
 
@@ -387,6 +380,18 @@ export const buildSavedNetworkPrinter = ({
     addedAt: new Date().toISOString(),
   };
 };
+
+export const buildSavedUsbPrinter = ({
+  name,
+}: {
+  name?: string;
+} = {}): SavedDirectPrinter => ({
+  id: createPrinterId('usb', 'default'),
+  technology: 'usb',
+  name: name?.trim() || 'USB Receipt Printer',
+  identifier: 'usb-default',
+  addedAt: new Date().toISOString(),
+});
 
 export const buildPrintableReceiptFromSale = (
   sale: SaleRecord,
@@ -652,163 +657,141 @@ export const buildReceiptHtml = (
   `;
 };
 
-const buildDirectReceiptText = (
+const buildDirectReceiptDocument = (
   receipt: PrintableReceiptData,
   preferences: ReceiptPrinterPreferences,
-  commands: ThermalPrinterModule['COMMANDS'],
-) => {
+): Receipt => {
   const businessLines = [
     receipt.business?.name,
     receipt.business?.address,
     receipt.business?.phone,
     receipt.business?.email,
   ].filter(Boolean) as string[];
-  const lineWidth = getReceiptLineWidth(preferences);
-  const hr =
-    preferences.paperWidth === '58mm'
-      ? commands.HORIZONTAL_LINE.HR_58MM
-      : commands.HORIZONTAL_LINE.HR_80MM;
-  const alignLeft = commands.TEXT_FORMAT.TXT_ALIGN_LT;
-  const alignCenter = commands.TEXT_FORMAT.TXT_ALIGN_CT;
-  const boldOn = commands.TEXT_FORMAT.TXT_BOLD_ON;
-  const boldOff = commands.TEXT_FORMAT.TXT_BOLD_OFF;
 
-  let output = `${commands.HARDWARE.HW_INIT}${alignCenter}`;
-
+  const header: ReceiptLine[] = [];
   if (preferences.showBusinessHeader && businessLines.length) {
     businessLines.forEach((line, index) => {
-      if (index === 0) {
-        output += `${boldOn}${line}\n${boldOff}`;
-      } else {
-        output += `${line}\n`;
-      }
+      header.push({
+        type: 'text',
+        content: line,
+        alignment: 'center',
+        fontSize: index === 0 ? 'large' : 'medium',
+        bold: index === 0,
+      });
     });
-    output += '\n';
+    header.push(createSeparatorLine());
   }
 
-  output += `${boldOn}${receipt.receiptNumber}\n${boldOff}`;
-  output += `${alignLeft}`;
-  output += `${padReceiptLine('Date', formatDateTime(receipt.date), lineWidth)}\n`;
-  output += `${padReceiptLine('Cashier', receipt.cashier, lineWidth)}\n`;
-  output += `${padReceiptLine('Payment', receipt.paymentMethod, lineWidth)}\n`;
+  const body: ReceiptLine[] = [
+    {
+      type: 'text',
+      content: receipt.receiptNumber,
+      alignment: 'center',
+      fontSize: 'large',
+      bold: true,
+    },
+    { type: 'space', lines: 1 },
+    {
+      type: 'keyValue',
+      key: 'Date',
+      value: formatDateTime(receipt.date),
+    },
+    {
+      type: 'keyValue',
+      key: 'Cashier',
+      value: receipt.cashier,
+    },
+    {
+      type: 'keyValue',
+      key: 'Payment',
+      value: receipt.paymentMethod,
+    },
+  ];
 
   if (receipt.customer) {
-    output += `${padReceiptLine('Customer', receipt.customer, lineWidth)}\n`;
+    body.push({
+      type: 'keyValue',
+      key: 'Customer',
+      value: receipt.customer,
+    });
   }
 
-  output += `${hr}\n`;
+  body.push(createSeparatorLine());
 
   receipt.items.forEach((item) => {
-    output += `${truncateReceiptText(item.name, lineWidth)}\n`;
-    output += `${padReceiptLine(
-      `${item.quantity} x ${formatReceiptUnitLabel(item.unitType, item.packSize)}`,
-      formatCurrency(item.amount),
-      lineWidth,
-    )}\n`;
+    body.push({
+      type: 'text',
+      content: item.name,
+      bold: true,
+    });
+    body.push({
+      type: 'keyValue',
+      key: `${item.quantity} x ${formatReceiptUnitLabel(item.unitType, item.packSize)}`,
+      value: formatCurrency(item.amount),
+    });
   });
 
-  output += `${hr}\n`;
-  output += `${boldOn}${padReceiptLine('TOTAL', formatCurrency(receipt.total), lineWidth)}${boldOff}\n\n`;
-  output += `${alignCenter}Printed from KC POS\n`;
+  body.push(createSeparatorLine());
+  body.push({
+    type: 'keyValue',
+    key: 'TOTAL',
+    value: formatCurrency(receipt.total),
+    bold: true,
+  });
 
-  return output;
+  const footer: ReceiptLine[] = [
+    { type: 'space', lines: 1 },
+    {
+      type: 'text',
+      content: 'Printed from KC POS',
+      alignment: 'center',
+    },
+    { type: 'space', lines: 2 },
+  ];
+
+  return { header, body, footer };
 };
 
-const printWithBluetoothPrinter = async (
-  module: ThermalPrinterModule,
-  printer: SavedDirectPrinter,
-  receiptText: string,
-) => {
-  if (!module.BLEPrinter) {
-    throw new Error('Bluetooth printer support is not available in this build.');
-  }
-
-  if (!printer.macAddress) {
-    throw new Error('The saved Bluetooth printer is missing its MAC address.');
-  }
-
-  await module.BLEPrinter.init();
-  await module.BLEPrinter.connectPrinter(printer.macAddress);
-
+const safelyDisconnectPrinter = async (module: SincproPrinterModule) => {
   try {
-    module.BLEPrinter.printBill(receiptText, {
-      cut: true,
-      tailingLine: true,
-      encoding: 'UTF8',
-    });
-  } finally {
-    try {
-      await module.BLEPrinter.closeConn();
-    } catch {
-      // Ignore disconnect failures after printing.
+    if (module.connection.isConnected()) {
+      await module.connection.disconnect();
     }
+  } catch {
+    // Ignore disconnect failures after printing.
   }
 };
 
-const printWithUsbPrinter = async (
-  module: ThermalPrinterModule,
-  printer: SavedDirectPrinter,
-  receiptText: string,
+const connectToDirectPrinter = async (
+  module: SincproPrinterModule,
+  directPrinter: SavedDirectPrinter,
 ) => {
-  if (!module.USBPrinter) {
-    throw new Error('USB printer support is not available in this build.');
-  }
-
-  if (!printer.vendorId || !printer.productId) {
-    throw new Error('The saved USB printer is missing its vendor or product id.');
-  }
-
-  await module.USBPrinter.init();
-  await module.USBPrinter.connectPrinter(printer.vendorId, printer.productId);
-
-  try {
-    module.USBPrinter.printBill(receiptText, {
-      cut: true,
-      tailingLine: true,
-      encoding: 'UTF8',
-    });
-  } finally {
-    try {
-      await module.USBPrinter.closeConn();
-    } catch {
-      // Ignore disconnect failures after printing.
+  if (directPrinter.technology === 'bluetooth') {
+    if (!directPrinter.macAddress) {
+      throw new Error('The saved Bluetooth printer is missing its MAC address.');
     }
-  }
-};
 
-const printWithNetworkPrinter = async (
-  module: ThermalPrinterModule,
-  printer: SavedDirectPrinter,
-  receiptText: string,
-) => {
-  if (!module.NetPrinter) {
-    throw new Error('Network printer support is not available in this build.');
+    await module.connection.connectBluetooth(
+      directPrinter.macAddress,
+      PRINTER_CONNECT_TIMEOUT_MS,
+    );
+    return;
   }
 
-  if (!printer.host || !printer.port) {
+  if (directPrinter.technology === 'usb') {
+    await module.connection.connectUsb();
+    return;
+  }
+
+  if (!directPrinter.host || !directPrinter.port) {
     throw new Error('The saved network printer is missing its host or port.');
   }
 
-  await module.NetPrinter.init();
-  await module.NetPrinter.connectPrinter(
-    printer.host,
-    printer.port,
-    NETWORK_CONNECT_TIMEOUT_MS,
+  await module.connection.connectWifi(
+    directPrinter.host,
+    directPrinter.port,
+    PRINTER_CONNECT_TIMEOUT_MS,
   );
-
-  try {
-    module.NetPrinter.printBill(receiptText, {
-      cut: true,
-      tailingLine: true,
-      encoding: 'UTF8',
-    });
-  } finally {
-    try {
-      await module.NetPrinter.closeConn();
-    } catch {
-      // Ignore disconnect failures after printing.
-    }
-  }
 };
 
 export const printReceiptWithDirectThermalPrinter = async (
@@ -816,26 +799,27 @@ export const printReceiptWithDirectThermalPrinter = async (
   directPrinter: SavedDirectPrinter,
   preferences: ReceiptPrinterPreferences = DEFAULT_RECEIPT_PRINTER_PREFERENCES,
 ) => {
-  const module = await getThermalPrinterModule();
+  const module = await getSincproPrinterModule();
   if (!module) {
     throw new Error(
-      'Direct thermal printing is unavailable in this runtime. Use a native dev or production build to print to saved printers.',
+      'Direct thermal printing is unavailable in this runtime. Use a native Android dev or production build to print to saved printers.',
     );
   }
 
-  const receiptText = buildDirectReceiptText(receipt, preferences, module.COMMANDS);
+  const receiptDocument = buildDirectReceiptDocument(receipt, preferences);
+  const mediaPreset = getMediaPreset(preferences);
 
-  if (directPrinter.technology === 'bluetooth') {
-    await printWithBluetoothPrinter(module, directPrinter, receiptText);
-    return;
+  await connectToDirectPrinter(module, directPrinter);
+
+  try {
+    await module.config.set(getPrinterConfig(preferences));
+    await module.print.receipt(receiptDocument, {
+      media: { preset: mediaPreset },
+      copies: 1,
+    });
+  } finally {
+    await safelyDisconnectPrinter(module);
   }
-
-  if (directPrinter.technology === 'usb') {
-    await printWithUsbPrinter(module, directPrinter, receiptText);
-    return;
-  }
-
-  await printWithNetworkPrinter(module, directPrinter, receiptText);
 };
 
 const printReceiptWithSystemPrinter = async (
@@ -940,59 +924,20 @@ export const selectDefaultSystemPrinter = async (): Promise<SavedSystemPrinter |
 
 export const selectDefaultPrinter = selectDefaultSystemPrinter;
 
-const discoverBluetoothPrinters = async (
-  module: ThermalPrinterModule,
+const loadPairedBluetoothPrinters = async (
+  module: SincproPrinterModule,
   timeoutMs: number,
-) => {
-  if (!module.BLEPrinter) {
-    return [];
-  }
-
-  return withTimeout(
-    (async () => {
-      await module.BLEPrinter.init();
-      return module.BLEPrinter.getDeviceList();
-    })(),
+) =>
+  withTimeout(
+    Promise.resolve(
+      module.bluetooth
+        .getPairedPrinters()
+        .map(mapBluetoothPrinter)
+        .sort((left, right) => left.name.localeCompare(right.name)),
+    ),
     timeoutMs,
-    () => new Error('Bluetooth printer discovery timed out.'),
+    () => new Error('Loading paired Bluetooth printers timed out.'),
   );
-};
-
-const discoverUsbPrinters = async (
-  module: ThermalPrinterModule,
-  timeoutMs: number,
-) => {
-  if (!module.USBPrinter) {
-    return [];
-  }
-
-  return withTimeout(
-    (async () => {
-      await module.USBPrinter.init();
-      return module.USBPrinter.getDeviceList();
-    })(),
-    timeoutMs,
-    () => new Error('USB printer discovery timed out.'),
-  );
-};
-
-const discoverNetworkPrinters = async (
-  module: ThermalPrinterModule,
-  timeoutMs: number,
-) => {
-  if (!module.NetPrinter) {
-    return [];
-  }
-
-  return withTimeout(
-    (async () => {
-      await module.NetPrinter.init();
-      return module.NetPrinter.getDeviceList();
-    })(),
-    timeoutMs,
-    () => new Error('Network printer discovery timed out.'),
-  );
-};
 
 export const startDirectThermalPrinterDiscovery = async (
   callbacks: DirectPrinterDiscoveryCallbacks,
@@ -1000,10 +945,10 @@ export const startDirectThermalPrinterDiscovery = async (
 ): Promise<DirectPrinterDiscoveryHandle> => {
   await ensureAndroidPrinterDiscoveryPermissions();
 
-  const module = await getThermalPrinterModule();
+  const module = await getSincproPrinterModule();
   if (!module) {
     throw new Error(
-      'Direct printer discovery is unavailable in this runtime. Build the app natively to discover Bluetooth, USB, and network printers.',
+      'Direct printer discovery is unavailable in this runtime. Build the app natively on Android to load paired Bluetooth printers.',
     );
   }
 
@@ -1013,81 +958,28 @@ export const startDirectThermalPrinterDiscovery = async (
   callbacks.onStatusChange?.(true);
 
   void (async () => {
-    const discovered = new Map<string, DiscoveredDirectPrinter>();
-    const errors: string[] = [];
+    try {
+      const printers = await loadPairedBluetoothPrinters(module, timeoutMs);
 
-    const register = (printer: DiscoveredDirectPrinter) => {
-      discovered.set(printer.id, printer);
-    };
+      if (stopped) {
+        return;
+      }
 
-    const tasks: Promise<void>[] = [
-      (async () => {
-        try {
-          const printers = await discoverBluetoothPrinters(module, timeoutMs);
-          printers.map(mapBluetoothPrinter).forEach(register);
-        } catch (error) {
-          errors.push(
-            error instanceof Error
-              ? error.message
-              : 'Bluetooth printer discovery failed.',
-          );
-        }
-      })(),
-      (async () => {
-        if (Platform.OS !== 'android') {
-          return;
-        }
+      callbacks.onPrinters?.(printers);
+      callbacks.onStatusChange?.(false);
+    } catch (error) {
+      if (stopped) {
+        return;
+      }
 
-        try {
-          const printers = await discoverUsbPrinters(module, timeoutMs);
-          printers.map(mapUsbPrinter).forEach(register);
-        } catch (error) {
-          errors.push(
-            error instanceof Error ? error.message : 'USB printer discovery failed.',
-          );
-        }
-      })(),
-      (async () => {
-        try {
-          const printers = await discoverNetworkPrinters(module, timeoutMs);
-          printers.map(mapNetworkPrinter).forEach(register);
-        } catch (error) {
-          errors.push(
-            error instanceof Error
-              ? error.message
-              : 'Network printer discovery failed.',
-          );
-        }
-      })(),
-    ];
-
-    await Promise.all(tasks);
-
-    if (stopped) {
-      return;
+      callbacks.onError?.(
+        error instanceof Error
+          ? error
+          : new Error('Failed to load paired Bluetooth printers.'),
+      );
+      callbacks.onStatusChange?.(false);
     }
-
-    const printers = Array.from(discovered.values()).sort((left, right) =>
-      left.name.localeCompare(right.name),
-    );
-
-    callbacks.onPrinters?.(printers);
-
-    if (!printers.length && errors.length) {
-      callbacks.onError?.(new Error(errors[0]));
-    }
-
-    callbacks.onStatusChange?.(false);
-  })().catch((error) => {
-    if (stopped) {
-      return;
-    }
-
-    callbacks.onError?.(
-      error instanceof Error ? error : new Error('Failed to discover direct printers.'),
-    );
-    callbacks.onStatusChange?.(false);
-  });
+  })();
 
   return {
     stop: async () => {

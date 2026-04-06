@@ -1,4 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "sh build_files.sh"
+  "buildCommand": "sh build_files.sh",
+  "functions": {
+    "api/**/*.py": {
+      "excludeFiles": "{__pycache__/**,**/*.pyc,db.sqlite3}"
+    },
+    "index.py": {
+      "excludeFiles": "{__pycache__/**,**/*.pyc,db.sqlite3}"
+    }
+  }
 }

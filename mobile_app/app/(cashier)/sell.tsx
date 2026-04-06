@@ -8,8 +8,6 @@ import {
   Modal,
   FlatList,
   Alert,
-  Platform,
-  Share,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
@@ -21,6 +19,14 @@ import { fetchOperationalData } from '../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { PaymentMethod, Product, SaleItem, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
+import {
+  isSilentPrintFailure,
+  printReceiptDocument,
+} from '../../services/receiptPrinter';
+import {
+  getPrinterPreferenceScope,
+  getPrinterPreferences,
+} from '../../services/printerPreferences';
 
 // Types
 type PaymentMethodOption = 'cash' | 'card' | 'mobile';
@@ -67,7 +73,7 @@ const getUnitPrice = (product: Product, unitType: UnitType): number => {
 
 const CashierSell = () => {
   const dispatch = useAppDispatch();
-  const { products } = useAppSelector((state) => state.user);
+  const { products, currentStore } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
@@ -85,38 +91,39 @@ const CashierSell = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodOption>('cash');
   const [showReceipt, setShowReceipt] = useState(false);
 
-  const buildReceiptText = (receipt: ReceiptDetails) => {
-    const lines = [
-      `Receipt ${receipt.receiptNumber}`,
-      `Cashier: ${receipt.cashier}`,
-      `Date: ${receipt.date.toLocaleString()}`,
-      `Payment: ${receipt.paymentMethod}`,
-      '',
-      'Items:'
-    ];
-    receipt.items.forEach((item) => {
-      lines.push(`- ${item.productName}: ${item.quantity} ${item.unitType} - $${item.subtotal.toFixed(2)}`);
-    });
-    lines.push('', `Total: $${receipt.total.toFixed(2)}`);
-    return lines.join('\n');
-  };
+  const buildPrintableReceipt = (receipt: ReceiptDetails) => ({
+    receiptNumber: receipt.receiptNumber,
+    date: receipt.date,
+    cashier: receipt.cashier,
+    paymentMethod: receipt.paymentMethod,
+    total: receipt.total,
+    items: receipt.items.map((item) => ({
+      name: item.productName,
+      quantity: item.quantity,
+      amount: item.subtotal,
+      unitType: item.unitType,
+      packSize: item.packSize,
+    })),
+    business: {
+      name: currentStore?.name || user?.businessName || 'KC POS',
+      address: currentStore?.address,
+      phone: currentStore?.phone,
+      email: currentStore?.email,
+    },
+  });
 
   const printReceipt = async (receipt: ReceiptDetails) => {
     try {
-      const text = buildReceiptText(receipt);
-      if (Platform.OS === 'web') {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
-        printWindow.document.write(`<pre style="font-family: monospace; white-space: pre-wrap;">${text}</pre>`);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        return;
-      }
-      await Share.share({ title: receipt.receiptNumber, message: text });
+      await printReceiptDocument(buildPrintableReceipt(receipt), {
+        preferenceScope: getPrinterPreferenceScope(user?.businessId, user?.id),
+      });
     } catch (error) {
-      console.error('Print/share failed', error);
-      Alert.alert('Print Error', 'Unable to open printer/share dialog on this device.');
+      if (!isSilentPrintFailure(error)) {
+        console.error('Receipt print failed', error);
+        const message =
+          error instanceof Error ? error.message : 'Unable to print the receipt on this device.';
+        Alert.alert('Print Error', message);
+      }
     }
   };
   const [lastSale, setLastSale] = useState<ReceiptDetails | null>(null);
@@ -409,7 +416,12 @@ const CashierSell = () => {
       setLastSale(completedSale);
       setShowReceipt(true);
       setCart([]);
-      await printReceipt(completedSale);
+
+      const printerScope = getPrinterPreferenceScope(user?.businessId, user?.id);
+      const preferences = await getPrinterPreferences(printerScope);
+      if (preferences.autoPrintReceipts) {
+        await printReceipt(completedSale);
+      }
     } catch (error) {
       console.error('Checkout error:', error);
       Alert.alert('Checkout Failed', 'An error occurred during checkout');
@@ -849,13 +861,17 @@ const CashierSell = () => {
             <ScrollView style={styles.receiptContent}>
               {/* Business Info */}
               <View style={styles.businessHeader}>
-                <Text style={styles.businessName}>KC Investments</Text>
-                <Text style={styles.businessAddress}>
-                  123 Business Street, City
+                <Text style={styles.businessName}>
+                  {currentStore?.name || user?.businessName || 'KC POS'}
                 </Text>
-                <Text style={styles.businessContact}>
-                  Contact: +1 (555) 123-4567
-                </Text>
+                {currentStore?.address ? (
+                  <Text style={styles.businessAddress}>{currentStore.address}</Text>
+                ) : null}
+                {currentStore?.phone || currentStore?.email ? (
+                  <Text style={styles.businessContact}>
+                    {[currentStore?.phone, currentStore?.email].filter(Boolean).join(' · ')}
+                  </Text>
+                ) : null}
               </View>
 
               {/* Receipt Info */}

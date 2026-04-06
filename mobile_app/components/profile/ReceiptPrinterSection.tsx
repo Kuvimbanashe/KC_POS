@@ -17,6 +17,7 @@ import {
 import {
   buildSavedDirectPrinter,
   buildSavedNetworkPrinter,
+  buildSavedUsbPrinter,
   getDirectThermalAvailability,
   isSilentPrintFailure,
   printReceiptDocument,
@@ -350,6 +351,24 @@ export function ReceiptPrinterSection({
     }
   };
 
+  const handleSaveUsbPrinter = async () => {
+    try {
+      const next = await upsertDirectPrinter(
+        buildSavedUsbPrinter(),
+        printerScope,
+      );
+      setPrinterPreferences(next);
+      Alert.alert(
+        'USB Printer Saved',
+        'The USB printer route was saved. Connect the printer by cable and set it as default when you want receipts to go there directly.',
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to save the USB printer';
+      Alert.alert('Error', message);
+    }
+  };
+
   const handleSetDefaultDirectPrinter = async (printerId: string) => {
     try {
       const next = await setDefaultDirectPrinter(printerId, printerScope);
@@ -441,6 +460,7 @@ export function ReceiptPrinterSection({
           void stopDiscovery();
         }}
         onSavePrinter={handleSaveDirectPrinter}
+        onSaveUsbPrinter={handleSaveUsbPrinter}
         onSaveNetworkPrinter={handleSaveNetworkPrinter}
         onSetDefaultPrinter={handleSetDefaultDirectPrinter}
         onRemovePrinter={handleRemoveDirectPrinter}
