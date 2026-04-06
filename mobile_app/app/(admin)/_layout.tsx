@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
-import { Alert, Text, TouchableOpacity, View } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
+import { Tabs, useRootNavigationState, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SystemUI from 'expo-system-ui';
 
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 
 const NAVY = '#0d1938';
@@ -15,6 +15,8 @@ const ORANGE = '#FB923C';
 export default function AdminLayout() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
+  const { isAuthenticated, isLoading, userType } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(NAVY).catch(() => {});
@@ -37,7 +39,27 @@ export default function AdminLayout() {
       },
     ]);
   };
-  
+
+  useEffect(() => {
+    if (isLoading || !navigationState?.key) return;
+
+    if (!isAuthenticated) {
+      router.replace('/(auth)');
+      return;
+    }
+
+    if (userType !== 'admin') {
+      router.replace(userType === 'cashier' ? '/(cashier)' : '/(auth)');
+    }
+  }, [isAuthenticated, isLoading, navigationState?.key, router, userType]);
+
+  if (isLoading || !navigationState?.key || !isAuthenticated || userType !== 'admin') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: NAVY, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#FB923C" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: NAVY }} edges={['bottom']}>

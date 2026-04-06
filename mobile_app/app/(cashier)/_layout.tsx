@@ -1,16 +1,19 @@
 // app/(cashier)/_layout.js
-import { Alert, Text, TouchableOpacity } from 'react-native';
-import { Tabs } from 'expo-router';
+import { ActivityIndicator, Alert, Text, TouchableOpacity } from 'react-native';
+import { Tabs, useRootNavigationState } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { useAppDispatch } from '../../store/hooks';
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CashierLayout() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
+  const { isAuthenticated, isLoading, userType } = useAppSelector((state) => state.auth);
 
   const confirmLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to log out?', [
@@ -25,6 +28,27 @@ export default function CashierLayout() {
       },
     ]);
   };
+
+  useEffect(() => {
+    if (isLoading || !navigationState?.key) return;
+
+    if (!isAuthenticated) {
+      router.replace('/(auth)');
+      return;
+    }
+
+    if (userType !== 'cashier') {
+      router.replace(userType === 'admin' ? '/(admin)' : '/(auth)');
+    }
+  }, [isAuthenticated, isLoading, navigationState?.key, router, userType]);
+
+  if (isLoading || !navigationState?.key || !isAuthenticated || userType !== 'cashier') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1938', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#FB923C" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0d1938' }} edges={['bottom']}>

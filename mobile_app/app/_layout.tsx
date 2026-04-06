@@ -1,5 +1,5 @@
 // app/_layout.tsx
-import '../global.css';
+
 
 import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { Provider } from 'react-redux';
@@ -89,7 +89,7 @@ function RootLayoutNav() {
 
     if (!isAuthenticated) {
       if (!inAuthGroup) {
-        router.replace('/');
+        router.replace('/(auth)');
       }
       return;
     }
@@ -116,6 +116,7 @@ function RootLayoutNav() {
   return (
     <View style={styles.container}>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(admin)" />
         <Stack.Screen name="(cashier)" />
