@@ -20,7 +20,7 @@ import { addProduct, fetchOperationalData, updateProduct } from '../../store/sli
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { Product, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
-import { ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from '../../theme/adminUi';
+import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM, ADMIN_STAT_CARD } from '../../theme/adminUi';
 
 interface ProductFormData {
   name: string;
@@ -39,8 +39,10 @@ interface ProductFormData {
 interface StatCard {
   title: string;
   value: string;
+  description: string;
   icon: keyof typeof Ionicons.glyphMap;
-  color: string;
+  iconColor: string;
+  iconBg: string;
   bgColor: string;
 }
 
@@ -139,30 +141,38 @@ const AdminStock = () => {
     {
       title: "Total Products",
       value: products.length.toString(),
+      description: "Inventory items",
       icon: "cube-outline",
-      color: COLORS.primary,
+      iconColor: COLORS.primary,
+      iconBg: '#e2e8f0',
       bgColor: COLORS.mutedLight,
     },
     {
       title: "Low Stock",
       value: lowStockProducts.length.toString(),
+      description: "Below reorder point",
       icon: "warning-outline",
-      color: COLORS.warning,
+      iconColor: COLORS.warning,
+      iconBg: '#ffedd5',
       bgColor: '#fff7ed',
     },
     {
       title: "Out of Stock",
       value: outOfStockProducts.length.toString(),
+      description: "Need immediate restock",
       icon: "close-circle-outline",
-      color: COLORS.danger,
+      iconColor: COLORS.danger,
+      iconBg: '#fed7aa',
       bgColor: '#ffedd5',
     },
     {
       title: "Total Value",
       value: `$${totalValue.toFixed(2)}`,
+      description: "Current stock worth",
       icon: "cash-outline",
-      color: COLORS.success,
-      bgColor: '#e2e8f0',
+      iconColor: COLORS.success,
+      iconBg: '#e2e8f0',
+      bgColor: '#f8fafc',
     },
   ];
 
@@ -176,16 +186,6 @@ const AdminStock = () => {
     'Sports',
     'Books',
     'Other'
-  ];
-
-  // Supplier options
-  const supplierOptions = [
-    'TechSuppliers Inc.',
-    'Fashion Distributors',
-    'Food Importers Ltd.',
-    'Home Essentials Co.',
-    'Beauty World',
-    'Global Suppliers',
   ];
 
   // Get stock badge styling
@@ -439,11 +439,12 @@ const AdminStock = () => {
                   },
                 ]}
               >
-                <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
-                  <Ionicons name={stat.icon} size={20} color={stat.color} />
+                <View style={[styles.statIcon, { backgroundColor: stat.iconBg }]}>
+                  <Ionicons name={stat.icon} size={20} color={stat.iconColor} />
                 </View>
                 <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
-                <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
+                <Text style={[styles.statTitle, { color: COLORS.primary }]}>{stat.title}</Text>
+                <Text style={[styles.statDescription, { color: COLORS.muted }]}>{stat.description}</Text>
               </View>
             </View>
           ))}
@@ -633,33 +634,22 @@ const AdminStock = () => {
 
               {/* Supplier */}
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Supplier *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.tagContainer}>
-                    {supplierOptions.map((supplier) => (
-                      <TouchableOpacity
-                        key={supplier}
-                        style={[
-                          styles.tag,
-                          { 
-                            backgroundColor: formData.supplier === supplier ? COLORS.primary : COLORS.input,
-                            borderColor: formData.supplier === supplier ? COLORS.primary : COLORS.border
-                          }
-                        ]}
-                        onPress={() => setFormData({ ...formData, supplier })}
-                      >
-                        <Text style={[
-                          styles.tagText,
-                          { 
-                            color: formData.supplier === supplier ? '#FFFFFF' : COLORS.primary 
-                          }
-                        ]}>
-                          {supplier}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
+                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Supplier Name *</Text>
+                <TextInput
+                  value={formData.supplier}
+                  onChangeText={(text) => setFormData({ ...formData, supplier: text })}
+                  placeholder="Enter supplier name"
+                  autoCapitalize="words"
+                  style={[
+                    styles.formInput,
+                    {
+                      backgroundColor: COLORS.input,
+                      borderColor: COLORS.border,
+                      color: COLORS.primary,
+                    },
+                  ]}
+                  placeholderTextColor={COLORS.muted}
+                />
               </View>
 
               {/* Unit Type */}
@@ -985,7 +975,7 @@ const AdminStock = () => {
                 )}
 
                 <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: COLORS.accent }]}
+                  style={[styles.editButton, { backgroundColor: COLORS.primary }]}
                   onPress={() => {
                     handleEditProduct(selectedProduct);
                     setSelectedProduct(null);
@@ -1047,10 +1037,11 @@ const styles = StyleSheet.create({
     ...ADMIN_GRID_ITEM,
   },
   statCard: {
+    ...ADMIN_STAT_CARD,
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
     minHeight: 136,
+    alignItems: "center",
   },
   statIcon: {
     width: 40,
@@ -1061,12 +1052,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     marginBottom: 4,
   },
   statTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  statDescription: {
     fontSize: 12,
+    textAlign: "center",
   },
 
   // Search Section
@@ -1388,18 +1385,18 @@ const styles = StyleSheet.create({
   },
   productDetailField: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: ADMIN_COLORS.background,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: ADMIN_COLORS.border,
     padding: 16,
     gap: 8,
   },
   productDetailFieldWide: {
-    backgroundColor: COLORS.background,
+    backgroundColor: ADMIN_COLORS.background,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: ADMIN_COLORS.border,
     padding: 16,
     gap: 8,
   },

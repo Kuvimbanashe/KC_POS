@@ -17,7 +17,7 @@ import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import type { SaleRecord } from "../../store/types";
 import type { PaymentMethod } from "../../store/types";
 import { fetchOperationalData } from "../../store/slices/userSlice";
-import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from "../../theme/adminUi";
+import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM, ADMIN_STAT_CARD } from "../../theme/adminUi";
 import {
   buildPrintableReceiptFromSale,
   isSilentPrintFailure,
@@ -30,8 +30,10 @@ const DEBOUNCE_MS = 300;
 interface StatMetric {
   label: string;
   value: string;
+  description: string;
   icon: keyof typeof Ionicons.glyphMap;
-  color: string;
+  iconColor: string;
+  iconBg: string;
   bgColor: string;
 }
 
@@ -101,29 +103,37 @@ const AdminSales: React.FC = () => {
     {
       label: "Total Sales",
       value: sales.length.toString(),
+      description: "Completed transactions",
       icon: "cart-outline",
-      color: ADMIN_COLORS.primary,
-      bgColor: ADMIN_COLORS.navyTintStrong,
+      iconColor: ADMIN_COLORS.primary,
+      iconBg: ADMIN_COLORS.navyTintStrong,
+      bgColor: ADMIN_COLORS.navyTint,
     },
     {
       label: "Total Revenue",
       value: `$${totalRevenue.toFixed(2)}`,
+      description: "Gross revenue recorded",
       icon: "cash-outline",
-      color: ADMIN_COLORS.accentStrong,
-      bgColor: ADMIN_COLORS.surfaceTintStrong,
+      iconColor: ADMIN_COLORS.accentStrong,
+      iconBg: ADMIN_COLORS.surfaceTintStrong,
+      bgColor: ADMIN_COLORS.surfaceTint,
     },
     {
       label: "Avg Sale",
       value: `$${averageSale.toFixed(2)}`,
+      description: "Per transaction average",
       icon: "stats-chart-outline",
-      color: ADMIN_COLORS.primary,
+      iconColor: ADMIN_COLORS.primary,
+      iconBg: ADMIN_COLORS.navyTintStrong,
       bgColor: ADMIN_COLORS.navyTint,
     },
     {
       label: "Today's Sales",
       value: todaySales.length.toString(),
+      description: "Transactions completed today",
       icon: "today-outline",
-      color: ADMIN_COLORS.accentStrong,
+      iconColor: ADMIN_COLORS.accentStrong,
+      iconBg: ADMIN_COLORS.surfaceTintStrong,
       bgColor: ADMIN_COLORS.surfaceTint,
     },
   ];
@@ -159,15 +169,12 @@ const AdminSales: React.FC = () => {
   // Render metric card
   const renderMetricCard = (metric: StatMetric) => (
     <View style={[styles.metricCard, { backgroundColor: metric.bgColor }]}>
-      <View style={styles.metricContent}>
-        <Text style={styles.metricLabel}>{metric.label}</Text>
-        <Text style={[styles.metricValue, { color: metric.color }]}>
-          {metric.value}
-        </Text>
+      <View style={[styles.metricIcon, { backgroundColor: metric.iconBg }]}>
+        <Ionicons name={metric.icon} size={20} color={metric.iconColor} />
       </View>
-      <View style={[styles.metricIcon, { backgroundColor: metric.color }]}>
-        <Ionicons name={metric.icon} size={20} color="#FFFFFF" />
-      </View>
+      <Text style={styles.metricValue}>{metric.value}</Text>
+      <Text style={styles.metricLabel}>{metric.label}</Text>
+      <Text style={styles.metricDescription}>{metric.description}</Text>
     </View>
   );
 
@@ -564,33 +571,35 @@ const styles = StyleSheet.create({
     ...ADMIN_GRID_ITEM,
   },
   metricCard: {
-    borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
-    borderRadius: 12,
+    ...ADMIN_STAT_CARD,
     padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    minHeight: 136,
     alignItems: "center",
-  },
-  metricContent: {
-    flex: 1,
   },
   metricLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
-    color: ADMIN_COLORS.secondaryText,
-    marginBottom: 4,
+    color: ADMIN_COLORS.text,
+    marginBottom: 2,
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
+    color: ADMIN_COLORS.text,
+    marginBottom: 4,
+  },
+  metricDescription: {
+    fontSize: 12,
+    color: ADMIN_COLORS.secondaryText,
+    textAlign: "center",
   },
   metricIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 12,
   },
 
   // Filters section
