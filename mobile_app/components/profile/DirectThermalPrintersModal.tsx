@@ -368,7 +368,7 @@ export function DirectThermalPrintersModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Thermal Printers</Text>
           <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>

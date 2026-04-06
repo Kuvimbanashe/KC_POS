@@ -543,7 +543,7 @@ const AdminStock = () => {
           resetForm();
         }}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
           <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
             <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
               {isEditMode ? 'Edit Product' : 'New Product'}
@@ -829,7 +829,7 @@ const AdminStock = () => {
         animationType="slide"
         onRequestClose={() => setScannerOpen(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
           <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
             <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Scan Barcode</Text>
             <TouchableOpacity onPress={() => setScannerOpen(false)}>
@@ -855,7 +855,7 @@ const AdminStock = () => {
         onRequestClose={() => setSelectedProduct(null)}
       >
         {selectedProduct && (
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
             <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
               <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Product Details</Text>
               <TouchableOpacity onPress={() => setSelectedProduct(null)}>

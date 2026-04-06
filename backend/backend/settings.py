@@ -69,7 +69,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASE_URL = os.getenv('DATABASE_URL') 
 if not DATABASE_URL:
-    DATABASE_URL="postgresql://neondb_owner:npg_Dr1fTb4xcgqU@ep-silent-heart-anyns9cb-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    DATABASE_URL="postgresql://neondb_owner:npg_PBI30jsuRGfH@ep-jolly-haze-ammfyn4w-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
     
 if not DATABASE_URL:
     raise ImproperlyConfigured(

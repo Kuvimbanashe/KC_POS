@@ -671,8 +671,8 @@ const CashierSell = () => {
         </TouchableOpacity>
       </View>
 
-      <Modal visible={isLookingUpBarcode} transparent animationType="fade">
-        <View style={styles.processingOverlay}>
+      <Modal visible={isLookingUpBarcode} transparent animationType="fade" statusBarTranslucent>
+        <SafeAreaView style={styles.processingOverlay} edges={['top', 'bottom']}>
           <View style={styles.processingCard}>
             <ActivityIndicator size="large" color="#0F172A" />
             <Text style={styles.processingTitle}>Looking up barcode...</Text>
@@ -680,7 +680,7 @@ const CashierSell = () => {
               Checking product details before we open the item picker.
             </Text>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
 
 
@@ -689,7 +689,7 @@ const CashierSell = () => {
         animationType="slide"
         onRequestClose={() => setScannerOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Scan Barcode</Text>
             <TouchableOpacity onPress={() => setScannerOpen(false)} style={styles.closeButton}>
@@ -717,7 +717,7 @@ const CashierSell = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setIsProductModalOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Product</Text>
             <TouchableOpacity 
@@ -767,7 +767,7 @@ const CashierSell = () => {
         presentationStyle="formSheet"
         onRequestClose={() => setIsQuantityModalOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {editingCartItem ? 'Edit Item' : 'Add to Cart'}
@@ -878,7 +878,7 @@ const CashierSell = () => {
           presentationStyle="pageSheet"
           onRequestClose={() => setShowReceipt(false)}
         >
-          <SafeAreaView style={styles.modalContainer}>
+          <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Receipt</Text>
               <TouchableOpacity 

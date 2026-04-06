@@ -377,7 +377,7 @@ const AdminPurchases = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setIsProductModalOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Product</Text>
             <TouchableOpacity onPress={() => setIsProductModalOpen(false)}>
@@ -412,7 +412,7 @@ const AdminPurchases = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setIsPurchaseModalOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>New Purchase</Text>
             <TouchableOpacity onPress={() => setIsPurchaseModalOpen(false)}>
@@ -577,7 +577,7 @@ const AdminPurchases = () => {
         onRequestClose={() => setSelectedPurchase(null)}
       >
         {selectedPurchase && (
-          <SafeAreaView style={styles.modalContainer}>
+          <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Order #{selectedPurchase.id}</Text>
               <TouchableOpacity onPress={() => setSelectedPurchase(null)}>

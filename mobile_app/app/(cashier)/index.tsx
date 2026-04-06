@@ -391,7 +391,7 @@ const CashierHome = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedReceipt(null)}
       >
-        <SafeAreaView style={styles.receiptModalPage}>
+        <SafeAreaView style={styles.receiptModalPage} edges={['top', 'bottom']}>
           <View style={styles.receiptModalHeader}>
             <Text style={styles.ticketsTitle}>Receipt Details</Text>
             <TouchableOpacity style={styles.closeIconButton} onPress={() => setSelectedReceipt(null)}>
@@ -471,7 +471,7 @@ const CashierHome = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setIsProductsModalOpen(false)}
       >
-        <SafeAreaView style={styles.receiptModalPage}>
+        <SafeAreaView style={styles.receiptModalPage} edges={['top', 'bottom']}>
           <View style={styles.receiptModalHeader}>
             <Text style={styles.ticketsTitle}>Products</Text>
             <TouchableOpacity style={styles.closeIconButton} onPress={() => setIsProductsModalOpen(false)}>

@@ -455,7 +455,7 @@ const AdminAssets = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setIsAssetModalOpen(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
           <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
             <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Add Asset</Text>
             <TouchableOpacity onPress={() => setIsAssetModalOpen(false)}>
@@ -655,7 +655,7 @@ const AdminAssets = () => {
         onRequestClose={() => setSelectedAsset(null)}
       >
         {selectedAsset && (
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
             <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
               <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Asset Details</Text>
               <TouchableOpacity onPress={() => setSelectedAsset(null)}>

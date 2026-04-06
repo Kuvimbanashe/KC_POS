@@ -497,7 +497,7 @@ export default function CashierProfileScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setProfileModalOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Personal Info</Text>
             <TouchableOpacity style={styles.modalCloseButton} onPress={() => setProfileModalOpen(false)}>
@@ -557,7 +557,7 @@ export default function CashierProfileScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setPasswordModalOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Change Password</Text>
             <TouchableOpacity style={styles.modalCloseButton} onPress={() => setPasswordModalOpen(false)}>

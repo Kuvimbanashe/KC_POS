@@ -418,7 +418,7 @@ const AdminExpenses = () => {
         presentationStyle="pageSheet"
         onRequestClose={() => setIsDialogOpen(false)}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
           <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
             <Text style={[styles.modalTitle, { color: COLORS.primary }]}>New Expense</Text>
             <TouchableOpacity onPress={() => setIsDialogOpen(false)}>
@@ -529,7 +529,7 @@ const AdminExpenses = () => {
         onRequestClose={() => setSelectedExpense(null)}
       >
         {selectedExpense && (
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]}>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
             <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
               <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
                 Expense Details

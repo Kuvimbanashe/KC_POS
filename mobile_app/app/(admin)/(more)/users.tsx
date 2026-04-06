@@ -243,7 +243,7 @@ const AdminUsers = () => {
       />
 
       <Modal visible={modalOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setModalOpen(false)}>
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editing ? 'Edit User' : 'Create User'}</Text>
             <TouchableOpacity onPress={() => setModalOpen(false)}>

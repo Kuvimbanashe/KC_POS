@@ -385,7 +385,7 @@ const AdminSales: React.FC = () => {
         onRequestClose={() => setSelectedSale(null)}
       >
         {selectedSale && (
-          <SafeAreaView style={styles.modalContainer}>
+          <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Sale Details</Text>
               <TouchableOpacity onPress={() => setSelectedSale(null)}>

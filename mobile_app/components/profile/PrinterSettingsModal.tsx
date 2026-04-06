@@ -184,7 +184,7 @@ export function PrinterSettingsModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Receipt Settings</Text>
           <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>
