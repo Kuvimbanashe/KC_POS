@@ -27,8 +27,6 @@ interface MoreItem {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   route: MoreRoute;
-  tone: string;
-  bg: string;
 }
 
 const styles = StyleSheet.create({
@@ -71,19 +69,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 10,
+    gap: 14,
   },
   actionLeft: {
+    flex: 1,
+    gap: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
   },
   iconWrap: {
     width: 42,
     height: 42,
     borderRadius: 14,
+    backgroundColor: ADMIN_COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -96,9 +94,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: ADMIN_COLORS.secondaryText,
     marginTop: 4,
+    lineHeight: 18,
   },
   summaryRow: {
     flexDirection: 'row',
+    gap: 10,
+  },
+  actionsList: {
     gap: 10,
   },
   summaryCard: {
@@ -133,32 +135,24 @@ export default function AdminMoreScreen() {
         description: 'Track procurement, supplier activity, and restocking work.',
         icon: 'cart-outline',
         route: '/(admin)/(more)/purchases',
-        tone: ADMIN_COLORS.info,
-        bg: '#eff6ff',
       },
       {
         title: 'Expenses',
         description: 'Review spending, vendor payments, and operating costs.',
         icon: 'cash-outline',
         route: '/(admin)/(more)/expenses',
-        tone: ADMIN_COLORS.warning,
-        bg: '#fef3c7',
       },
       {
         title: 'Assets',
         description: 'Manage equipment, asset values, and locations.',
         icon: 'briefcase-outline',
         route: '/(admin)/(more)/assets',
-        tone: ADMIN_COLORS.success,
-        bg: '#dcfce7',
       },
       {
         title: 'Users',
         description: 'Control staff accounts, roles, and business access.',
         icon: 'people-outline',
         route: '/(admin)/(more)/users',
-        tone: ADMIN_COLORS.accentStrong,
-        bg: '#fff7ed',
       },
     ],
     [],
@@ -171,15 +165,13 @@ export default function AdminMoreScreen() {
         description: 'Update your personal details, password, and account settings.',
         icon: 'person-outline',
         route: '/(admin)/(more)/profile',
-        tone: ADMIN_COLORS.primary,
-        bg: '#e2e8f0',
       },
     ],
     [],
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
        
 
@@ -202,20 +194,22 @@ export default function AdminMoreScreen() {
           <Text style={styles.sectionTitle}>Operations</Text>
           <Text style={styles.sectionSubtitle}>Everything that supports the business beyond day-to-day selling and reporting.</Text>
 
-          {operations.map((item) => (
-            <TouchableOpacity key={item.title} style={styles.actionCard} onPress={() => router.push(item.route)}>
-              <View style={styles.actionLeft}>
-                <View style={[styles.iconWrap, { backgroundColor: item.bg }]}>
-                  <Ionicons name={item.icon} size={20} color={item.tone} />
+          <View style={styles.actionsList}>
+            {operations.map((item) => (
+              <TouchableOpacity key={item.title} style={styles.actionCard} onPress={() => router.push(item.route)}>
+                <View style={styles.actionLeft}>
+                  <View style={styles.iconWrap}>
+                    <Ionicons name={item.icon} size={20} color="#F8FAFC" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.actionTitle}>{item.title}</Text>
+                    <Text style={styles.actionDescription}>{item.description}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.actionTitle}>{item.title}</Text>
-                  <Text style={styles.actionDescription}>{item.description}</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward-outline" size={20} color={ADMIN_COLORS.tertiaryText} />
-            </TouchableOpacity>
-          ))}
+                <Ionicons name="chevron-forward-outline" size={20} color={ADMIN_COLORS.tertiaryText} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <View style={styles.sectionCard}>
@@ -227,8 +221,8 @@ export default function AdminMoreScreen() {
           {account.map((item) => (
             <TouchableOpacity key={item.title} style={styles.actionCard} onPress={() => router.push(item.route)}>
               <View style={styles.actionLeft}>
-                <View style={[styles.iconWrap, { backgroundColor: item.bg }]}>
-                  <Ionicons name={item.icon} size={20} color={item.tone} />
+                <View style={styles.iconWrap}>
+                  <Ionicons name={item.icon} size={20} color="#F8FAFC" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.actionTitle}>{item.title}</Text>
@@ -240,6 +234,6 @@ export default function AdminMoreScreen() {
           ))}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -8,10 +8,12 @@ import {
   Alert,
   Modal,
   FlatList,
-  SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { addAsset, deleteAsset } from '../../../store/slices/assetsSlice';
 import { fetchAssets } from '../../../store/slices/assetsSlice';
@@ -19,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { AssetRecord } from '../../../store/types';
 import { apiClient } from '../../../services/api';
+import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from '../../../theme/adminUi';
 
 type ConditionFilter = 'all' | AssetRecord['condition'];
 
@@ -71,20 +74,20 @@ const AdminAssets = () => {
 
   // Colors based on your Tailwind config
   const COLORS = {
-    primary: '#0f172a', // hsl(220 90% 15%)
+    primary: '#0f172a',
     primaryLight: '#1e293b',
-    accent: '#f97316', // hsl(25 95% 53%)
+    accent: '#f97316',
     accentLight: '#fb923c',
     background: '#ffffff',
     card: '#ffffff',
-    border: '#e2e8f0', // hsl(220 20% 90%)
-    input: '#e2e8f0',
-    destructive: '#ef4444',
-    muted: '#64748b', // hsl(220 30% 45%)
-    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#dc2626',
+    border: '#e2e8f0',
+    input: '#f8fafc',
+    destructive: '#ea580c',
+    muted: '#64748b',
+    mutedLight: '#f8fafc',
+    success: '#0f172a',
+    warning: '#f97316',
+    danger: '#ea580c',
   };
 
   useEffect(() => {
@@ -172,7 +175,7 @@ const AdminAssets = () => {
   const getConditionColor = (condition: AssetRecord['condition']) => {
     const colorMap: Record<AssetRecord['condition'], string> = {
       excellent: COLORS.success,
-      good: '#3b82f6', // Blue
+      good: COLORS.primary,
       fair: COLORS.warning,
       poor: COLORS.danger,
     };
@@ -325,25 +328,19 @@ const AdminAssets = () => {
         </View>
 
         {/* Stats Grid */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.statsScroll}
-          contentContainerStyle={styles.statsContent}
-        >
+        <View style={styles.statsGrid}>
           {statCards.map((stat, index) => (
-            <View 
-              key={index} 
-              style={[styles.statCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
-            >
-              <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
-                <Ionicons name={stat.icon} size={20} color={stat.color} />
+            <View key={index} style={styles.statCardWrapper}>
+              <View style={[styles.statCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+                <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
+                  <Ionicons name={stat.icon} size={20} color={stat.color} />
+                </View>
+                <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
+                <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
               </View>
-              <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
-              <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
             </View>
           ))}
-        </ScrollView>
+        </View>
 
         {/* Search and Actions Section */}
         <View style={[styles.searchCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
@@ -355,7 +352,7 @@ const AdminAssets = () => {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: COLORS.accent }]}
+              style={[styles.addButton, { backgroundColor: COLORS.primary }]}
               onPress={() => setIsAssetModalOpen(true)}
             >
               <Ionicons name="add" size={20} color="#FFFFFF" />
@@ -426,7 +423,7 @@ const AdminAssets = () => {
             </Text>
             {(searchQuery || conditionFilter !== 'all') && (
               <TouchableOpacity
-                style={[styles.clearButton, { backgroundColor: COLORS.danger }]}
+                style={[styles.clearButton, { backgroundColor: COLORS.primary }]}
                 onPress={() => {
                   setSearchQuery('');
                   setConditionFilter('all');
@@ -463,7 +460,11 @@ const AdminAssets = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <View style={styles.formContainer}>
               {/* Asset Name */}
               <View style={styles.formGroup}>
@@ -644,6 +645,7 @@ const AdminAssets = () => {
               </View>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -663,59 +665,88 @@ const AdminAssets = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
-              <View style={styles.detailsContainer}>
-                {/* Asset Header */}
-                <View style={styles.detailsHeader}>
-                  <Text style={[styles.assetNameLarge, { color: COLORS.primary }]}>{selectedAsset.name}</Text>
-                  <View style={[styles.conditionBadge, { 
-                    backgroundColor: `${getConditionColor(selectedAsset.condition)}15` 
-                  }]}>
-                    <Text style={[styles.conditionText, { color: getConditionColor(selectedAsset.condition) }]}>
-                      {selectedAsset.condition.charAt(0).toUpperCase() + selectedAsset.condition.slice(1)}
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.assetDetailScrollContent}
+            >
+              <View style={styles.assetDetailStack}>
+                <View style={[styles.assetDetailHero, { backgroundColor: COLORS.primary }]}>
+                  <Text style={styles.assetDetailHeroValue}>
+                    ${selectedAsset.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                  <Text style={styles.assetDetailHeroLabel}>Current Asset Value</Text>
+                </View>
+
+                <View style={styles.assetDetailSection}>
+                  <View style={styles.assetDetailFieldWide}>
+                    <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Asset Name</Text>
+                    <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>
+                      {selectedAsset.name}
                     </Text>
+                  </View>
+                  <View style={styles.assetDetailFieldWide}>
+                    <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Condition</Text>
+                    <View
+                      style={[
+                        styles.conditionBadge,
+                        { backgroundColor: `${getConditionColor(selectedAsset.condition)}15` },
+                      ]}
+                    >
+                      <Text style={[styles.conditionText, { color: getConditionColor(selectedAsset.condition) }]}>
+                        {selectedAsset.condition.charAt(0).toUpperCase() + selectedAsset.condition.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.assetDetailGrid}>
+                    <View style={styles.assetDetailField}>
+                      <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Category</Text>
+                      <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>
+                        {selectedAsset.category}
+                      </Text>
+                    </View>
+                    <View style={styles.assetDetailField}>
+                      <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Location</Text>
+                      <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>
+                        {selectedAsset.location}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
-                {/* Details Grid */}
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedAsset.category}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Location</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedAsset.location}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Purchase Date</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                      {new Date(selectedAsset.purchaseDate).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Purchase Value</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                      ${selectedAsset.purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Current Value</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.accent }]}>
-                      ${selectedAsset.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Depreciation</Text>
-                    <Text style={[styles.detailValue, { 
-                      color: (selectedAsset.purchaseValue - selectedAsset.currentValue) > 0 ? COLORS.danger : COLORS.success 
-                    }]}>
-                      ${(selectedAsset.purchaseValue - selectedAsset.currentValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
+                <View style={[styles.assetDetailStatsCard, { backgroundColor: COLORS.mutedLight, borderColor: COLORS.border }]}>
+                  <Text style={[styles.assetDetailStatsTitle, { color: COLORS.primary }]}>Value Breakdown</Text>
+                  <View style={styles.assetDetailMetaGrid}>
+                    <View style={styles.assetDetailMetaRow}>
+                      <Text style={[styles.assetDetailMetaLabel, { color: COLORS.muted }]}>Purchase Date</Text>
+                      <Text style={[styles.assetDetailMetaValue, { color: COLORS.primary }]}>
+                        {new Date(selectedAsset.purchaseDate).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <View style={styles.assetDetailMetaRow}>
+                      <Text style={[styles.assetDetailMetaLabel, { color: COLORS.muted }]}>Purchase Value</Text>
+                      <Text style={[styles.assetDetailMetaValue, { color: COLORS.primary }]}>
+                        ${selectedAsset.purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    <View style={styles.assetDetailMetaRow}>
+                      <Text style={[styles.assetDetailMetaLabel, { color: COLORS.muted }]}>Depreciation</Text>
+                      <Text
+                        style={[
+                          styles.assetDetailMetaValue,
+                          {
+                            color:
+                              selectedAsset.purchaseValue - selectedAsset.currentValue > 0
+                                ? COLORS.danger
+                                : COLORS.success,
+                          },
+                        ]}
+                      >
+                        ${(selectedAsset.purchaseValue - selectedAsset.currentValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
-                {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
                     style={[
@@ -781,19 +812,19 @@ const styles = StyleSheet.create({
   },
 
   // Stats
-  statsScroll: {
+  statsGrid: {
+    ...ADMIN_GRID_2X2,
+    marginHorizontal: 14,
     marginBottom: 20,
   },
-  statsContent: {
-    paddingHorizontal: 20,
-    paddingRight: 40,
+  statCardWrapper: {
+    ...ADMIN_GRID_ITEM,
   },
   statCard: {
     borderRadius: 12,
     padding: 16,
-    marginRight: 12,
-    width: 140,
     borderWidth: 1,
+    minHeight: 136,
   },
   statIcon: {
     width: 40,
@@ -835,7 +866,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addButton: {
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
     flexDirection: "row",
@@ -969,7 +1000,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   clearButton: {
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
@@ -1091,6 +1122,87 @@ const styles = StyleSheet.create({
   // Details Modal
   detailsContainer: {
     gap: 24,
+  },
+  assetDetailScrollContent: {
+    padding: 20,
+    paddingBottom: 28,
+  },
+  assetDetailStack: {
+    gap: 20,
+  },
+  assetDetailHero: {
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  assetDetailHeroValue: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  assetDetailHeroLabel: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.92,
+  },
+  assetDetailSection: {
+    gap: 16,
+  },
+  assetDetailGrid: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  assetDetailField: {
+    flex: 1,
+    backgroundColor: ADMIN_COLORS.background,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 16,
+    gap: 8,
+  },
+  assetDetailFieldWide: {
+    backgroundColor: ADMIN_COLORS.background,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 16,
+    gap: 8,
+  },
+  assetDetailFieldLabel: {
+    fontSize: 13,
+  },
+  assetDetailFieldValue: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  assetDetailStatsCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  assetDetailStatsTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  assetDetailMetaGrid: {
+    gap: 10,
+  },
+  assetDetailMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  assetDetailMetaLabel: {
+    fontSize: 14,
+  },
+  assetDetailMetaValue: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   detailsHeader: {
     flexDirection: "row",

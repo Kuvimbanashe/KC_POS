@@ -9,6 +9,8 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
@@ -612,7 +614,7 @@ const CashierSell = () => {
       </View>
 
       {/* Cart Section */}
-      <ScrollView style={styles.mainContent}>
+      <ScrollView style={styles.mainContent} keyboardShouldPersistTaps="handled">
         <View style={styles.cartSection}>
           <View style={styles.cartHeader}>
             <View style={styles.cartTitle}>
@@ -718,6 +720,10 @@ const CashierSell = () => {
         onRequestClose={() => setIsProductModalOpen(false)}
       >
         <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Product</Text>
             <TouchableOpacity 
@@ -757,6 +763,7 @@ const CashierSell = () => {
               style={styles.productList}
             />
           )}
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -780,7 +787,11 @@ const CashierSell = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.quantityModalContent}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView style={styles.quantityModalContent} keyboardShouldPersistTaps="handled">
             <View style={styles.productHeader}>
               <Text style={styles.productModalName}>{selectedProduct?.name}</Text>
               <Text style={styles.productModalPrice}>
@@ -820,7 +831,7 @@ const CashierSell = () => {
                 onPress={() => setQuantity(Math.max(1, quantityValue - 1).toString())}
                 style={styles.quantityButton}
               >
-                <Ionicons name="remove" size={24} color="#3B82F6" />
+                <Ionicons name="remove" size={24} color="#0F172A" />
               </TouchableOpacity>
               
               <TextInput
@@ -835,7 +846,7 @@ const CashierSell = () => {
                 onPress={() => setQuantity((quantityValue + 1).toString())}
                 style={styles.quantityButton}
               >
-                <Ionicons name="add" size={24} color="#3B82F6" />
+                <Ionicons name="add" size={24} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
@@ -867,6 +878,7 @@ const CashierSell = () => {
               </Text>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -1412,11 +1424,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginHorizontal: 4,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
   },
   unitTypeOptionActive: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF',
+    borderColor: '#0F172A',
+    backgroundColor: '#E2E8F0',
   },
   unitTypeLabel: {
     fontSize: 16,
@@ -1425,7 +1437,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   unitTypeLabelActive: {
-    color: '#3B82F6',
+    color: '#0F172A',
   },
   unitTypeDescription: {
     fontSize: 12,
@@ -1440,7 +1452,9 @@ const styles = StyleSheet.create({
   quantityButton: {
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   quantityInput: {
     width: 80,
@@ -1488,10 +1502,10 @@ const styles = StyleSheet.create({
   summaryTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#EA580C',
   },
   confirmButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#0F172A',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -1619,7 +1633,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   newSaleButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#0F172A',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -1631,7 +1645,7 @@ const styles = StyleSheet.create({
   },
   printReceiptButton: {
     marginTop: 12,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0F172A',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',

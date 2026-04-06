@@ -37,6 +37,7 @@ interface StatCard {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconBg: string;
+  iconColor: string;
 }
 
 interface RecentActivity {
@@ -135,28 +136,32 @@ const AdminHome = () => {
       value: stats.todaySales.toString(),
       description: 'Transactions',
       icon: 'cart-outline',
-      iconBg: '#E8F4FD',
+      iconBg: ADMIN_COLORS.navyTintStrong,
+      iconColor: ADMIN_COLORS.primary,
     },
     {
       title: "Today's Revenue",
       value: `$${stats.todayRevenue.toFixed(2)}`,
       description: 'Total earnings',
       icon: 'cash-outline',
-      iconBg: '#E6F7EF',
+      iconBg: ADMIN_COLORS.surfaceTintStrong,
+      iconColor: ADMIN_COLORS.accentStrong,
     },
     {
       title: 'Total Products',
       value: stats.totalProducts.toString(),
       description: 'In inventory',
       icon: 'cube-outline',
-      iconBg: '#F2F0FF',
+      iconBg: ADMIN_COLORS.navyTint,
+      iconColor: ADMIN_COLORS.primary,
     },
     {
       title: 'Low Stock Alert',
       value: stats.lowStockItems.toString(),
       description: 'Items below 10 units',
       icon: 'warning-outline',
-      iconBg: '#FEEBEB',
+      iconBg: ADMIN_COLORS.surfaceTint,
+      iconColor: ADMIN_COLORS.accentStrong,
     },
   ];
 
@@ -238,7 +243,7 @@ const AdminHome = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={ADMIN_COLORS.primary} />
           <Text style={styles.loadingText}>Loading dashboard...</Text>
         </View>
       </View>
@@ -274,7 +279,7 @@ const AdminHome = () => {
                     <Ionicons 
                       name={stat.icon} 
                       size={20} 
-                      color={ADMIN_COLORS.text} 
+                      color={stat.iconColor} 
                     />
                   </View>
                   <Text style={styles.statValue}>{stat.value}</Text>
@@ -286,36 +291,31 @@ const AdminHome = () => {
           </View>
         </View>
 
-        {/* Quick Actions Grid - 2x2 layout */}
+        {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <Text style={styles.sectionSubtitle}>Jump straight into the admin tools you use most.</Text>
-          <View style={styles.actionsGrid}>
+          <View style={styles.actionsList}>
             {quickActions.map((action) => (
-              <TouchableOpacity
-                key={action.id}
-                style={styles.actionCard}
-                onPress={action.action}
-               
-              >
-                <View style={styles.actionIconContainer}>
-                  <Ionicons 
-                    name={action.icon} 
-                    size={24} 
-                    color="#2563EB" 
-                  />
+              <TouchableOpacity key={action.id} style={styles.actionCard} onPress={action.action}>
+                <View style={styles.actionLeading}>
+                  <View style={styles.actionIconContainer}>
+                    <Ionicons
+                      name={action.icon}
+                      size={20}
+                      color="#F8FAFC"
+                    />
+                  </View>
+                  <View style={styles.actionCopy}>
+                    <Text style={styles.actionTitle}>{action.title}</Text>
+                    <Text style={styles.actionDescription}>{action.description}</Text>
+                  </View>
                 </View>
-                <View style={styles.actionCopy}>
-                 <Text style={styles.actionTitle}>{action.title}</Text>
-                  <Text style={styles.actionDescription}>{action.description}</Text>
-                </View>
-
-                <Ionicons 
-                  name="chevron-forward" 
-                  size={22}
+                <Ionicons
+                  name="chevron-forward-outline"
+                  size={20}
                   color={ADMIN_COLORS.tertiaryText}
                 />
-
               </TouchableOpacity>
             ))}
           </View>
@@ -476,27 +476,32 @@ const styles = StyleSheet.create({
     marginTop: -6,
   },
   
-  // Quick Actions Grid - 2x2 layout
-  actionsGrid: {
+  // Quick Actions
+  actionsList: {
     gap: 10,
   },
   actionCard: {
     ...ADMIN_LIST_CARD,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    flexDirection:"row",
-    alignItems:"center",
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap:12,
+    padding: 16,
+    gap: 14,
+  },
+  actionLeading: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   actionCopy: {
     flex: 1,
   },
   actionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#EFF6FF',
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: ADMIN_COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -509,6 +514,7 @@ const styles = StyleSheet.create({
   actionDescription: {
     fontSize: 12,
     color: ADMIN_COLORS.secondaryText,
+    lineHeight: 18,
   },
   
   // Recent Activity
@@ -556,7 +562,7 @@ const styles = StyleSheet.create({
   activityAmount: {
     fontSize: 14,
     fontWeight: '600',
-    color: ADMIN_COLORS.success,
+    color: ADMIN_COLORS.accentStrong,
    
   },
   

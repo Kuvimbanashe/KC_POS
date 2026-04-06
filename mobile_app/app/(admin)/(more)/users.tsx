@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -251,7 +253,11 @@ const AdminUsers = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
             <View style={styles.modalSection}>
               <TextInput style={styles.input} placeholder="Name" placeholderTextColor={ADMIN_COLORS.tertiaryText} value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
               <TextInput style={styles.input} placeholder="Email" placeholderTextColor={ADMIN_COLORS.tertiaryText} value={form.email} onChangeText={(t) => setForm({ ...form, email: t })} autoCapitalize="none" />
@@ -299,6 +305,7 @@ const AdminUsers = () => {
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -312,7 +319,7 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1, gap: 4 },
   title: { ...ADMIN_PAGE_TITLE },
   subtitle: { ...ADMIN_PAGE_SUBTITLE },
-  addBtn: { backgroundColor: '#f97316', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', gap: 6 },
+  addBtn: { backgroundColor: ADMIN_COLORS.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, flexDirection: 'row', gap: 6 },
   addText: { color: '#fff', fontWeight: '600' },
   searchCard: { ...ADMIN_INPUT_SURFACE, flexDirection: 'row', alignItems: 'center' },
   searchInput: { flex: 1, color: ADMIN_COLORS.text, marginLeft: 8, fontSize: 14 },

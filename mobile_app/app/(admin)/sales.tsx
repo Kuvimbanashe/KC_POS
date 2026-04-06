@@ -9,14 +9,15 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import type { SaleRecord } from "../../store/types";
 import type { PaymentMethod } from "../../store/types";
 import { fetchOperationalData } from "../../store/slices/userSlice";
+import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from "../../theme/adminUi";
 import {
   buildPrintableReceiptFromSale,
   isSilentPrintFailure,
@@ -74,9 +75,9 @@ const AdminSales: React.FC = () => {
   // Payment options configuration
   const paymentOptions: PaymentOption[] = [
     { value: "all", label: "All", color: "#374151", bgColor: "#F3F4F6" },
-    { value: "Cash", label: "Cash", color: "#059669", bgColor: "#D1FAE5" },
-    { value: "Card", label: "Card", color: "#2563EB", bgColor: "#DBEAFE" },
-    { value: "Mobile Payment", label: "Mobile", color: "#7C3AED", bgColor: "#EDE9FE" },
+    { value: "Cash", label: "Cash", color: ADMIN_COLORS.accentStrong, bgColor: ADMIN_COLORS.surfaceTint },
+    { value: "Card", label: "Card", color: ADMIN_COLORS.primary, bgColor: ADMIN_COLORS.navyTintStrong },
+    { value: "Mobile Payment", label: "Mobile", color: ADMIN_COLORS.accent, bgColor: ADMIN_COLORS.surfaceTintStrong },
   ];
 
   // Calculate metrics
@@ -101,29 +102,29 @@ const AdminSales: React.FC = () => {
       label: "Total Sales",
       value: sales.length.toString(),
       icon: "cart-outline",
-      color: "#2563EB",
-      bgColor: "#DBEAFE",
+      color: ADMIN_COLORS.primary,
+      bgColor: ADMIN_COLORS.navyTintStrong,
     },
     {
       label: "Total Revenue",
       value: `$${totalRevenue.toFixed(2)}`,
       icon: "cash-outline",
-      color: "#059669",
-      bgColor: "#D1FAE5",
+      color: ADMIN_COLORS.accentStrong,
+      bgColor: ADMIN_COLORS.surfaceTintStrong,
     },
     {
       label: "Avg Sale",
       value: `$${averageSale.toFixed(2)}`,
       icon: "stats-chart-outline",
-      color: "#7C3AED",
-      bgColor: "#EDE9FE",
+      color: ADMIN_COLORS.primary,
+      bgColor: ADMIN_COLORS.navyTint,
     },
     {
       label: "Today's Sales",
       value: todaySales.length.toString(),
       icon: "today-outline",
-      color: "#DC2626",
-      bgColor: "#FEE2E2",
+      color: ADMIN_COLORS.accentStrong,
+      bgColor: ADMIN_COLORS.surfaceTint,
     },
   ];
 
@@ -263,7 +264,7 @@ const AdminSales: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color={ADMIN_COLORS.primary} />
         <Text style={styles.loadingText}>Loading sales...</Text>
       </SafeAreaView>
     );
@@ -279,18 +280,13 @@ const AdminSales: React.FC = () => {
         </View>
 
         {/* Metrics grid */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.metricsScroll}
-          contentContainerStyle={styles.metricsContent}
-        >
+        <View style={styles.metricsGrid}>
           {metrics.map((metric, index) => (
             <View key={index} style={styles.metricWrapper}>
               {renderMetricCard(metric)}
             </View>
           ))}
-        </ScrollView>
+        </View>
 
         {/* Filters section */}
         <View style={styles.filtersCard}>
@@ -303,7 +299,7 @@ const AdminSales: React.FC = () => {
             </View>
             {(searchQuery || paymentFilter !== "all") && (
               <TouchableOpacity onPress={clearFilters} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={16} color="#DC2626" />
+                <Ionicons name="close-circle" size={16} color={ADMIN_COLORS.accentStrong} />
                 <Text style={styles.clearButtonText}>Clear</Text>
               </TouchableOpacity>
             )}
@@ -389,99 +385,127 @@ const AdminSales: React.FC = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Sale Details</Text>
               <TouchableOpacity onPress={() => setSelectedSale(null)}>
-                <Ionicons name="close" size={24} color="#374151" />
+                <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
-              <View style={styles.modalContent}>
-                {/* Basic info */}
-                <View style={styles.modalSection}>
-                  <View style={styles.modalRow}>
-                    <View style={styles.modalInfo}>
-                      <Text style={styles.modalLabel}>Invoice #</Text>
-                      <Text style={styles.modalValue}>{selectedSale.invoiceNumber || `INV-${selectedSale.id}`}</Text>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.saleDetailScrollContent}
+            >
+              <View style={styles.saleDetailStack}>
+                <View style={styles.saleDetailHero}>
+                  <Text style={styles.saleDetailHeroValue}>
+                    ${(selectedSale.total || 0).toFixed(2)}
+                  </Text>
+                  <Text style={styles.saleDetailHeroLabel}>Total Sale Value</Text>
+                </View>
+
+                <View style={styles.saleDetailSection}>
+                  <View style={styles.saleDetailGrid}>
+                    <View style={styles.saleDetailField}>
+                      <Text style={styles.saleDetailFieldLabel}>Invoice</Text>
+                      <Text style={styles.saleDetailFieldValue}>
+                        {selectedSale.invoiceNumber || `INV-${selectedSale.id}`}
+                      </Text>
                     </View>
-                    <View style={styles.modalInfo}>
-                      <Text style={styles.modalLabel}>Date</Text>
-                      <Text style={styles.modalValue}>
+                    <View style={styles.saleDetailField}>
+                      <Text style={styles.saleDetailFieldLabel}>Date</Text>
+                      <Text style={styles.saleDetailFieldValue}>
                         {new Date(selectedSale.date).toLocaleDateString()}
                       </Text>
                     </View>
                   </View>
-                  
-                  <View style={styles.modalRow}>
-                    <View style={styles.modalInfo}>
-                      <Text style={styles.modalLabel}>Cashier</Text>
-                      <Text style={styles.modalValue}>{selectedSale.cashier}</Text>
+
+                  <View style={styles.saleDetailGrid}>
+                    <View style={styles.saleDetailField}>
+                      <Text style={styles.saleDetailFieldLabel}>Cashier</Text>
+                      <Text style={styles.saleDetailFieldValue}>{selectedSale.cashier}</Text>
                     </View>
-                    <View style={styles.modalInfo}>
-                      <Text style={styles.modalLabel}>Payment Method</Text>
+                    <View style={styles.saleDetailField}>
+                      <Text style={styles.saleDetailFieldLabel}>Payment Method</Text>
                       {getPaymentBadge(selectedSale.paymentMethod)}
                     </View>
                   </View>
                 </View>
 
-                {/* Product details */}
-                <View style={styles.modalSection}>
-                  <Text style={styles.sectionTitle}>Product Details</Text>
-                  {(selectedSale.items?.length ? selectedSale.items : [{
-                    productId: selectedSale.productId ?? 0,
-                    productName: selectedSale.productName ?? 'Item',
-                    quantity: selectedSale.quantity ?? 0,
-                    price: selectedSale.price ?? 0,
-                    subtotal: selectedSale.total ?? 0,
-                    unitType: 'single' as const,
-                    packSize: undefined,
-                  }]).map((line, index) => (
-                    <View key={`${line.productId}-${index}`} style={styles.productCard}>
-                      <View style={styles.productHeader}>
-                        <Text style={styles.productName}>{line.productName}</Text>
-                        <Text style={styles.productPrice}>${(line.subtotal || 0).toFixed(2)}</Text>
+                <View style={styles.saleDetailStatsCard}>
+                  <Text style={styles.saleDetailStatsTitle}>Product Details</Text>
+                  {(selectedSale.items?.length
+                    ? selectedSale.items
+                    : [{
+                        productId: selectedSale.productId ?? 0,
+                        productName: selectedSale.productName ?? 'Item',
+                        quantity: selectedSale.quantity ?? 0,
+                        price: selectedSale.price ?? 0,
+                        subtotal: selectedSale.total ?? 0,
+                        unitType: 'single' as const,
+                        packSize: undefined,
+                      }]
+                  ).map((line, index) => (
+                    <View key={`${line.productId}-${index}`} style={styles.saleDetailLineCard}>
+                      <View style={styles.saleDetailLineHeader}>
+                        <Text style={styles.saleDetailLineTitle}>{line.productName}</Text>
+                        <Text style={styles.saleDetailLineAmount}>
+                          ${(line.subtotal || 0).toFixed(2)}
+                        </Text>
                       </View>
-                      <View style={styles.productDetails}>
-                        <Text style={styles.productDetail}>Quantity: {line.quantity || 0}</Text>
-                        <Text style={styles.productDetail}>Unit Price: ${(line.price || 0).toFixed(2)}</Text>
-                        <Text style={styles.productDetail}>Product ID: {line.productId || '-'}</Text>
+                      <View style={styles.saleDetailMetaGrid}>
+                        <View style={styles.saleDetailMetaRow}>
+                          <Text style={styles.saleDetailMetaLabel}>Quantity</Text>
+                          <Text style={styles.saleDetailMetaValue}>{line.quantity || 0}</Text>
+                        </View>
+                        <View style={styles.saleDetailMetaRow}>
+                          <Text style={styles.saleDetailMetaLabel}>Unit Price</Text>
+                          <Text style={styles.saleDetailMetaValue}>
+                            ${(line.price || 0).toFixed(2)}
+                          </Text>
+                        </View>
+                        <View style={styles.saleDetailMetaRow}>
+                          <Text style={styles.saleDetailMetaLabel}>Product ID</Text>
+                          <Text style={styles.saleDetailMetaValue}>{line.productId || '-'}</Text>
+                        </View>
                       </View>
                     </View>
                   ))}
                 </View>
 
-                {/* Summary */}
-                <View style={styles.summaryCard}>
-                  <Text style={styles.summaryTitle}>Transaction Summary</Text>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Subtotal</Text>
-                    <Text style={styles.summaryValue}>
-                      ${(selectedSale.total || 0).toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Tax</Text>
-                    <Text style={styles.summaryValue}>$0.00</Text>
-                  </View>
-                  <View style={[styles.summaryRow, styles.totalRow]}>
-                    <Text style={styles.totalLabel}>Total</Text>
-                    <Text style={styles.totalValue}>
-                      ${(selectedSale.total || 0).toFixed(2)}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.printButton, isPrintingSale && styles.printButtonDisabled]}
-                    onPress={() => handlePrintSale(selectedSale)}
-                    disabled={isPrintingSale}
-                  >
-                    <View style={styles.printButtonContent}>
-                      {isPrintingSale ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : null}
-                      <Text style={styles.printButtonText}>
-                        {isPrintingSale ? 'Printing...' : 'Print Receipt'}
+                <View style={styles.saleDetailStatsCard}>
+                  <Text style={styles.saleDetailStatsTitle}>Transaction Summary</Text>
+                  <View style={styles.saleDetailMetaGrid}>
+                    <View style={styles.saleDetailMetaRow}>
+                      <Text style={styles.saleDetailMetaLabel}>Subtotal</Text>
+                      <Text style={styles.saleDetailMetaValue}>
+                        ${(selectedSale.total || 0).toFixed(2)}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                    <View style={styles.saleDetailMetaRow}>
+                      <Text style={styles.saleDetailMetaLabel}>Tax</Text>
+                      <Text style={styles.saleDetailMetaValue}>$0.00</Text>
+                    </View>
+                    <View style={styles.saleDetailMetaRow}>
+                      <Text style={styles.saleDetailMetaLabel}>Items</Text>
+                      <Text style={styles.saleDetailMetaValue}>
+                        {(selectedSale.items?.length || selectedSale.quantity || 0).toString()}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
+
+                <TouchableOpacity
+                  style={[styles.printButton, isPrintingSale && styles.printButtonDisabled]}
+                  onPress={() => handlePrintSale(selectedSale)}
+                  disabled={isPrintingSale}
+                >
+                  <View style={styles.printButtonContent}>
+                    {isPrintingSale ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : null}
+                    <Text style={styles.printButtonText}>
+                      {isPrintingSale ? 'Printing...' : 'Print Receipt'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               </View>
             </ScrollView>
           </SafeAreaView>
@@ -495,7 +519,7 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
@@ -510,7 +534,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Header
@@ -522,27 +546,26 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Metrics section
-  metricsScroll: {
-    marginBottom: 24,
-  },
-  metricsContent: {
-    paddingHorizontal: 20,
-    paddingRight: 40,
+  metricsGrid: {
+    ...ADMIN_GRID_2X2,
+    marginHorizontal: 14,
+    marginBottom: 18,
   },
   metricWrapper: {
-    marginRight: 12,
+    ...ADMIN_GRID_ITEM,
   },
   metricCard: {
-    width: 140,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
     borderRadius: 12,
     padding: 16,
     flexDirection: "row",
@@ -555,7 +578,7 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#374151",
+    color: ADMIN_COLORS.secondaryText,
     marginBottom: 4,
   },
   metricValue: {
@@ -572,13 +595,13 @@ const styles = StyleSheet.create({
 
   // Filters section
   filtersCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.surface,
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
   },
   filterHeader: {
     flexDirection: "row",
@@ -589,11 +612,11 @@ const styles = StyleSheet.create({
   filterTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   filterSubtitle: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginTop: 2,
   },
   clearButton: {
@@ -601,13 +624,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: ADMIN_COLORS.surfaceTint,
     borderRadius: 8,
   },
   clearButtonText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#DC2626",
+    color: ADMIN_COLORS.accentStrong,
     marginLeft: 4,
   },
 
@@ -618,15 +641,17 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginLeft: 8,
   },
 
@@ -642,14 +667,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
   },
   paymentFilterText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#374151",
+    color: ADMIN_COLORS.text,
   },
   paymentFilterTextActive: {
     color: "#FFFFFF",
@@ -674,12 +699,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   saleCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
   },
   saleHeader: {
     flexDirection: "row",
@@ -693,17 +718,17 @@ const styles = StyleSheet.create({
   saleId: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 4,
   },
   saleCashier: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   saleAmount: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#059669",
+    color: ADMIN_COLORS.accentStrong,
   },
   saleFooter: {
     flexDirection: "row",
@@ -721,7 +746,7 @@ const styles = StyleSheet.create({
   },
   saleDetailText: {
     fontSize: 12,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Empty state
@@ -734,20 +759,20 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     textAlign: "center",
   },
 
   // Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.background,
   },
   modalHeader: {
     flexDirection: "row",
@@ -756,15 +781,121 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: ADMIN_COLORS.border,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   modalScroll: {
     flex: 1,
+  },
+  saleDetailScrollContent: {
+    padding: 20,
+    paddingBottom: 28,
+  },
+  saleDetailStack: {
+    gap: 20,
+  },
+  saleDetailHero: {
+    backgroundColor: ADMIN_COLORS.primary,
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saleDetailHeroValue: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  saleDetailHeroLabel: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.92,
+  },
+  saleDetailSection: {
+    gap: 16,
+  },
+  saleDetailGrid: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  saleDetailField: {
+    flex: 1,
+    backgroundColor: ADMIN_COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 16,
+    gap: 8,
+  },
+  saleDetailFieldLabel: {
+    fontSize: 13,
+    color: ADMIN_COLORS.secondaryText,
+  },
+  saleDetailFieldValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: ADMIN_COLORS.text,
+  },
+  saleDetailStatsCard: {
+    backgroundColor: ADMIN_COLORS.navyTint,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 16,
+    gap: 12,
+  },
+  saleDetailStatsTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: ADMIN_COLORS.text,
+  },
+  saleDetailLineCard: {
+    backgroundColor: ADMIN_COLORS.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 14,
+    gap: 12,
+  },
+  saleDetailLineHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  saleDetailLineTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: ADMIN_COLORS.text,
+  },
+  saleDetailLineAmount: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: ADMIN_COLORS.accentStrong,
+  },
+  saleDetailMetaGrid: {
+    gap: 10,
+  },
+  saleDetailMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  saleDetailMetaLabel: {
+    fontSize: 14,
+    color: ADMIN_COLORS.secondaryText,
+  },
+  saleDetailMetaValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: ADMIN_COLORS.text,
   },
   modalContent: {
     padding: 20,
@@ -783,26 +914,26 @@ const styles = StyleSheet.create({
   },
   modalLabel: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginBottom: 4,
   },
   modalValue: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 12,
   },
   productCard: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
   },
   productHeader: {
     flexDirection: "row",
@@ -813,24 +944,24 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     flex: 1,
     marginRight: 16,
   },
   productPrice: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#059669",
+    color: ADMIN_COLORS.accentStrong,
   },
   productDetails: {
     gap: 8,
   },
   productDetail: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   summaryCard: {
-    backgroundColor: "#111827",
+    backgroundColor: ADMIN_COLORS.primary,
     borderRadius: 12,
     padding: 20,
   },
@@ -872,7 +1003,7 @@ const styles = StyleSheet.create({
   },
   printButton: {
     marginTop: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: ADMIN_COLORS.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",

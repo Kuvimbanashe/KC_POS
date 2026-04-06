@@ -8,10 +8,12 @@ import {
   Alert,
   Modal,
   FlatList,
-  SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { addExpense, fetchOperationalData } from '../../../store/slices/userSlice';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -73,20 +75,20 @@ const AdminExpenses = () => {
 
   // Colors based on your Tailwind config
   const COLORS = {
-    primary: '#0f172a', // hsl(220 90% 15%)
+    primary: '#0f172a',
     primaryLight: '#1e293b',
-    accent: '#f97316', // hsl(25 95% 53%)
+    accent: '#f97316',
     accentLight: '#fb923c',
     background: '#ffffff',
     card: '#ffffff',
-    border: '#e2e8f0', // hsl(220 20% 90%)
-    input: '#e2e8f0',
-    destructive: '#ef4444',
-    muted: '#64748b', // hsl(220 30% 45%)
-    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#dc2626',
+    border: '#e2e8f0',
+    input: '#f8fafc',
+    destructive: '#ea580c',
+    muted: '#64748b',
+    mutedLight: '#f8fafc',
+    success: '#0f172a',
+    warning: '#f97316',
+    danger: '#ea580c',
   };
 
   useEffect(() => {
@@ -301,7 +303,7 @@ const AdminExpenses = () => {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: COLORS.accent }]}
+              style={[styles.addButton, { backgroundColor: COLORS.primary }]}
               onPress={() => setIsDialogOpen(true)}
             >
               <Ionicons name="add" size={20} color="#FFFFFF" />
@@ -389,7 +391,7 @@ const AdminExpenses = () => {
             </Text>
             {(searchQuery || categoryFilter !== 'all') && (
               <TouchableOpacity
-                style={[styles.clearButton, { backgroundColor: COLORS.danger }]}
+                style={[styles.clearButton, { backgroundColor: COLORS.primary }]}
                 onPress={() => {
                   setSearchQuery('');
                   setCategoryFilter('all');
@@ -426,7 +428,11 @@ const AdminExpenses = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <View style={styles.formContainer}>
               {/* Category */}
               <View style={styles.formGroup}>
@@ -518,6 +524,7 @@ const AdminExpenses = () => {
               </View>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 

@@ -1,12 +1,12 @@
-// app/(auth)/signin.js
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+
+import { AuthScaffold } from '../../components/ui/AuthScaffold';
 import { setCredentials } from '../../store/slices/authSlice';
-import Feather from '@expo/vector-icons/Feather';
 import { useAppDispatch } from '../../store/hooks';
 import { apiClient } from '../../services/api';
-
+import { ADMIN_COLORS } from '../../theme/adminUi';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -35,146 +35,102 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.backRow}>
-        <Link href="/" style={styles.backLink}>
-          <Feather name="arrow-left-circle" size={30} color="#0f172a" />
-          
+    <AuthScaffold
+      title="Welcome back"
+      subtitle="Sign in to resume selling, review reports, and keep the business moving."
+      footer={
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>Don&apos;t have an account?</Text>
+          <Link href="/signup" asChild>
+            <TouchableOpacity>
+              <Text style={styles.footerLink}>Create one</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      }
+    >
+      <View style={styles.formBlock}>
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="you@example.com"
+          placeholderTextColor={ADMIN_COLORS.tertiaryText}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your password"
+          placeholderTextColor={ADMIN_COLORS.tertiaryText}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+      </View>
+
+      <View style={styles.linkRow}>
+        <Link href="/forgot-password" asChild>
+          <TouchableOpacity>
+            <Text style={styles.inlineLink}>Forgot password?</Text>
+          </TouchableOpacity>
         </Link>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Sign In</Text>
-        <Text style={styles.subtitle}>Enter your credentials to access your account</Text>
-
-        <View style={styles.formBlock}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="you@example.com"
-            placeholderTextColor="#9CA3AF"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder=".........."
-            placeholderTextColor="#9CA3AF"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+      <TouchableOpacity
+        style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+        onPress={handleSignIn}
+        disabled={isLoading}
+      >
+        <View style={styles.buttonContent}>
+          {isLoading ? <ActivityIndicator size="small" color="#ffffff" /> : null}
+          <Text style={styles.primaryButtonText}>{isLoading ? 'Signing In...' : 'Sign In'}</Text>
         </View>
-
-        <View style={styles.linkRowEnd}>
-          <Link href="/forgot-password" asChild>
-            <TouchableOpacity>
-              <Text style={styles.accentText}>Forgot Password?</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
-          onPress={handleSignIn}
-          disabled={isLoading}
-        >
-          <View style={styles.buttonContent}>
-            {isLoading ? <ActivityIndicator size="small" color="#ffffff" /> : null}
-            <Text style={styles.primaryButtonText}>{isLoading ? 'Signing In...' : 'Sign In'}</Text>
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.inlineRow}>
-          <Text style={styles.mutedText}>{"Don't have an account? "}</Text>
-          <Link href="/signup" asChild>
-            <TouchableOpacity>
-              <Text style={styles.accentText}>Sign Up</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </View>
-    </View>
+      </TouchableOpacity>
+    </AuthScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    justifyContent: "center",
-  },
-  backRow: {
-    marginBottom: 32,
-    width: "100%",
-    display:"none"
-  },
-  backLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  backText: {
-    color: "#0f172a",
-    fontWeight: "600",
-  },
-  card: {
-    width: "100%",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#ffffff",
-    gap: 12,
-  },
-  title: {
-    fontWeight: "700",
-    fontSize: 22,
-    color: "#0f172a",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 4,
-  },
   formBlock: {
-    width: "100%",
     gap: 8,
-    marginTop: 4,
   },
   label: {
-    marginTop: 8,
-    marginBottom: 4,
-    color: "#0f172a",
-    fontWeight: "600",
+    marginTop: 4,
+    color: ADMIN_COLORS.text,
+    fontSize: 13,
+    fontWeight: '700',
   },
   input: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    padding: 14,
-    color: "#0f172a",
-    backgroundColor: "#f8fafc",
+    borderColor: ADMIN_COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: ADMIN_COLORS.text,
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    fontSize: 15,
   },
-  linkRowEnd: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 8,
+  linkRow: {
+    alignItems: 'flex-end',
+  },
+  inlineLink: {
+    color: ADMIN_COLORS.accentStrong,
+    fontSize: 13,
+    fontWeight: '700',
   },
   primaryButton: {
-    backgroundColor: "#0f172a",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 8,
+    minHeight: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ADMIN_COLORS.primary,
   },
   primaryButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: ADMIN_COLORS.tertiaryText,
   },
   buttonContent: {
     flexDirection: 'row',
@@ -183,21 +139,22 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontWeight: "700",
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
-  inlineRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 8,
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  mutedText: {
-    color: "#6b7280",
+  footerText: {
+    color: ADMIN_COLORS.secondaryText,
+    fontSize: 14,
   },
-  accentText: {
-    color: "#FB923C",
-    fontWeight: "600",
+  footerLink: {
+    color: ADMIN_COLORS.accentStrong,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

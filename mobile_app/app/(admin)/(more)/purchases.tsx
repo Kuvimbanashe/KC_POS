@@ -8,15 +8,18 @@ import {
   Alert,
   Modal,
   FlatList,
-  SafeAreaView,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { addPurchase, fetchOperationalData, updateProduct } from '../../../store/slices/userSlice';
 import type { PurchaseRecord, Product } from '../../../store/types';
 import { apiClient } from '../../../services/api';
+import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from '../../../theme/adminUi';
 
 interface PurchaseFormData {
   quantity: string;
@@ -186,19 +189,19 @@ const AdminPurchases = () => {
       title: "Total Orders",
       value: purchases.length.toString(),
       icon: "receipt-outline",
-      color: "#2563EB",
+      color: ADMIN_COLORS.primary,
     },
     {
       title: "Total Cost",
       value: `$${totalCost.toFixed(2)}`,
       icon: "cash-outline",
-      color: "#059669",
+      color: ADMIN_COLORS.accentStrong,
     },
     {
       title: "Total Units",
       value: totalQuantity.toString(),
       icon: "cube-outline",
-      color: "#7C3AED",
+      color: ADMIN_COLORS.primary,
     },
   ];
 
@@ -268,7 +271,7 @@ const AdminPurchases = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color={ADMIN_COLORS.primary} />
         <Text style={styles.loadingText}>Loading purchases...</Text>
       </SafeAreaView>
     );
@@ -284,22 +287,19 @@ const AdminPurchases = () => {
         </View>
 
         {/* Stats Grid */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.statsScroll}
-          contentContainerStyle={styles.statsContent}
-        >
+        <View style={styles.statsGrid}>
           {statCards.map((stat, index) => (
-            <View key={index} style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
-                <Ionicons name={stat.icon} size={20} color={stat.color} />
+            <View key={index} style={styles.statCardWrapper}>
+              <View style={styles.statCard}>
+                <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
+                  <Ionicons name={stat.icon} size={20} color={stat.color} />
+                </View>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statTitle}>{stat.title}</Text>
               </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statTitle}>{stat.title}</Text>
             </View>
           ))}
-        </ScrollView>
+        </View>
 
         {/* Actions */}
         <View style={styles.actionsCard}>
@@ -381,7 +381,7 @@ const AdminPurchases = () => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Product</Text>
             <TouchableOpacity onPress={() => setIsProductModalOpen(false)}>
-              <Ionicons name="close" size={24} color="#374151" />
+              <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
             </TouchableOpacity>
           </View>
 
@@ -416,11 +416,15 @@ const AdminPurchases = () => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>New Purchase</Text>
             <TouchableOpacity onPress={() => setIsPurchaseModalOpen(false)}>
-              <Ionicons name="close" size={24} color="#374151" />
+              <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
             {selectedProduct && (
               <View style={styles.selectedProduct}>
                 <Text style={styles.productLabel}>Product</Text>
@@ -566,6 +570,7 @@ const AdminPurchases = () => {
               </View>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -581,42 +586,68 @@ const AdminPurchases = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Order #{selectedPurchase.id}</Text>
               <TouchableOpacity onPress={() => setSelectedPurchase(null)}>
-                <Ionicons name="close" size={24} color="#374151" />
+                <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
-              <View style={styles.detailsContainer}>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItemLarge}>
-                    <Text style={styles.detailLabel}>Product</Text>
-                    <Text style={styles.detailValue}>{selectedPurchase.productName}</Text>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.purchaseDetailScrollContent}
+            >
+              <View style={styles.purchaseDetailStack}>
+                <View style={styles.purchaseDetailHero}>
+                  <Text style={styles.purchaseDetailHeroValue}>
+                    ${selectedPurchase.total.toFixed(2)}
+                  </Text>
+                  <Text style={styles.purchaseDetailHeroLabel}>Total Purchase Cost</Text>
+                </View>
+
+                <View style={styles.purchaseDetailSection}>
+                  <View style={styles.purchaseDetailFieldWide}>
+                    <Text style={styles.purchaseDetailFieldLabel}>Product</Text>
+                    <Text style={styles.purchaseDetailFieldValue}>{selectedPurchase.productName}</Text>
                   </View>
-                  <View style={styles.detailItemLarge}>
-                    <Text style={styles.detailLabel}>Supplier</Text>
-                    <Text style={styles.detailValue}>{selectedPurchase.supplier}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Quantity</Text>
-                    <Text style={styles.detailValue}>{selectedPurchase.quantity} units</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Unit Cost</Text>
-                    <Text style={styles.detailValue}>
-                      ${selectedPurchase.unitCost.toFixed(2)}
+                  <View style={styles.purchaseDetailFieldWide}>
+                    <Text style={styles.purchaseDetailFieldLabel}>Supplier</Text>
+                    <Text style={styles.purchaseDetailFieldValue}>
+                      {selectedPurchase.supplier || 'Not specified'}
                     </Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Total Cost</Text>
-                    <Text style={[styles.detailValue, styles.totalCost]}>
-                      ${selectedPurchase.total.toFixed(2)}
-                    </Text>
+                  <View style={styles.purchaseDetailGrid}>
+                    <View style={styles.purchaseDetailField}>
+                      <Text style={styles.purchaseDetailFieldLabel}>Quantity</Text>
+                      <Text style={styles.purchaseDetailFieldValue}>
+                        {selectedPurchase.quantity} units
+                      </Text>
+                    </View>
+                    <View style={styles.purchaseDetailField}>
+                      <Text style={styles.purchaseDetailFieldLabel}>Unit Cost</Text>
+                      <Text style={styles.purchaseDetailFieldValue}>
+                        ${selectedPurchase.unitCost.toFixed(2)}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Date</Text>
-                    <Text style={styles.detailValue}>
-                      {new Date(selectedPurchase.date).toLocaleDateString()}
-                    </Text>
+                </View>
+
+                <View style={styles.purchaseDetailStatsCard}>
+                  <Text style={styles.purchaseDetailStatsTitle}>Purchase Summary</Text>
+                  <View style={styles.purchaseDetailMetaGrid}>
+                    <View style={styles.purchaseDetailMetaRow}>
+                      <Text style={styles.purchaseDetailMetaLabel}>Order ID</Text>
+                      <Text style={styles.purchaseDetailMetaValue}>#{selectedPurchase.id}</Text>
+                    </View>
+                    <View style={styles.purchaseDetailMetaRow}>
+                      <Text style={styles.purchaseDetailMetaLabel}>Date</Text>
+                      <Text style={styles.purchaseDetailMetaValue}>
+                        {new Date(selectedPurchase.date).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <View style={styles.purchaseDetailMetaRow}>
+                      <Text style={styles.purchaseDetailMetaLabel}>Total Cost</Text>
+                      <Text style={[styles.purchaseDetailMetaValue, styles.purchaseDetailAccentValue]}>
+                        ${selectedPurchase.total.toFixed(2)}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -632,7 +663,7 @@ const styles = StyleSheet.create({
   // Main container
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
@@ -647,7 +678,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Header
@@ -659,30 +690,30 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Stats
-  statsScroll: {
+  statsGrid: {
+    ...ADMIN_GRID_2X2,
+    marginHorizontal: 14,
     marginBottom: 20,
   },
-  statsContent: {
-    paddingHorizontal: 20,
-    paddingRight: 40,
+  statCardWrapper: {
+    ...ADMIN_GRID_ITEM,
   },
   statCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.surface,
     borderRadius: 12,
     padding: 16,
-    marginRight: 12,
-    width: 120,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
+    minHeight: 136,
   },
   statIcon: {
     width: 40,
@@ -695,12 +726,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 4,
   },
   statTitle: {
     fontSize: 12,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Actions
@@ -709,7 +740,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   newPurchaseButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: ADMIN_COLORS.primary,
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: "row",
@@ -725,23 +756,23 @@ const styles = StyleSheet.create({
 
   // Search Section
   searchCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.surface,
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginBottom: 16,
   },
   searchContainer: {
@@ -750,15 +781,17 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginLeft: 8,
   },
 
@@ -770,12 +803,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   purchaseCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
   },
   purchaseHeader: {
     flexDirection: "row",
@@ -786,13 +819,13 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     flex: 1,
   },
   purchaseAmount: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#059669",
+    color: ADMIN_COLORS.accentStrong,
   },
   purchaseDetails: {
     gap: 8,
@@ -807,7 +840,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginLeft: 4,
   },
 
@@ -821,19 +854,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     textAlign: "center",
     marginBottom: 16,
   },
   clearButton: {
-    backgroundColor: "#2563EB",
-    borderRadius: 8,
+    backgroundColor: ADMIN_COLORS.primary,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
@@ -846,7 +879,7 @@ const styles = StyleSheet.create({
   // Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.background,
   },
   modalHeader: {
     flexDirection: "row",
@@ -855,12 +888,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: ADMIN_COLORS.border,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   modalScroll: {
     flex: 1,
@@ -873,12 +906,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   productCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: ADMIN_COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
   },
   productInfo: {
     flexDirection: "row",
@@ -889,7 +922,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#059669",
+    color: ADMIN_COLORS.accentStrong,
   },
   productDetails: {
     flexDirection: "row",
@@ -897,24 +930,24 @@ const styles = StyleSheet.create({
   },
   productDetail: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   productSupplier: {
     fontSize: 13,
-    color: "#2563EB",
+    color: ADMIN_COLORS.accentStrong,
     fontWeight: "500",
   },
 
   // Purchase Form Modal
   selectedProduct: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
   },
   productLabel: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginBottom: 4,
   },
   productInfoRow: {
@@ -923,7 +956,7 @@ const styles = StyleSheet.create({
   },
   productInfoText: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
 
   // Form
@@ -936,12 +969,12 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: ADMIN_COLORS.text,
   },
   formInput: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -955,20 +988,20 @@ const styles = StyleSheet.create({
   unitTypeButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: ADMIN_COLORS.border,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
   },
   unitTypeButtonActive: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: ADMIN_COLORS.primary,
+    borderColor: ADMIN_COLORS.primary,
   },
   unitTypeText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   unitTypeTextActive: {
     color: "#FFFFFF",
@@ -976,7 +1009,7 @@ const styles = StyleSheet.create({
 
   // Summary
   summaryCard: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
@@ -984,7 +1017,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
     marginBottom: 16,
   },
   summaryRow: {
@@ -995,22 +1028,22 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   suggestedPrice: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#059669",
+    color: ADMIN_COLORS.accentStrong,
   },
 
   // Submit Button
   submitButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: ADMIN_COLORS.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -1035,6 +1068,98 @@ const styles = StyleSheet.create({
   detailsContainer: {
     marginTop: 12,
   },
+  purchaseDetailScrollContent: {
+    padding: 20,
+    paddingBottom: 28,
+  },
+  purchaseDetailStack: {
+    gap: 20,
+  },
+  purchaseDetailHero: {
+    backgroundColor: ADMIN_COLORS.primary,
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  purchaseDetailHeroValue: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  purchaseDetailHeroLabel: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.92,
+  },
+  purchaseDetailSection: {
+    gap: 16,
+  },
+  purchaseDetailGrid: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  purchaseDetailField: {
+    flex: 1,
+    backgroundColor: ADMIN_COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 16,
+    gap: 8,
+  },
+  purchaseDetailFieldWide: {
+    backgroundColor: ADMIN_COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 16,
+    gap: 8,
+  },
+  purchaseDetailFieldLabel: {
+    fontSize: 13,
+    color: ADMIN_COLORS.secondaryText,
+  },
+  purchaseDetailFieldValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: ADMIN_COLORS.text,
+  },
+  purchaseDetailStatsCard: {
+    backgroundColor: ADMIN_COLORS.navyTint,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    padding: 16,
+    gap: 12,
+  },
+  purchaseDetailStatsTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: ADMIN_COLORS.text,
+  },
+  purchaseDetailMetaGrid: {
+    gap: 10,
+  },
+  purchaseDetailMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  purchaseDetailMetaLabel: {
+    fontSize: 14,
+    color: ADMIN_COLORS.secondaryText,
+  },
+  purchaseDetailMetaValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: ADMIN_COLORS.text,
+  },
+  purchaseDetailAccentValue: {
+    color: ADMIN_COLORS.accentStrong,
+  },
   detailsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1047,16 +1172,16 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: "#6B7280",
+    color: ADMIN_COLORS.secondaryText,
     marginBottom: 4,
   },
   detailValue: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
+    color: ADMIN_COLORS.text,
   },
   totalCost: {
-    color: "#059669",
+    color: ADMIN_COLORS.accentStrong,
   },
 });
 

@@ -5,6 +5,9 @@ export const ADMIN_COLORS = {
   surface: '#ffffff',
   surfaceMuted: '#f8fafc',
   surfaceTint: '#fff7ed',
+  surfaceTintStrong: '#ffedd5',
+  navyTint: '#f8fafc',
+  navyTintStrong: '#e2e8f0',
   border: '#e2e8f0',
   line: '#f1f5f9',
   text: '#0f172a',
@@ -185,4 +188,17 @@ export const ADMIN_DANGER_OUTLINE_TEXT: TextStyle = {
   color: ADMIN_COLORS.danger,
   fontSize: 16,
   fontWeight: '700',
+};
+
+export const ADMIN_GRID_2X2: ViewStyle = {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  marginHorizontal: -6,
+  marginVertical: -6,
+};
+
+export const ADMIN_GRID_ITEM: ViewStyle = {
+  width: '50%',
+  paddingHorizontal: 6,
+  paddingVertical: 6,
 };

@@ -1,80 +1,10 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AuthScaffold } from '../../components/ui/AuthScaffold';
 import { apiClient } from '../../services/api';
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 24,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 24,
-  },
-  hint: {
-    fontSize: 13,
-    color: '#f97316',
-    marginBottom: 18,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
-  },
-  submitButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: '#0f172a',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  backButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    backgroundColor: 'transparent',
-  },
-  backButtonText: {
-    color: '#6b7280',
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
+import { ADMIN_COLORS } from '../../theme/adminUi';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -114,37 +44,104 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container} >
-      <Text style={styles.title}>Forgot Password</Text>
-      <Text style={styles.subtitle}>Enter your account email to generate a reset code.</Text>
-      <Text style={styles.hint}>This build shows the OTP in-app because email delivery is not configured yet.</Text>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Email Address"
-          placeholderTextColor="#9ca3af"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
+    <AuthScaffold
+      title="Recover your account"
+      subtitle="Enter the email tied to the account and we’ll walk you through the reset flow."
+    >
+      <View style={styles.callout}>
+        <Text style={styles.calloutText}>
+          This build shows the OTP in-app because email delivery is not configured yet.
+        </Text>
       </View>
 
+      <TextInput
+        style={styles.input}
+        placeholder="Email Address"
+        placeholderTextColor={ADMIN_COLORS.tertiaryText}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
+
       <TouchableOpacity
-        style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+        style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
         onPress={handleResetPassword}
         disabled={isLoading}
       >
         <View style={styles.buttonContent}>
           {isLoading && <ActivityIndicator size="small" color="#ffffff" />}
-          <Text style={styles.submitButtonText}>{isLoading ? 'Generating...' : 'Generate Reset Code'}</Text>
+          <Text style={styles.primaryButtonText}>
+            {isLoading ? 'Generating...' : 'Generate Reset Code'}
+          </Text>
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>Back to Sign In</Text>
+      <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}>
+        <Text style={styles.secondaryButtonText}>Back to Sign In</Text>
       </TouchableOpacity>
-    </View>
+    </AuthScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  callout: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#fdba74',
+    backgroundColor: ADMIN_COLORS.surfaceTint,
+    padding: 14,
+  },
+  calloutText: {
+    color: ADMIN_COLORS.accentStrong,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: ADMIN_COLORS.text,
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
+  },
+  primaryButton: {
+    minHeight: 52,
+    borderRadius: 14,
+    marginTop: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ADMIN_COLORS.primary,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: ADMIN_COLORS.tertiaryText,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    minHeight: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+  },
+  secondaryButtonText: {
+    color: ADMIN_COLORS.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+});

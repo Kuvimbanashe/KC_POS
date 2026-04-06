@@ -2,7 +2,9 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
     ...ADMIN_PRIMARY_BUTTON,
   },
   editButton: {
-    backgroundColor: ADMIN_COLORS.accent,
+    backgroundColor: ADMIN_COLORS.primary,
   },
   passwordButton: {
     backgroundColor: ADMIN_COLORS.primary,
@@ -505,7 +507,15 @@ export default function AdminProfile() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView
+            contentContainerStyle={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.modalCard}>
               <Text style={styles.label}>Full Name</Text>
               <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Full Name" />
@@ -548,6 +558,7 @@ export default function AdminProfile() {
               <Text style={styles.secondaryButtonText}>Cancel</Text>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -565,7 +576,15 @@ export default function AdminProfile() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView
+            contentContainerStyle={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.modalCard}>
               <Text style={styles.label}>Current Password</Text>
               <TextInput
@@ -610,6 +629,7 @@ export default function AdminProfile() {
               <Text style={styles.secondaryButtonText}>Cancel</Text>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

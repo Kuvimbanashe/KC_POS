@@ -8,7 +8,9 @@ import {
   Modal,
   FlatList,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +20,7 @@ import { addProduct, fetchOperationalData, updateProduct } from '../../store/sli
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import type { Product, UnitType } from '../../store/types';
 import { apiClient } from '../../services/api';
+import { ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from '../../theme/adminUi';
 
 interface ProductFormData {
   name: string;
@@ -78,22 +81,21 @@ const AdminStock = () => {
     minStockLevel: '10',
   });
 
-  // Colors from your tailwind config
   const COLORS = {
-    primary: '#0f172a', // hsl(220 90% 15%)
+    primary: '#0f172a',
     primaryLight: '#1e293b',
-    accent: '#f97316', // hsl(25 95% 53%)
+    accent: '#f97316',
     accentLight: '#fb923c',
     background: '#ffffff',
     card: '#ffffff',
-    border: '#e2e8f0', // hsl(220 20% 90%)
-    input: '#e2e8f0',
-    destructive: '#ef4444',
-    muted: '#64748b', // hsl(220 30% 45%)
-    mutedLight: '#f1f5f9', // hsl(220 20% 95%)
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#dc2626',
+    border: '#e2e8f0',
+    input: '#f8fafc',
+    destructive: '#ea580c',
+    muted: '#64748b',
+    mutedLight: '#f8fafc',
+    success: '#0f172a',
+    warning: '#f97316',
+    danger: '#ea580c',
   };
 
   // Simulate loading
@@ -146,21 +148,21 @@ const AdminStock = () => {
       value: lowStockProducts.length.toString(),
       icon: "warning-outline",
       color: COLORS.warning,
-      bgColor: '#fef3c7',
+      bgColor: '#fff7ed',
     },
     {
       title: "Out of Stock",
       value: outOfStockProducts.length.toString(),
       icon: "close-circle-outline",
       color: COLORS.danger,
-      bgColor: '#fee2e2',
+      bgColor: '#ffedd5',
     },
     {
       title: "Total Value",
       value: `$${totalValue.toFixed(2)}`,
       icon: "cash-outline",
       color: COLORS.success,
-      bgColor: '#d1fae5',
+      bgColor: '#e2e8f0',
     },
   ];
 
@@ -409,7 +411,7 @@ const AdminStock = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading inventory...</Text>
       </SafeAreaView>
     );
@@ -425,31 +427,27 @@ const AdminStock = () => {
         </View>
 
         {/* Stats Grid */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.statsScroll}
-          contentContainerStyle={styles.statsContent}
-        >
+        <View style={styles.statsGrid}>
           {statCards.map((stat, index) => (
-            <View 
-              key={index} 
-              style={[
-                styles.statCard, 
-                { 
-                  backgroundColor: stat.bgColor,
-                  borderColor: COLORS.border 
-                }
-              ]}
-            >
-              <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
-                <Ionicons name={stat.icon} size={20} color={stat.color} />
+            <View key={index} style={styles.statCardWrapper}>
+              <View
+                style={[
+                  styles.statCard,
+                  {
+                    backgroundColor: stat.bgColor,
+                    borderColor: COLORS.border,
+                  },
+                ]}
+              >
+                <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
+                  <Ionicons name={stat.icon} size={20} color={stat.color} />
+                </View>
+                <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
+                <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
               </View>
-              <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
-              <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
             </View>
           ))}
-        </ScrollView>
+        </View>
 
         {/* Search Section */}
         <View style={[styles.searchCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
@@ -461,7 +459,7 @@ const AdminStock = () => {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: COLORS.accent }]}
+              style={styles.addButton}
               onPress={() => {
                 resetForm();
                 setIsProductModalOpen(true);
@@ -504,14 +502,14 @@ const AdminStock = () => {
             </Text>
             {searchQuery ? (
               <TouchableOpacity
-                style={[styles.clearButton, { backgroundColor: COLORS.destructive }]}
+                style={[styles.clearButton, { backgroundColor: COLORS.primary }]}
                 onPress={() => setSearchQuery('')}
               >
                 <Text style={styles.clearButtonText}>Clear Search</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={[styles.addButtonSmall, { backgroundColor: COLORS.accent }]}
+                style={styles.addButtonSmall}
                 onPress={() => {
                   resetForm();
                   setIsProductModalOpen(true);
@@ -556,7 +554,11 @@ const AdminStock = () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <View style={styles.formContainer}>
               {/* Basic Info */}
               <View style={styles.formGroup}>
@@ -800,7 +802,7 @@ const AdminStock = () => {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                { backgroundColor: COLORS.accent },
+                { backgroundColor: COLORS.primary },
                 isSubmitting && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
@@ -820,6 +822,7 @@ const AdminStock = () => {
               </View>
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
@@ -863,96 +866,124 @@ const AdminStock = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
-              <View style={styles.detailsContainer}>
-                {/* Product Info */}
-                <View style={styles.detailsSection}>
-                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Name</Text>
-                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.name}</Text>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.productDetailScrollContent}
+            >
+              <View style={styles.productDetailStack}>
+                <View style={[styles.productDetailHero, { backgroundColor: COLORS.primary }]}>
+                  <Text style={styles.productDetailHeroValue}>${selectedProduct.price.toFixed(2)}</Text>
+                  <Text style={styles.productDetailHeroLabel}>{selectedProduct.name}</Text>
                 </View>
 
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>SKU</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.sku}</Text>
-                    <Text style={[styles.detailSubValue, { color: COLORS.muted }]}>Barcode: {selectedProduct.barcode || 'N/A'}</Text>
+                <View style={styles.productDetailSection}>
+                  <View style={styles.productDetailFieldWide}>
+                    <Text style={[styles.productDetailFieldLabel, { color: COLORS.muted }]}>SKU</Text>
+                    <Text style={[styles.productDetailFieldValue, { color: COLORS.primary }]}>
+                      {selectedProduct.sku}
+                    </Text>
+                    <Text style={[styles.productDetailFieldCaption, { color: COLORS.muted }]}>
+                      Barcode: {selectedProduct.barcode || 'N/A'}
+                    </Text>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Category</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedProduct.category}</Text>
-                  </View>
-                </View>
 
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Price</Text>
-                    <Text style={[styles.detailPrice, { color: COLORS.accent }]}>${selectedProduct.price.toFixed(2)}</Text>
+                  <View style={styles.productDetailGrid}>
+                    <View style={styles.productDetailField}>
+                      <Text style={[styles.productDetailFieldLabel, { color: COLORS.muted }]}>Category</Text>
+                      <Text style={[styles.productDetailFieldValue, { color: COLORS.primary }]}>
+                        {selectedProduct.category}
+                      </Text>
+                    </View>
+                    <View style={styles.productDetailField}>
+                      <Text style={[styles.productDetailFieldLabel, { color: COLORS.muted }]}>Stock</Text>
+                      <View style={styles.productDetailStockRow}>
+                        <Text style={[styles.productDetailFieldValue, { color: COLORS.primary }]}>
+                          {selectedProduct.stock}
+                        </Text>
+                        {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Stock</Text>
-                    <View style={styles.stockContainer}>
-                      <Text style={[styles.detailStock, { color: COLORS.primary }]}>{selectedProduct.stock}</Text>
-                      {getStockBadge(selectedProduct.stock, selectedProduct.minStockLevel || 10)}
+
+                  <View style={styles.productDetailFieldWide}>
+                    <Text style={[styles.productDetailFieldLabel, { color: COLORS.muted }]}>Supplier</Text>
+                    <Text style={[styles.productDetailFieldValue, { color: COLORS.primary }]}>
+                      {selectedProduct.supplier || 'Not specified'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.productDetailGrid}>
+                    <View style={styles.productDetailField}>
+                      <Text style={[styles.productDetailFieldLabel, { color: COLORS.muted }]}>Unit Type</Text>
+                      <Text style={[styles.productDetailFieldValue, { color: COLORS.primary }]}>
+                        {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
+                      </Text>
+                    </View>
+                    <View style={styles.productDetailField}>
+                      <Text style={[styles.productDetailFieldLabel, { color: COLORS.muted }]}>Min Stock</Text>
+                      <Text style={[styles.productDetailFieldValue, { color: COLORS.primary }]}>
+                        {selectedProduct.minStockLevel || 10}
+                      </Text>
                     </View>
                   </View>
                 </View>
 
-                <View style={styles.detailsSection}>
-                  <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Supplier</Text>
-                  <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                    {selectedProduct.supplier || 'Not specified'}
-                  </Text>
+                <View style={[styles.productDetailStatsCard, { backgroundColor: COLORS.mutedLight, borderColor: COLORS.border }]}>
+                  <Text style={[styles.productDetailStatsTitle, { color: COLORS.primary }]}>Inventory Summary</Text>
+                  <View style={styles.productDetailMetaGrid}>
+                    <View style={styles.productDetailMetaRow}>
+                      <Text style={[styles.productDetailMetaLabel, { color: COLORS.muted }]}>Current Price</Text>
+                      <Text style={[styles.productDetailMetaValue, { color: COLORS.accent }]}>
+                        ${selectedProduct.price.toFixed(2)}
+                      </Text>
+                    </View>
+                    <View style={styles.productDetailMetaRow}>
+                      <Text style={[styles.productDetailMetaLabel, { color: COLORS.muted }]}>Available Units</Text>
+                      <Text style={[styles.productDetailMetaValue, { color: COLORS.primary }]}>
+                        {selectedProduct.stock}
+                      </Text>
+                    </View>
+                    <View style={styles.productDetailMetaRow}>
+                      <Text style={[styles.productDetailMetaLabel, { color: COLORS.muted }]}>Reorder Point</Text>
+                      <Text style={[styles.productDetailMetaValue, { color: COLORS.primary }]}>
+                        {selectedProduct.minStockLevel || 10}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
 
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Unit Type</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                      {selectedProduct.unitType?.charAt(0).toUpperCase() + selectedProduct.unitType?.slice(1) || 'Single'}
-                    </Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Min Stock</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
-                      {selectedProduct.minStockLevel || 10}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Pack Info if available */}
-                {(selectedProduct.packSize || selectedProduct.packPrice) && (
-                  <View style={styles.detailsSection}>
-                    <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Pack Information</Text>
-                    <View style={styles.detailsGrid}>
-                      {selectedProduct.packSize && (
-                        <View style={styles.detailItem}>
-                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Size</Text>
-                          <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                {(selectedProduct.packSize || selectedProduct.packPrice || selectedProduct.singlePrice) && (
+                  <View style={[styles.productDetailStatsCard, { backgroundColor: COLORS.background, borderColor: COLORS.border }]}>
+                    <Text style={[styles.productDetailStatsTitle, { color: COLORS.primary }]}>Pack Information</Text>
+                    <View style={styles.productDetailMetaGrid}>
+                      {selectedProduct.packSize ? (
+                        <View style={styles.productDetailMetaRow}>
+                          <Text style={[styles.productDetailMetaLabel, { color: COLORS.muted }]}>Pack Size</Text>
+                          <Text style={[styles.productDetailMetaValue, { color: COLORS.primary }]}>
                             {selectedProduct.packSize} units
                           </Text>
                         </View>
-                      )}
-                      {selectedProduct.packPrice && (
-                        <View style={styles.detailItem}>
-                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Pack Price</Text>
-                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
+                      ) : null}
+                      {selectedProduct.packPrice ? (
+                        <View style={styles.productDetailMetaRow}>
+                          <Text style={[styles.productDetailMetaLabel, { color: COLORS.muted }]}>Pack Price</Text>
+                          <Text style={[styles.productDetailMetaValue, { color: COLORS.accent }]}>
                             ${selectedProduct.packPrice.toFixed(2)}
                           </Text>
                         </View>
-                      )}
-                      {selectedProduct.singlePrice && (
-                        <View style={styles.detailItem}>
-                          <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Single Price</Text>
-                          <Text style={[styles.detailPrice, { color: COLORS.accent }]}>
+                      ) : null}
+                      {selectedProduct.singlePrice ? (
+                        <View style={styles.productDetailMetaRow}>
+                          <Text style={[styles.productDetailMetaLabel, { color: COLORS.muted }]}>Single Price</Text>
+                          <Text style={[styles.productDetailMetaValue, { color: COLORS.accent }]}>
                             ${selectedProduct.singlePrice.toFixed(2)}
                           </Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
                   </View>
                 )}
 
-                {/* Action Button */}
                 <TouchableOpacity
                   style={[styles.editButton, { backgroundColor: COLORS.accent }]}
                   onPress={() => {
@@ -1007,19 +1038,19 @@ const styles = StyleSheet.create({
   },
 
   // Stats
-  statsScroll: {
+  statsGrid: {
+    ...ADMIN_GRID_2X2,
+    marginHorizontal: 14,
     marginBottom: 20,
   },
-  statsContent: {
-    paddingHorizontal: 20,
-    paddingRight: 40,
+  statCardWrapper: {
+    ...ADMIN_GRID_ITEM,
   },
   statCard: {
     borderRadius: 12,
     padding: 16,
-    marginRight: 12,
-    width: 120,
     borderWidth: 1,
+    minHeight: 136,
   },
   statIcon: {
     width: 40,
@@ -1061,11 +1092,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addButton: {
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: '#0f172a',
   },
   addButtonText: {
     color: "#FFFFFF",
@@ -1074,9 +1106,10 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   addButtonSmall: {
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 12,
+    backgroundColor: '#0f172a',
   },
 
   // Search
@@ -1185,7 +1218,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   clearButton: {
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
@@ -1248,6 +1281,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#0f172a',
   },
   helperText: {
     marginTop: 6,
@@ -1296,7 +1330,7 @@ const styles = StyleSheet.create({
 
   // Submit Button
   submitButton: {
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 20,
@@ -1319,6 +1353,96 @@ const styles = StyleSheet.create({
   // Details Modal
   detailsContainer: {
     gap: 24,
+  },
+  productDetailScrollContent: {
+    padding: 20,
+    paddingBottom: 28,
+  },
+  productDetailStack: {
+    gap: 20,
+  },
+  productDetailHero: {
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  productDetailHeroValue: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
+  },
+  productDetailHeroLabel: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.92,
+    textAlign: "center",
+  },
+  productDetailSection: {
+    gap: 16,
+  },
+  productDetailGrid: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  productDetailField: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    gap: 8,
+  },
+  productDetailFieldWide: {
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    gap: 8,
+  },
+  productDetailFieldLabel: {
+    fontSize: 13,
+  },
+  productDetailFieldValue: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  productDetailFieldCaption: {
+    fontSize: 12,
+  },
+  productDetailStockRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  productDetailStatsCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  productDetailStatsTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  productDetailMetaGrid: {
+    gap: 10,
+  },
+  productDetailMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  productDetailMetaLabel: {
+    fontSize: 14,
+  },
+  productDetailMetaValue: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   detailsSection: {
     gap: 8,

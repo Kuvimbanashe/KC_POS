@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
   FlatList,
   Modal,
@@ -154,18 +156,18 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: ADMIN_COLORS.navyTintStrong,
   },
   statusBadgeActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: ADMIN_COLORS.surfaceTint,
   },
   statusBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1D4ED8',
+    color: ADMIN_COLORS.primary,
   },
   statusBadgeTextActive: {
-    color: '#047857',
+    color: ADMIN_COLORS.accentStrong,
   },
   printerMeta: {
     fontSize: 12,
@@ -187,8 +189,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   actionPillDanger: {
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FEF2F2',
+    borderColor: '#FDBA74',
+    backgroundColor: ADMIN_COLORS.surfaceTint,
   },
   actionPillText: {
     fontSize: 13,
@@ -376,7 +378,15 @@ export function DirectThermalPrintersModal({
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+        <ScrollView
+          contentContainerStyle={styles.modalBody}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.infoPanel}>
             <Text style={styles.infoTitle}>Support Status</Text>
             <Text style={styles.infoText}>{availabilityMessage}</Text>
@@ -559,7 +569,7 @@ export function DirectThermalPrintersModal({
                 {savingUsbPrinter ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Ionicons name="usb-outline" size={18} color="#ffffff" />
+                  <Ionicons name="link-outline" size={18} color="#ffffff" />
                 )}
                 <Text style={styles.buttonText}>
                   {savingUsbPrinter ? 'Saving...' : 'Save USB Printer'}
@@ -639,6 +649,7 @@ export function DirectThermalPrintersModal({
             <Text style={styles.secondaryButtonText}>Close</Text>
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

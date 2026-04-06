@@ -1,119 +1,61 @@
-
-import { View, Text, TouchableOpacity } from 'react-native';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Link } from 'expo-router';
-import Feather from '@expo/vector-icons/Feather';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-
+import { AuthScaffold } from '../../components/ui/AuthScaffold';
+import { ADMIN_COLORS } from '../../theme/adminUi';
 
 export default function WelcomeScreen() {
   return (
-    <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Feather name="shopping-bag" size={48} color="white" />
-      </View>
-
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>
-          Shop Manager
-        </Text>
-        <Text style={styles.subtitle}>
-          Streamline your shop operations with ease
-        </Text>
-      </View>
-
-      <View style={styles.buttonContainer}>
+    <AuthScaffold
+      title="Run the shop with calm, clear tools."
+      subtitle="Sign in to keep sales moving, inventory accurate, and reporting beautifully organized across the floor."
+      keyboard={false}
+    >
+      <View style={styles.actions}>
         <Link href="/signin" asChild>
           <TouchableOpacity style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>
-              Sign In
-            </Text>
+            <Text style={styles.primaryButtonText}>Sign In</Text>
           </TouchableOpacity>
         </Link>
-        
+
         <Link href="/signup" asChild>
           <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>
-              Create Account
-            </Text>
+            <Text style={styles.secondaryButtonText}>Create Account</Text>
           </TouchableOpacity>
         </Link>
       </View>
-      
-     
-    </View>
+    </AuthScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    width: '100%',
-    padding: 20,
-  },
-  iconContainer: {
-    backgroundColor: '#f97316',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 32,
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    width: '100%',
-    gap: 16,
-    marginBottom: 32,
+  actions: {
+    gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#0f172a',
-    paddingVertical: 14,
-    borderRadius: 12,
-    width: '100%',
+    minHeight: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ADMIN_COLORS.primary,
   },
   primaryButtonText: {
     color: '#ffffff',
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
   secondaryButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    width: '100%',
+    minHeight: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ADMIN_COLORS.surfaceTint,
     borderWidth: 1,
-    borderColor: '#e6edf3',
-    backgroundColor: 'transparent',
+    borderColor: '#fdba74',
   },
   secondaryButtonText: {
-    color: '#6b7280',
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  footerContainer: {
-    marginTop: 'auto',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: ADMIN_COLORS.accentStrong,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

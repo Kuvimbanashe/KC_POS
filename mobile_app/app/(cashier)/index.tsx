@@ -130,7 +130,7 @@ const CashierHome = () => {
       <View
         style={[
           styles.statCard,
-          { backgroundColor: variant === 'accent' ? '#fff7ed' : '#f8fafc' },
+          { backgroundColor: variant === 'accent' ? ADMIN_COLORS.surfaceTint : ADMIN_COLORS.navyTint },
         ]}
       >
         <View style={styles.statCardHeader}>
@@ -269,9 +269,10 @@ const CashierHome = () => {
   };
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#f97316" />
         }
@@ -363,7 +364,7 @@ const CashierHome = () => {
             todaySales.slice(0, 3).map((sale) => (
               <View key={sale.id} style={styles.recentItem}>
                 <View style={styles.recentIcon}>
-                  <Ionicons name="cart" size={16} color="#fff" />
+                  <Ionicons name="cart" size={16} color={ADMIN_COLORS.accentStrong} />
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -401,26 +402,34 @@ const CashierHome = () => {
           <ScrollView contentContainerStyle={styles.receiptModalContent}>
             {selectedReceipt && (
               <>
-                <View style={styles.receiptDetailsCard}>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Invoice</Text>
-                    <Text style={styles.detailLineValue}>{selectedReceipt.invoiceNumber || selectedReceipt.id}</Text>
+                <View style={styles.receiptHeroCard}>
+                  <Text style={styles.receiptHeroValue}>${selectedReceipt.total.toFixed(2)}</Text>
+                  <Text style={styles.receiptHeroLabel}>Receipt Total</Text>
+                </View>
+                <View style={styles.receiptDetailsSection}>
+                  <View style={styles.receiptDetailsGrid}>
+                    <View style={styles.receiptDetailField}>
+                      <Text style={styles.receiptDetailFieldLabel}>Invoice</Text>
+                      <Text style={styles.receiptDetailFieldValue}>
+                        {selectedReceipt.invoiceNumber || selectedReceipt.id}
+                      </Text>
+                    </View>
+                    <View style={styles.receiptDetailField}>
+                      <Text style={styles.receiptDetailFieldLabel}>Date</Text>
+                      <Text style={styles.receiptDetailFieldValue}>
+                        {new Date(selectedReceipt.date).toLocaleString()}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Date</Text>
-                    <Text style={styles.detailLineValue}>{new Date(selectedReceipt.date).toLocaleString()}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Cashier</Text>
-                    <Text style={styles.detailLineValue}>{selectedReceipt.cashier}</Text>
-                  </View>
-                  <View style={styles.detailLine}>
-                    <Text style={styles.detailLineLabel}>Payment</Text>
-                    <Text style={styles.detailLineValue}>{selectedReceipt.paymentMethod}</Text>
-                  </View>
-                  <View style={[styles.detailLine, styles.detailLineLast]}>
-                    <Text style={styles.detailLineLabel}>Total</Text>
-                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>${selectedReceipt.total.toFixed(2)}</Text>
+                  <View style={styles.receiptDetailsGrid}>
+                    <View style={styles.receiptDetailField}>
+                      <Text style={styles.receiptDetailFieldLabel}>Cashier</Text>
+                      <Text style={styles.receiptDetailFieldValue}>{selectedReceipt.cashier}</Text>
+                    </View>
+                    <View style={styles.receiptDetailField}>
+                      <Text style={styles.receiptDetailFieldLabel}>Payment</Text>
+                      <Text style={styles.receiptDetailFieldValue}>{selectedReceipt.paymentMethod}</Text>
+                    </View>
                   </View>
                 </View>
                 <View style={styles.itemsWrapper}>
@@ -435,9 +444,11 @@ const CashierHome = () => {
                     packSize: undefined,
                   }]).map((line, index) => (
                     <View key={`${line.productId}-${index}`} style={styles.modalItemRow}>
-                      <View style={styles.detailLine}>
-                        <Text style={styles.detailLineLabel}>{line.productName}</Text>
-                        <Text style={styles.detailLineValue}>${(line.subtotal ?? line.quantity * line.price).toFixed(2)}</Text>
+                      <View style={styles.receiptItemHeader}>
+                        <Text style={styles.receiptItemTitle}>{line.productName}</Text>
+                        <Text style={styles.receiptItemAmount}>
+                          ${(line.subtotal ?? line.quantity * line.price).toFixed(2)}
+                        </Text>
                       </View>
                       <View style={[styles.detailLine, styles.detailLineLast]}>
                         <Text style={styles.detailLineLabel}>Qty x Price</Text>
@@ -445,6 +456,21 @@ const CashierHome = () => {
                       </View>
                     </View>
                   ))}
+                </View>
+                <View style={styles.receiptSummaryCard}>
+                  <Text style={styles.itemsTitle}>Receipt Summary</Text>
+                  <View style={styles.detailLine}>
+                    <Text style={styles.detailLineLabel}>Items</Text>
+                    <Text style={styles.detailLineValue}>
+                      {(selectedReceipt.items?.length || selectedReceipt.quantity || 0).toString()}
+                    </Text>
+                  </View>
+                  <View style={[styles.detailLine, styles.detailLineLast]}>
+                    <Text style={styles.detailLineLabel}>Total</Text>
+                    <Text style={[styles.detailLineValue, styles.detailLineAccent]}>
+                      ${selectedReceipt.total.toFixed(2)}
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity
                   style={[styles.printBtn, isPrintingReceipt && styles.printBtnDisabled]}
@@ -527,7 +553,7 @@ const CashierHome = () => {
           </View>
         </SafeAreaView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -681,7 +707,7 @@ const styles = StyleSheet.create({
   paymentBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#eef2ff',
+    backgroundColor: ADMIN_COLORS.navyTintStrong,
     borderRadius: 999,
   },
   paymentBadgeText: {
@@ -740,7 +766,7 @@ const styles = StyleSheet.create({
   startSaleButton: {
     marginTop: 16,
     ...ADMIN_PRIMARY_BUTTON,
-    backgroundColor: ADMIN_COLORS.accent,
+    backgroundColor: ADMIN_COLORS.primary,
     paddingHorizontal: 24,
   },
   startSaleButtonText: {
@@ -799,7 +825,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   recentIcon: {
-    backgroundColor: '#f97316',
+    backgroundColor: ADMIN_COLORS.surfaceTint,
     padding: 8,
     borderRadius: 50,
     marginRight: 10
@@ -838,13 +864,51 @@ const styles = StyleSheet.create({
   },
   receiptModalContent: {
     padding: 20,
+    gap: 20,
+    paddingBottom: 28,
+  },
+  receiptHeroCard: {
+    backgroundColor: ADMIN_COLORS.primary,
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  receiptHeroValue: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  receiptHeroLabel: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.92,
+  },
+  receiptDetailsSection: {
     gap: 16,
+  },
+  receiptDetailsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  receiptDetailField: {
+    flex: 1,
+    ...ADMIN_MODAL_SECTION,
+  },
+  receiptDetailFieldLabel: {
+    ...ADMIN_DETAIL_LABEL,
+  },
+  receiptDetailFieldValue: {
+    ...ADMIN_DETAIL_VALUE,
+    textAlign: 'left',
   },
   receiptDetailsCard: {
     ...ADMIN_MODAL_SECTION,
   },
   itemsWrapper: {
     ...ADMIN_MODAL_SECTION,
+    backgroundColor: ADMIN_COLORS.navyTint,
   },
   itemsTitle: {
     ...ADMIN_SECTION_TITLE,
@@ -852,8 +916,26 @@ const styles = StyleSheet.create({
   },
   modalItemRow: {
     ...ADMIN_LIST_CARD,
-    paddingVertical: 10,
+    paddingVertical: 14,
     marginBottom: 8,
+  },
+  receiptItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 10,
+  },
+  receiptItemTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: ADMIN_COLORS.text,
+  },
+  receiptItemAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: ADMIN_COLORS.accentStrong,
   },
   detailLine: {
     ...ADMIN_DETAIL_ROW,
@@ -870,6 +952,10 @@ const styles = StyleSheet.create({
   },
   detailLineAccent: {
     color: ADMIN_COLORS.accent,
+  },
+  receiptSummaryCard: {
+    ...ADMIN_MODAL_SECTION,
+    backgroundColor: ADMIN_COLORS.navyTint,
   },
   printBtn: {
     ...ADMIN_PRIMARY_BUTTON,

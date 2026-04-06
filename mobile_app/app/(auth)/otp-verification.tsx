@@ -2,84 +2,9 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { AuthScaffold } from '../../components/ui/AuthScaffold';
 import { apiClient } from '../../services/api';
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 24,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 20,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  email: {
-    fontSize: 14,
-    color: '#f97316',
-    textAlign: 'center',
-    marginBottom: 24,
-    fontWeight: '600',
-  },
-  otpInput: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    borderRadius: 12,
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
-    letterSpacing: 8,
-    marginBottom: 24,
-  },
-  submitButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: '#0f172a',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  backButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e6edf3',
-    backgroundColor: 'transparent',
-  },
-  backButtonText: {
-    color: '#6b7280',
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
+import { ADMIN_COLORS } from '../../theme/adminUi';
 
 export default function OTPVerificationScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
@@ -118,10 +43,14 @@ export default function OTPVerificationScreen() {
   };
 
   return (
-    <View style={styles.container} >
-      <Text style={styles.title}>Verify Code</Text>
-      <Text style={styles.subtitle}>Enter the 6-digit reset code generated for your account.</Text>
-      <Text style={styles.email}>{email || 'No email provided'}</Text>
+    <AuthScaffold
+      title="Verify the reset code"
+      subtitle="Enter the six-digit code generated for your account to continue."
+    >
+      <View style={styles.emailBadge}>
+        <Text style={styles.emailLabel}>Code sent for</Text>
+        <Text style={styles.emailValue}>{email || 'No email provided'}</Text>
+      </View>
 
       <TextInput
         style={styles.otpInput}
@@ -130,23 +59,93 @@ export default function OTPVerificationScreen() {
         keyboardType="numeric"
         maxLength={6}
         placeholder="000000"
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={ADMIN_COLORS.tertiaryText}
       />
 
       <TouchableOpacity
-        style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+        style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
         onPress={handleVerify}
         disabled={isLoading}
       >
         <View style={styles.buttonContent}>
           {isLoading && <ActivityIndicator size="small" color="#ffffff" />}
-          <Text style={styles.submitButtonText}>{isLoading ? 'Verifying...' : 'Verify Code'}</Text>
+          <Text style={styles.primaryButtonText}>{isLoading ? 'Verifying...' : 'Verify Code'}</Text>
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>Back</Text>
+      <TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}>
+        <Text style={styles.secondaryButtonText}>Back</Text>
       </TouchableOpacity>
-    </View>
+    </AuthScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  emailBadge: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    backgroundColor: ADMIN_COLORS.navyTint,
+    padding: 14,
+    gap: 4,
+  },
+  emailLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    color: ADMIN_COLORS.secondaryText,
+  },
+  emailValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: ADMIN_COLORS.accentStrong,
+  },
+  otpInput: {
+    height: 58,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+    borderRadius: 16,
+    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: '700',
+    color: ADMIN_COLORS.text,
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    letterSpacing: 8,
+  },
+  primaryButton: {
+    minHeight: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ADMIN_COLORS.primary,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: ADMIN_COLORS.tertiaryText,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    minHeight: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    borderWidth: 1,
+    borderColor: ADMIN_COLORS.border,
+  },
+  secondaryButtonText: {
+    color: ADMIN_COLORS.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+});
