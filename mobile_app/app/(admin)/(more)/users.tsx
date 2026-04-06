@@ -46,6 +46,7 @@ const AdminUsers = () => {
   const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editing, setEditing] = useState<UserProfile | null>(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', password: '', type: 'cashier' as UserRole });
@@ -157,12 +158,15 @@ const AdminUsers = () => {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          setDeletingUserId(id);
           try {
             await apiClient.deleteUser(id);
             dispatch(deleteUser(id));
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to delete user';
             Alert.alert('Error', message);
+          } finally {
+            setDeletingUserId(null);
           }
         },
       },
@@ -217,9 +221,21 @@ const AdminUsers = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleDelete(item.id)}
-                style={[styles.actionBtn, { borderColor: '#ef4444' }]}
+                style={[
+                  styles.actionBtn,
+                  { borderColor: '#ef4444' },
+                  deletingUserId === item.id && styles.actionBtnDisabled,
+                ]}
+                disabled={deletingUserId === item.id}
               >
-                <Text style={{ color: '#ef4444' }}>Delete</Text>
+                <View style={styles.inlineButtonContent}>
+                  {deletingUserId === item.id ? (
+                    <ActivityIndicator size="small" color="#ef4444" />
+                  ) : null}
+                  <Text style={{ color: '#ef4444' }}>
+                    {deletingUserId === item.id ? 'Deleting...' : 'Delete'}
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -307,6 +323,8 @@ const styles = StyleSheet.create({
   meta: { color: ADMIN_COLORS.secondaryText, marginTop: 2 },
   actions: { justifyContent: 'center', gap: 8 },
   actionBtn: { borderWidth: 1, borderColor: ADMIN_COLORS.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: ADMIN_COLORS.surfaceMuted },
+  actionBtnDisabled: { opacity: 0.7 },
+  inlineButtonContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   modalContainer: { flex: 1, backgroundColor: ADMIN_COLORS.background },
   modalHeader: { ...ADMIN_MODAL_HEADER, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
   modalTitle: { fontSize: 22, fontWeight: '700', color: ADMIN_COLORS.text },

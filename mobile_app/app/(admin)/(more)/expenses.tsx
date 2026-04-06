@@ -59,6 +59,7 @@ const AdminExpenses = () => {
   
   const [filteredExpenses, setFilteredExpenses] = useState<ExpenseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
@@ -125,6 +126,7 @@ const AdminExpenses = () => {
       return;
     }
 
+    setIsSubmittingExpense(true);
     try {
       const amount = parseFloat(formData.amount);
       await apiClient.createExpense({
@@ -149,6 +151,8 @@ const AdminExpenses = () => {
     } catch (error) {
       console.error('Error creating expense:', error);
       Alert.alert('Error', 'Failed to add expense');
+    } finally {
+      setIsSubmittingExpense(false);
     }
   };
 
@@ -496,10 +500,22 @@ const AdminExpenses = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
+              style={[
+                styles.submitButton,
+                { backgroundColor: COLORS.accent },
+                isSubmittingExpense && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
+              disabled={isSubmittingExpense}
             >
-              <Text style={styles.submitButtonText}>Add Expense</Text>
+              <View style={styles.buttonContent}>
+                {isSubmittingExpense ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : null}
+                <Text style={styles.submitButtonText}>
+                  {isSubmittingExpense ? 'Saving Expense...' : 'Add Expense'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -894,6 +910,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   submitButtonText: {
     color: "#FFFFFF",

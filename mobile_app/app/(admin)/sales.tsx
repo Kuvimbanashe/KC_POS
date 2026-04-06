@@ -57,6 +57,7 @@ const AdminSales: React.FC = () => {
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [selectedSale, setSelectedSale] = useState<SaleRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPrintingSale, setIsPrintingSale] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -230,6 +231,7 @@ const AdminSales: React.FC = () => {
   };
 
   const handlePrintSale = async (sale: SaleRecord) => {
+    setIsPrintingSale(true);
     try {
       await printReceiptDocument(
         buildPrintableReceiptFromSale(sale, {
@@ -252,6 +254,8 @@ const AdminSales: React.FC = () => {
           error instanceof Error ? error.message : "Failed to print the receipt.";
         Alert.alert("Printing Error", message);
       }
+    } finally {
+      setIsPrintingSale(false);
     }
   };
 
@@ -463,8 +467,19 @@ const AdminSales: React.FC = () => {
                       ${(selectedSale.total || 0).toFixed(2)}
                     </Text>
                   </View>
-                  <TouchableOpacity style={styles.printButton} onPress={() => handlePrintSale(selectedSale)}>
-                    <Text style={styles.printButtonText}>Print Receipt</Text>
+                  <TouchableOpacity
+                    style={[styles.printButton, isPrintingSale && styles.printButtonDisabled]}
+                    onPress={() => handlePrintSale(selectedSale)}
+                    disabled={isPrintingSale}
+                  >
+                    <View style={styles.printButtonContent}>
+                      {isPrintingSale ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : null}
+                      <Text style={styles.printButtonText}>
+                        {isPrintingSale ? 'Printing...' : 'Print Receipt'}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -861,6 +876,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
+  },
+  printButtonDisabled: {
+    opacity: 0.7,
+  },
+  printButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   printButtonText: {
     color: "#FFFFFF",

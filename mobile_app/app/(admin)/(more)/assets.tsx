@@ -51,6 +51,8 @@ const AdminAssets = () => {
   
   const [filteredAssets, setFilteredAssets] = useState<AssetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmittingAsset, setIsSubmittingAsset] = useState(false);
+  const [isDeletingAsset, setIsDeletingAsset] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [conditionFilter, setConditionFilter] = useState<ConditionFilter>('all');
@@ -189,6 +191,7 @@ const AdminAssets = () => {
       return;
     }
 
+    setIsSubmittingAsset(true);
     try {
       const createdAsset = await apiClient.createAsset(
         {
@@ -220,6 +223,8 @@ const AdminAssets = () => {
       console.error('Error creating asset:', error);
       const message = error instanceof Error ? error.message : 'Failed to add asset';
       Alert.alert('Error', message);
+    } finally {
+      setIsSubmittingAsset(false);
     }
   };
 
@@ -234,6 +239,7 @@ const AdminAssets = () => {
           text: 'Delete', 
           style: 'destructive',
           onPress: async () => {
+            setIsDeletingAsset(true);
             try {
               await apiClient.deleteAsset(asset.id);
               dispatch(deleteAsset(asset.id));
@@ -243,6 +249,8 @@ const AdminAssets = () => {
               console.error('Error deleting asset:', error);
               const message = error instanceof Error ? error.message : 'Failed to delete asset';
               Alert.alert('Error', message);
+            } finally {
+              setIsDeletingAsset(false);
             }
           }
         },
@@ -618,10 +626,22 @@ const AdminAssets = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
+              style={[
+                styles.submitButton,
+                { backgroundColor: COLORS.accent },
+                isSubmittingAsset && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
+              disabled={isSubmittingAsset}
             >
-              <Text style={styles.submitButtonText}>Add Asset</Text>
+              <View style={styles.buttonContent}>
+                {isSubmittingAsset ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : null}
+                <Text style={styles.submitButtonText}>
+                  {isSubmittingAsset ? 'Saving Asset...' : 'Add Asset'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -698,11 +718,22 @@ const AdminAssets = () => {
                 {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
-                    style={[styles.deleteButton, { backgroundColor: COLORS.danger }]}
+                    style={[
+                      styles.deleteButton,
+                      { backgroundColor: COLORS.danger },
+                      isDeletingAsset && styles.submitButtonDisabled,
+                    ]}
                     onPress={() => handleDeleteAsset(selectedAsset)}
+                    disabled={isDeletingAsset}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-                    <Text style={styles.deleteButtonText}>Delete Asset</Text>
+                    {isDeletingAsset ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.deleteButtonText}>
+                      {isDeletingAsset ? 'Deleting...' : 'Delete Asset'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1041,6 +1072,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   submitButtonText: {
     color: "#FFFFFF",

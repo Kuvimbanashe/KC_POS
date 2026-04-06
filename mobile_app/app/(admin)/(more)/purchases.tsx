@@ -45,6 +45,7 @@ const AdminPurchases = () => {
   
   const [filteredPurchases, setFilteredPurchases] = useState<PurchaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -106,6 +107,7 @@ const AdminPurchases = () => {
       return;
     }
 
+    setIsSubmittingPurchase(true);
     try {
       const quantity = parseInt(formData.quantity);
       const unitCost = parseFloat(formData.unitCost);
@@ -161,6 +163,8 @@ const AdminPurchases = () => {
     } catch (error) {
       console.error('Error creating purchase:', error);
       Alert.alert('Error', 'Failed to create purchase');
+    } finally {
+      setIsSubmittingPurchase(false);
     }
   };
 
@@ -548,10 +552,18 @@ const AdminPurchases = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[styles.submitButton, isSubmittingPurchase && styles.submitButtonDisabled]}
               onPress={handlePurchaseSubmit}
+              disabled={isSubmittingPurchase}
             >
-              <Text style={styles.submitButtonText}>Create Purchase</Text>
+              <View style={styles.buttonContent}>
+                {isSubmittingPurchase ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : null}
+                <Text style={styles.submitButtonText}>
+                  {isSubmittingPurchase ? 'Saving Purchase...' : 'Create Purchase'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -1003,6 +1015,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   submitButtonText: {
     color: "#FFFFFF",

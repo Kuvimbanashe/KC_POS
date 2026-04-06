@@ -1,6 +1,6 @@
 // app/(auth)/signup.js
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { setCredentials } from '../../store/slices/authSlice';
@@ -235,9 +235,12 @@ export default function SignUpScreen() {
         onPress={handleSignUp}
         disabled={isLoading}
       >
-        <Text style={styles.submitButtonText}>
-          {isLoading ? 'Creating Account...' : 'Create Account'}
-        </Text>
+        <View style={styles.buttonContent}>
+          {isLoading ? <ActivityIndicator size="small" color="#ffffff" /> : null}
+          <Text style={styles.submitButtonText}>
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </Text>
+        </View>
       </TouchableOpacity>
 
       <View style={styles.signInContainer}>
@@ -336,6 +339,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   signInContainer: {
     flexDirection: 'row',

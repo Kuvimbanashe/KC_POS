@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import type { ListRenderItem } from 'react-native';
@@ -90,6 +91,9 @@ const CashierSell = () => {
   const [selectedUnitType, setSelectedUnitType] = useState<UnitType>('single');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodOption>('cash');
   const [showReceipt, setShowReceipt] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isPrintingReceipt, setIsPrintingReceipt] = useState(false);
+  const [isLookingUpBarcode, setIsLookingUpBarcode] = useState(false);
 
   const buildPrintableReceipt = (receipt: ReceiptDetails) => ({
     receiptNumber: receipt.receiptNumber,
@@ -113,6 +117,7 @@ const CashierSell = () => {
   });
 
   const printReceipt = async (receipt: ReceiptDetails) => {
+    setIsPrintingReceipt(true);
     try {
       await printReceiptDocument(buildPrintableReceipt(receipt), {
         preferenceScope: getPrinterPreferenceScope(user?.businessId, user?.id),
@@ -124,6 +129,8 @@ const CashierSell = () => {
           error instanceof Error ? error.message : 'Unable to print the receipt on this device.';
         Alert.alert('Print Error', message);
       }
+    } finally {
+      setIsPrintingReceipt(false);
     }
   };
   const [lastSale, setLastSale] = useState<ReceiptDetails | null>(null);
@@ -325,6 +332,7 @@ const CashierSell = () => {
     }
 
     try {
+      setIsLookingUpBarcode(true);
       const apiProduct = await apiClient.lookupProductByBarcode(data, user?.businessId);
       if (apiProduct) {
         handleProductSelect(apiProduct);
@@ -334,6 +342,8 @@ const CashierSell = () => {
     } catch (error) {
       console.error('Barcode lookup failed', error);
       Alert.alert('Lookup Failed', 'Could not lookup barcode on backend.');
+    } finally {
+      setIsLookingUpBarcode(false);
     }
   };
 
@@ -348,6 +358,7 @@ const CashierSell = () => {
       return;
     }
 
+    setIsCheckingOut(true);
     try {
       const total = totalAmount;
       const saleItems: SaleItem[] = cart.map((item) => ({
@@ -425,6 +436,8 @@ const CashierSell = () => {
     } catch (error) {
       console.error('Checkout error:', error);
       Alert.alert('Checkout Failed', 'An error occurred during checkout');
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -643,14 +656,32 @@ const CashierSell = () => {
           onPress={handleCheckout}
           style={[
             styles.checkoutButton,
-            cart.length === 0 && styles.checkoutButtonDisabled,
+            (cart.length === 0 || isCheckingOut) && styles.checkoutButtonDisabled,
           ]}
-          disabled={cart.length === 0}
+          disabled={cart.length === 0 || isCheckingOut}
         >
-          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-          <Text style={styles.checkoutButtonText}>Checkout</Text>
+          {isCheckingOut ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+          )}
+          <Text style={styles.checkoutButtonText}>
+            {isCheckingOut ? 'Processing...' : 'Checkout'}
+          </Text>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={isLookingUpBarcode} transparent animationType="fade">
+        <View style={styles.processingOverlay}>
+          <View style={styles.processingCard}>
+            <ActivityIndicator size="large" color="#0F172A" />
+            <Text style={styles.processingTitle}>Looking up barcode...</Text>
+            <Text style={styles.processingText}>
+              Checking product details before we open the item picker.
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
 
       <Modal
@@ -943,12 +974,21 @@ const CashierSell = () => {
               </View>
 
               <TouchableOpacity
-                style={styles.printReceiptButton}
+                style={[
+                  styles.printReceiptButton,
+                  isPrintingReceipt && styles.checkoutButtonDisabled,
+                ]}
                 onPress={() => printReceipt(lastSale)}
+                disabled={isPrintingReceipt}
               >
-                <Text style={styles.printReceiptButtonText}>
-                  Print Receipt
-                </Text>
+                <View style={styles.receiptButtonContent}>
+                  {isPrintingReceipt ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : null}
+                  <Text style={styles.printReceiptButtonText}>
+                    {isPrintingReceipt ? 'Printing...' : 'Print Receipt'}
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1077,6 +1117,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  processingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  processingCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: 'center',
+    gap: 10,
+  },
+  processingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  processingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   addItemButton: {
     flex: 1,
@@ -1567,6 +1635,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
+  },
+  receiptButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   printReceiptButtonText: {
     color: '#FFFFFF',

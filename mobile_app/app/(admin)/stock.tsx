@@ -56,6 +56,7 @@ const AdminStock = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -256,6 +257,7 @@ const AdminStock = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const parsedPrice = Number.parseFloat(formData.price);
       const parsedStock = Number.parseInt(formData.stock, 10);
@@ -324,6 +326,8 @@ const AdminStock = () => {
       console.error('Error saving product:', error);
       const message = error instanceof Error ? error.message : 'Failed to save product';
       Alert.alert('Error', message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -794,12 +798,26 @@ const AdminStock = () => {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: COLORS.accent }]}
+              style={[
+                styles.submitButton,
+                { backgroundColor: COLORS.accent },
+                isSubmitting && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
+              disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText}>
-                {isEditMode ? 'Update Product' : 'Add Product'}
-              </Text>
+              <View style={styles.buttonContent}>
+                {isSubmitting ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+                <Text style={styles.submitButtonText}>
+                  {isSubmitting
+                    ? isEditMode
+                      ? 'Updating...'
+                      : 'Saving...'
+                    : isEditMode
+                      ? 'Update Product'
+                      : 'Add Product'}
+                </Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -1282,6 +1300,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   submitButtonText: {
     color: "#FFFFFF",
