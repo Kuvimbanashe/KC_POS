@@ -1,4 +1,5 @@
 const os = require('os');
+const path = require('path');
 
 if (typeof os.availableParallelism !== 'function') {
   os.availableParallelism = () => {
@@ -12,23 +13,8 @@ const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(__dirname);
- 
-module.exports = withNativeWind(config, { input: './global.css' })
 
-
-    // Add this to ignore node_modules from being watched
-    
-
-    // Alternatively, or in addition, you can configure the watcher itself
-    // config.watchFolders = [__dirname]; // Only watch the current project folder
-    // config.watcher = {
-    //   ...config.watcher,
-    //   ignored: [
-    //     /node_modules/,
-    //     /\.git/,
-    //     // Add any other directories you want to ignore
-    //   ],
-    // };
-
-
-    
+module.exports = withNativeWind(config, {
+  input: path.join(__dirname, 'global.css'),
+  configPath: path.join(__dirname, 'tailwind.config.js'),
+});
