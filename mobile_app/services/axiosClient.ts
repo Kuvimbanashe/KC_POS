@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosHeaders, InternalAxiosRequestConfig } from 'axios';
+import { getAuthToken } from './authSession';
 
 const baseURL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://kc-pos-backend.vercel.app/api';
 
@@ -13,7 +13,7 @@ export const axiosClient = axios.create({
 });
 
 axiosClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-  const token = await AsyncStorage.getItem('authToken');
+  const token = await getAuthToken();
   if (!token) return config;
 
   const headers = AxiosHeaders.from(config.headers ?? {});

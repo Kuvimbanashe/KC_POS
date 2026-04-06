@@ -1,6 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AuthState, UserProfile, UserRole } from '../types';
+import {
+  AUTH_TOKEN_KEY,
+  SESSION_EXPIRY_KEY,
+  USER_DATA_KEY,
+  clearAuthToken,
+  persistAuthToken,
+} from '../../services/authSession';
 
 const initialState: AuthState = {
   user: null,
@@ -32,9 +39,9 @@ const authSlice = createSlice({
       state.sessionExpiry = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
       
       // Store in AsyncStorage
-      AsyncStorage.setItem('userData', JSON.stringify({ user, userType }));
-      AsyncStorage.setItem('authToken', token);
-      AsyncStorage.setItem('sessionExpiry', state.sessionExpiry);
+      AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({ user, userType }));
+      persistAuthToken(token);
+      AsyncStorage.setItem(SESSION_EXPIRY_KEY, state.sessionExpiry);
     },
     logout: (state) => {
       state.user = null;
@@ -45,7 +52,8 @@ const authSlice = createSlice({
       state.sessionExpiry = null;
       
       // Clear AsyncStorage
-      AsyncStorage.multiRemove(['userData', 'authToken', 'sessionExpiry']);
+      clearAuthToken();
+      AsyncStorage.multiRemove([USER_DATA_KEY, AUTH_TOKEN_KEY, SESSION_EXPIRY_KEY]);
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
@@ -53,7 +61,7 @@ const authSlice = createSlice({
     updateProfile: (state, action: PayloadAction<Partial<UserProfile>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
-        AsyncStorage.setItem('userData', JSON.stringify({ 
+        AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({ 
           user: state.user, 
           userType: state.userType 
         }));

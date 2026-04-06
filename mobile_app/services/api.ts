@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AssetRecord, ExpenseRecord, Product, PurchaseRecord, SaleItem, SaleRecord, UserProfile } from '../store/types';
+import { getAuthToken } from './authSession';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://kc-pos-backend.vercel.app/api';
 const MAX_CURRENCY_VALUE = 9_999_999_999.99;
@@ -283,7 +283,7 @@ const buildHeaders = async (path: string, headers?: HeadersInit): Promise<Header
   }
 
   if (!isPublicPath(path) && !mergedHeaders.has('Authorization')) {
-    const token = await AsyncStorage.getItem('authToken');
+    const token = await getAuthToken();
     if (token) {
       mergedHeaders.set('Authorization', `Bearer ${token}`);
     }
