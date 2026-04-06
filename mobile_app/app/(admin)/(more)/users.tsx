@@ -176,7 +176,7 @@ const AdminUsers = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.heroCard}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
@@ -308,7 +308,7 @@ const AdminUsers = () => {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 

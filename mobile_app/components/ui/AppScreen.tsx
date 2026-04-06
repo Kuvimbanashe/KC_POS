@@ -4,6 +4,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  View,
   type ScrollViewProps,
   type StyleProp,
   type ViewStyle,
@@ -55,9 +56,9 @@ export function AppScreen({
   );
 
   return (
-    <SafeAreaView style={[styles.safeArea, style]} edges={edges}>
+    <View style={[styles.safeArea, style]} >
       {wrappedContent}
-    </SafeAreaView>
+    </View>
   );
 }
 

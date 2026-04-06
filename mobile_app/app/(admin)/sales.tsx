@@ -278,7 +278,7 @@ const AdminSales: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header with metrics */}
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
@@ -518,7 +518,7 @@ const AdminSales: React.FC = () => {
           </SafeAreaView>
         )}
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
