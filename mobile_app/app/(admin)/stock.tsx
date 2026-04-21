@@ -47,6 +47,7 @@ interface StatCard {
 }
 
 const MAX_CURRENCY_VALUE = 9_999_999_999.99;
+type StockLevelFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 
 const AdminStock = () => {
   const { products } = useAppSelector((state) => state.user);
@@ -60,8 +61,11 @@ const AdminStock = () => {
   
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [stockLevelFilter, setStockLevelFilter] = useState<StockLevelFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -111,14 +115,26 @@ const AdminStock = () => {
 
   // Filter products
   useEffect(() => {
-    const filtered = products.filter(product =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.barcode ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filtered = products.filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.barcode ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+
+      const minStockLevel = product.minStockLevel || 10;
+      const matchesStockLevel =
+        stockLevelFilter === 'all' ||
+        (stockLevelFilter === 'out_of_stock' && product.stock === 0) ||
+        (stockLevelFilter === 'low_stock' && product.stock > 0 && product.stock < minStockLevel) ||
+        (stockLevelFilter === 'in_stock' && product.stock >= minStockLevel);
+
+      return matchesSearch && matchesCategory && matchesStockLevel;
+    });
     setFilteredProducts(filtered);
-  }, [searchQuery, products]);
+  }, [categoryFilter, products, searchQuery, stockLevelFilter]);
 
   // Calculate statistics
   const lowStockProducts = useMemo(() => 
@@ -177,7 +193,7 @@ const AdminStock = () => {
   ];
 
   // Category options
-  const categoryOptions = [
+  const baseCategoryOptions = [
     'Electronics',
     'Clothing',
     'Food',
@@ -187,6 +203,17 @@ const AdminStock = () => {
     'Books',
     'Other'
   ];
+
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...baseCategoryOptions,
+          ...products.map((product) => product.category).filter(Boolean),
+        ]),
+      ).sort((left, right) => left.localeCompare(right)),
+    [products],
+  );
 
   // Get stock badge styling
   const getStockBadge = (stock: number, minStockLevel = 10) => {
@@ -372,6 +399,37 @@ const AdminStock = () => {
     setIsProductModalOpen(true);
   };
 
+  const handleDeleteProduct = (product: Product) => {
+    Alert.alert(
+      'Delete Product',
+      `Are you sure you want to delete "${product.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeletingProduct(true);
+            try {
+              await apiClient.deleteProduct(product.id);
+              if (user?.businessId) {
+                dispatch(fetchOperationalData(user.businessId));
+              }
+              setSelectedProduct(null);
+              Alert.alert('Success', 'Product deleted successfully');
+            } catch (error) {
+              console.error('Error deleting product:', error);
+              const message = error instanceof Error ? error.message : 'Failed to delete product';
+              Alert.alert('Error', message);
+            } finally {
+              setIsDeletingProduct(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   // Render product item
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity 
@@ -488,6 +546,90 @@ const AdminStock = () => {
               )}
             </View>
           </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.filterContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.filterButton,
+                  {
+                    backgroundColor: categoryFilter === 'all' ? COLORS.primary : COLORS.input,
+                    borderColor: categoryFilter === 'all' ? COLORS.primary : COLORS.border,
+                  },
+                ]}
+                onPress={() => setCategoryFilter('all')}
+              >
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    { color: categoryFilter === 'all' ? '#FFFFFF' : COLORS.primary },
+                  ]}
+                >
+                  All Categories
+                </Text>
+              </TouchableOpacity>
+              {categoryOptions.map((category) => {
+                const isActive = categoryFilter === category;
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.filterButton,
+                      {
+                        backgroundColor: isActive ? COLORS.primary : COLORS.input,
+                        borderColor: isActive ? COLORS.primary : COLORS.border,
+                      },
+                    ]}
+                    onPress={() => setCategoryFilter(category)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        { color: isActive ? '#FFFFFF' : COLORS.primary },
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.filterContainer}>
+              {[
+                { value: 'all' as const, label: 'All Levels' },
+                { value: 'in_stock' as const, label: 'In Stock' },
+                { value: 'low_stock' as const, label: 'Low Stock' },
+                { value: 'out_of_stock' as const, label: 'Out of Stock' },
+              ].map((option) => {
+                const isActive = stockLevelFilter === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.filterButton,
+                      {
+                        backgroundColor: isActive ? COLORS.accent : COLORS.input,
+                        borderColor: isActive ? COLORS.accent : COLORS.border,
+                      },
+                    ]}
+                    onPress={() => setStockLevelFilter(option.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        { color: isActive ? '#FFFFFF' : COLORS.primary },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
         </View>
 
         {/* Products List */}
@@ -496,17 +638,21 @@ const AdminStock = () => {
             <Ionicons name="cube-outline" size={64} color={COLORS.border} />
             <Text style={[styles.emptyTitle, { color: COLORS.primary }]}>No products found</Text>
             <Text style={[styles.emptyText, { color: COLORS.muted }]}>
-              {searchQuery 
+              {searchQuery || categoryFilter !== 'all' || stockLevelFilter !== 'all'
                 ? 'Try adjusting your search'
                 : 'Start by adding your first product'
               }
             </Text>
-            {searchQuery ? (
+            {searchQuery || categoryFilter !== 'all' || stockLevelFilter !== 'all' ? (
               <TouchableOpacity
                 style={[styles.clearButton, { backgroundColor: COLORS.primary }]}
-                onPress={() => setSearchQuery('')}
+                onPress={() => {
+                  setSearchQuery('');
+                  setCategoryFilter('all');
+                  setStockLevelFilter('all');
+                }}
               >
-                <Text style={styles.clearButtonText}>Clear Search</Text>
+                <Text style={styles.clearButtonText}>Clear Filters</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -542,7 +688,7 @@ const AdminStock = () => {
           resetForm();
         }}
       >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background,  }]} edges={['top', 'bottom']}>
           <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
             <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
               {isEditMode ? 'Edit Product' : 'New Product'}
@@ -792,7 +938,7 @@ const AdminStock = () => {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                { backgroundColor: COLORS.primary },
+                { backgroundColor: COLORS.primary, marginBottom: 40 },
                 isSubmitting && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
@@ -974,15 +1120,35 @@ const AdminStock = () => {
                   </View>
                 )}
 
-                <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: COLORS.primary }]}
-                  onPress={() => {
-                    handleEditProduct(selectedProduct);
-                    setSelectedProduct(null);
-                  }}
-                >
-                  <Text style={styles.editButtonText}>Edit Product</Text>
-                </TouchableOpacity>
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.secondaryActionButton, { backgroundColor: COLORS.primary }]}
+                    onPress={() => {
+                      handleEditProduct(selectedProduct);
+                      setSelectedProduct(null);
+                    }}
+                  >
+                    <Text style={styles.editButtonText}>Edit Product</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.destructiveButton,
+                      { backgroundColor: COLORS.danger },
+                      isDeletingProduct && styles.submitButtonDisabled,
+                    ]}
+                    onPress={() => handleDeleteProduct(selectedProduct)}
+                    disabled={isDeletingProduct}
+                  >
+                    {isDeletingProduct ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.destructiveButtonText}>
+                      {isDeletingProduct ? 'Deleting...' : 'Delete Product'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </ScrollView>
           </SafeAreaView>
@@ -1126,6 +1292,22 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginRight: 8,
   },
+  filterContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  filterButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
 
   // Products List
   productsList: {
@@ -1228,6 +1410,7 @@ const styles = StyleSheet.create({
   // Modal
   modalContainer: {
     flex: 1,
+
   },
   modalHeader: {
     flexDirection: "row",
@@ -1244,6 +1427,7 @@ const styles = StyleSheet.create({
   modalScroll: {
     flex: 1,
     padding: 20,
+    paddingBottom: 40,
   },
 
   // Form
@@ -1483,7 +1667,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
   },
+  actionButtons: {
+    marginTop: 8,
+    gap: 12,
+  },
+  secondaryActionButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  destructiveButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
   editButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  destructiveButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",

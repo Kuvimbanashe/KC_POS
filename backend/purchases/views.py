@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
 
 from users.authentication import get_request_business_id
 from users.permissions import IsAdminOrReadOnly
@@ -23,3 +24,13 @@ class PurchaseViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(business=self.get_object().business)
+
+    def perform_destroy(self, instance):
+        product = instance.product
+        if product.stock < instance.quantity:
+            raise ValidationError(
+                {'detail': f'Cannot delete purchase because {product.name} stock would become negative.'}
+            )
+        product.stock -= instance.quantity
+        product.save(update_fields=['stock', 'updated_at'])
+        instance.delete()

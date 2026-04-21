@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  TextInput, 
+import { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
   Alert,
   Modal,
   FlatList,
@@ -14,12 +14,17 @@ import {
 } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { Ionicons } from '@expo/vector-icons';
-import { addPurchase, fetchOperationalData, updateProduct } from '../../../store/slices/userSlice';
-import type { PurchaseRecord, Product } from '../../../store/types';
+import { fetchOperationalData } from '../../../store/slices/userSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import type { Product, PurchaseRecord } from '../../../store/types';
 import { apiClient } from '../../../services/api';
-import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from '../../../theme/adminUi';
+
+const MAX_CURRENCY_VALUE = 9_999_999_999.99;
+const PURCHASE_STATUS_OPTIONS = ['Completed', 'Pending'] as const;
+
+type PurchaseStatus = typeof PURCHASE_STATUS_OPTIONS[number];
+type PurchaseStatusFilter = 'all' | PurchaseStatus;
 
 interface PurchaseFormData {
   quantity: string;
@@ -27,6 +32,7 @@ interface PurchaseFormData {
   unitType: 'single' | 'pack';
   profitMargin: string;
   supplier: string;
+  status: PurchaseStatus;
 }
 
 interface StatCard {
@@ -36,8 +42,32 @@ interface StatCard {
   color: string;
 }
 
+const COLORS = {
+  primary: '#0f172a',
+  accent: '#f97316',
+  background: '#ffffff',
+  card: '#ffffff',
+  border: '#e2e8f0',
+  input: '#f8fafc',
+  muted: '#64748b',
+  mutedLight: '#f8fafc',
+  danger: '#ea580c',
+  success: '#0f172a',
+  warning: '#f97316',
+};
+
+const getPurchaseStatusColor = (status: PurchaseStatus) => {
+  if (status === 'Pending') {
+    return { background: '#ffedd5', text: COLORS.warning };
+  }
+
+  return { background: '#dbeafe', text: COLORS.primary };
+};
+
+const calculateSellingPrice = (unitCost: number, margin: number) => unitCost * (1 + margin / 100);
+
 const AdminPurchases = () => {
-  const { purchases, products } = useAppSelector(state => state.user);
+  const { purchases, products } = useAppSelector((state) => state.user);
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
 
@@ -45,316 +75,491 @@ const AdminPurchases = () => {
     if (!user?.businessId) return;
     dispatch(fetchOperationalData(user.businessId));
   }, [dispatch, user?.businessId]);
-  
-  const [filteredPurchases, setFilteredPurchases] = useState<PurchaseRecord[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
+  const [isDeletingPurchase, setIsDeletingPurchase] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseRecord | null>(null);
-  
+  const [editingPurchase, setEditingPurchase] = useState<PurchaseRecord | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PurchaseStatusFilter>('all');
+
   const [formData, setFormData] = useState<PurchaseFormData>({
     quantity: '',
     unitCost: '',
     unitType: 'single',
     profitMargin: '30',
     supplier: '',
+    status: 'Completed',
   });
 
-  // Initialize purchases and simulate loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      setFilteredPurchases(purchases);
-    }, 1000);
+    const timer = setTimeout(() => setIsLoading(false), 600);
     return () => clearTimeout(timer);
-  }, []);
+  }, [purchases, products]);
 
-  // Filter purchases based on search
-  useEffect(() => {
-    const filtered = purchases.filter(purchase =>
-      purchase.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      purchase.supplier.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      purchase.id.toString().includes(searchQuery.toLowerCase())
-    );
-    setFilteredPurchases(filtered);
-  }, [searchQuery, purchases]);
+  const filteredPurchases = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
 
-  // Handle product selection for purchase
+    return purchases.filter((purchase) => {
+      const matchesSearch =
+        !query ||
+        purchase.productName.toLowerCase().includes(query) ||
+        purchase.supplier.toLowerCase().includes(query) ||
+        purchase.orderNumber.toLowerCase().includes(query) ||
+        purchase.id.toString().includes(query);
+
+      const matchesStatus = statusFilter === 'all' || purchase.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [purchases, searchQuery, statusFilter]);
+
+  const filteredProducts = useMemo(() => {
+    const query = productSearchQuery.trim().toLowerCase();
+
+    return products.filter((product) => {
+      if (!query) return true;
+
+      return (
+        product.name.toLowerCase().includes(query) ||
+        product.category.toLowerCase().includes(query) ||
+        product.sku.toLowerCase().includes(query) ||
+        (product.supplier ?? '').toLowerCase().includes(query)
+      );
+    });
+  }, [productSearchQuery, products]);
+
+  const totalCost = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
+  const totalQuantity = purchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
+  const pendingPurchases = purchases.filter((purchase) => purchase.status === 'Pending').length;
+
+  const statCards: StatCard[] = [
+    {
+      title: 'Total Purchases',
+      value: purchases.length.toString(),
+      icon: 'receipt-outline',
+      color: COLORS.primary,
+    },
+    {
+      title: 'Total Cost',
+      value: `$${totalCost.toFixed(2)}`,
+      icon: 'cash-outline',
+      color: COLORS.accent,
+    },
+    {
+      title: 'Units Added',
+      value: totalQuantity.toString(),
+      icon: 'cube-outline',
+      color: COLORS.success,
+    },
+    {
+      title: 'Pending Orders',
+      value: pendingPurchases.toString(),
+      icon: 'time-outline',
+      color: COLORS.warning,
+    },
+  ];
+
+  const parsedQuantity = Number.parseInt(formData.quantity, 10);
+  const parsedUnitCost = Number.parseFloat(formData.unitCost);
+  const parsedMargin = Number.parseFloat(formData.profitMargin);
+  const unitsAdded =
+    formData.unitType === 'pack' && selectedProduct?.packSize
+      ? (Number.isInteger(parsedQuantity) ? parsedQuantity : 0) * selectedProduct.packSize
+      : Number.isInteger(parsedQuantity)
+        ? parsedQuantity
+        : 0;
+  const effectiveUnitCost =
+    formData.unitType === 'pack' && selectedProduct?.packSize && Number.isFinite(parsedUnitCost)
+      ? parsedUnitCost / selectedProduct.packSize
+      : Number.isFinite(parsedUnitCost)
+        ? parsedUnitCost
+        : 0;
+  const totalFormCost =
+    Number.isInteger(parsedQuantity) && Number.isFinite(parsedUnitCost) ? parsedQuantity * parsedUnitCost : 0;
+  const suggestedPrice =
+    effectiveUnitCost > 0 && Number.isFinite(parsedMargin)
+      ? calculateSellingPrice(effectiveUnitCost, parsedMargin)
+      : 0;
+
+  const resetForm = () => {
+    setFormData({
+      quantity: '',
+      unitCost: '',
+      unitType: 'single',
+      profitMargin: '30',
+      supplier: '',
+      status: 'Completed',
+    });
+    setSelectedProduct(null);
+    setEditingPurchase(null);
+    setProductSearchQuery('');
+  };
+
+  const openCreatePurchase = () => {
+    resetForm();
+    setIsProductModalOpen(true);
+  };
+
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setIsProductModalOpen(false);
     setIsPurchaseModalOpen(true);
-    
-    // Pre-fill supplier if available
-    if (product.supplier) {
-      setFormData(prev => ({ ...prev, supplier: product.supplier as string }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      supplier: prev.supplier || product.supplier || '',
+      unitType: product.packSize ? prev.unitType : 'single',
+    }));
   };
 
-  // Calculate selling price with profit margin
-  const calculateSellingPrice = (unitCost: number, margin: number) => {
-    return unitCost * (1 + margin / 100);
-  };
+  const handleEditPurchase = (purchase: PurchaseRecord) => {
+    const matchingProduct = products.find((product) => product.id === purchase.productId);
 
-  // Handle purchase submission
-  const handlePurchaseSubmit = async () => {
-    if (!selectedProduct || !formData.quantity || !formData.unitCost || !formData.supplier) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!matchingProduct) {
+      Alert.alert('Product Not Found', 'This purchase cannot be edited because its product is unavailable.');
       return;
     }
+
+    setSelectedPurchase(null);
+    setEditingPurchase(purchase);
+    setSelectedProduct(matchingProduct);
+    setFormData({
+      quantity: purchase.quantity.toString(),
+      unitCost: purchase.unitCost.toFixed(2),
+      unitType: 'single',
+      profitMargin: '30',
+      supplier: purchase.supplier,
+      status: purchase.status,
+    });
+    setIsPurchaseModalOpen(true);
+  };
+
+  const handlePurchaseSubmit = async () => {
+    if (!selectedProduct || !formData.quantity || !formData.unitCost || !formData.supplier.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields.');
+      return;
+    }
+
     if (!user?.businessId) {
       Alert.alert('Error', 'Business context missing. Please sign in again.');
       return;
     }
 
+    const quantity = Number.parseInt(formData.quantity, 10);
+    const unitCostInput = Number.parseFloat(formData.unitCost);
+    const margin = Number.parseFloat(formData.profitMargin || '0');
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      Alert.alert('Error', 'Quantity must be a whole number greater than zero.');
+      return;
+    }
+
+    if (!Number.isFinite(unitCostInput) || unitCostInput <= 0) {
+      Alert.alert('Error', 'Cost must be greater than zero.');
+      return;
+    }
+
+    if (!Number.isFinite(margin) || margin < 0) {
+      Alert.alert('Error', 'Profit margin must be zero or greater.');
+      return;
+    }
+
+    const actualQuantity =
+      formData.unitType === 'pack' && selectedProduct.packSize
+        ? quantity * selectedProduct.packSize
+        : quantity;
+    const unitCost =
+      formData.unitType === 'pack' && selectedProduct.packSize
+        ? unitCostInput / selectedProduct.packSize
+        : unitCostInput;
+    const total = quantity * unitCostInput;
+
+    if (unitCost > MAX_CURRENCY_VALUE || total > MAX_CURRENCY_VALUE) {
+      Alert.alert('Error', `Values must be below ${MAX_CURRENCY_VALUE.toFixed(2)}.`);
+      return;
+    }
+
     setIsSubmittingPurchase(true);
     try {
-      const quantity = parseInt(formData.quantity);
-      const unitCost = parseFloat(formData.unitCost);
-      const margin = parseFloat(formData.profitMargin);
-      const sellingPrice = calculateSellingPrice(unitCost, margin);
-      
-      const actualQuantity = formData.unitType === 'pack' && selectedProduct.packSize 
-        ? quantity * selectedProduct.packSize 
-        : quantity;
-
-      const totalCost = quantity * unitCost;
-
-      await apiClient.createPurchase({
+      const payload = {
         productId: selectedProduct.id,
         productName: selectedProduct.name,
         quantity: actualQuantity,
-        unitCost,
-        total: totalCost,
-        supplier: formData.supplier,
+        unitCost: Number(unitCost.toFixed(2)),
+        total: Number(total.toFixed(2)),
+        supplier: formData.supplier.trim(),
+        status: formData.status,
         businessId: user.businessId,
-      });
+      };
 
-      // Keep local state in sync immediately
-      dispatch(addPurchase({
-        productId: selectedProduct.id,
-        productName: selectedProduct.name,
-        quantity: actualQuantity,
-        unitCost,
-        total: totalCost,
-        supplier: formData.supplier,
-      }));
+      if (editingPurchase) {
+        await apiClient.updatePurchase(editingPurchase.id, payload);
+      } else {
+        await apiClient.createPurchase(payload);
+      }
 
-      dispatch(updateProduct({
-        id: selectedProduct.id,
-        stock: selectedProduct.stock + actualQuantity,
-        cost: unitCost,
-        supplier: selectedProduct.supplier || formData.supplier,
-      }));
       dispatch(fetchOperationalData(user.businessId));
 
-      Alert.alert('Success', `Purchase saved to backend.\n\nSuggested price: $${sellingPrice.toFixed(2)}\n${actualQuantity} units added to stock`);
-      
-      // Reset form
+      Alert.alert(
+        'Success',
+        editingPurchase
+          ? 'Purchase updated successfully.'
+          : `Purchase saved.\n\nSuggested selling price: $${calculateSellingPrice(unitCost, margin).toFixed(2)}`,
+      );
+
       setIsPurchaseModalOpen(false);
-      setSelectedProduct(null);
-      setFormData({ 
-        quantity: '', 
-        unitCost: '', 
-        unitType: 'single', 
-        profitMargin: '30',
-        supplier: '' 
-      });
+      resetForm();
     } catch (error) {
-      console.error('Error creating purchase:', error);
-      Alert.alert('Error', 'Failed to create purchase');
+      console.error('Error saving purchase:', error);
+      const message = error instanceof Error ? error.message : 'Failed to save purchase';
+      Alert.alert('Error', message);
     } finally {
       setIsSubmittingPurchase(false);
     }
   };
 
-  // Statistics
-  const totalCost = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
-  const totalQuantity = purchases.reduce((sum, purchase) => sum + purchase.quantity, 0);
+  const handleDeletePurchase = (purchase: PurchaseRecord) => {
+    Alert.alert(
+      'Delete Purchase',
+      `Are you sure you want to delete ${purchase.orderNumber}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user?.businessId) {
+              Alert.alert('Error', 'Business context missing. Please sign in again.');
+              return;
+            }
 
-  // Form calculations
-  const unitCost = formData.unitCost ? parseFloat(formData.unitCost) : 0;
-  const margin = formData.profitMargin ? parseFloat(formData.profitMargin) : 0;
-  const suggestedPrice = unitCost > 0 ? calculateSellingPrice(unitCost, margin) : 0;
-  const totalFormCost = formData.quantity && formData.unitCost 
-    ? parseFloat(formData.quantity) * parseFloat(formData.unitCost) 
-    : 0;
+            setIsDeletingPurchase(true);
+            try {
+              await apiClient.deletePurchase(purchase.id);
+              dispatch(fetchOperationalData(user.businessId));
+              setSelectedPurchase(null);
+              Alert.alert('Success', 'Purchase deleted successfully.');
+            } catch (error) {
+              console.error('Error deleting purchase:', error);
+              const message = error instanceof Error ? error.message : 'Failed to delete purchase';
+              Alert.alert('Error', message);
+            } finally {
+              setIsDeletingPurchase(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
-  // Stat cards configuration
-  const statCards: StatCard[] = [
-    {
-      title: "Total Orders",
-      value: purchases.length.toString(),
-      icon: "receipt-outline",
-      color: ADMIN_COLORS.primary,
-    },
-    {
-      title: "Total Cost",
-      value: `$${totalCost.toFixed(2)}`,
-      icon: "cash-outline",
-      color: ADMIN_COLORS.accentStrong,
-    },
-    {
-      title: "Total Units",
-      value: totalQuantity.toString(),
-      icon: "cube-outline",
-      color: ADMIN_COLORS.primary,
-    },
-  ];
+  const renderPurchaseItem = ({ item }: { item: PurchaseRecord }) => {
+    const statusColor = getPurchaseStatusColor(item.status);
 
-  // Render purchase item
-  const renderPurchaseItem = ({ item }: { item: PurchaseRecord }) => (
-    <TouchableOpacity 
-      style={styles.purchaseCard}
-      onPress={() => setSelectedPurchase(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.purchaseHeader}>
-        <Text style={styles.productName}>{item.productName}</Text>
-        <Text style={styles.purchaseAmount}>${item.total.toFixed(2)}</Text>
-      </View>
-      
-      <View style={styles.purchaseDetails}>
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Ionicons name="business-outline" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>{item.supplier}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Ionicons name="cube-outline" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>{item.quantity} units</Text>
-          </View>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Ionicons name="pricetag-outline" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>${item.unitCost.toFixed(2)}/unit</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-            <Text style={styles.detailText}>
+    return (
+      <TouchableOpacity
+        style={[styles.purchaseCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
+        onPress={() => setSelectedPurchase(item)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.purchaseHeader}>
+          <View style={styles.purchaseInfo}>
+            <Text style={[styles.purchaseName, { color: COLORS.primary }]}>{item.productName}</Text>
+            <Text style={[styles.purchaseDate, { color: COLORS.muted }]}>
               {new Date(item.date).toLocaleDateString()}
             </Text>
           </View>
+          <Text style={[styles.purchaseAmount, { color: COLORS.accent }]}>${item.total.toFixed(2)}</Text>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
 
-  // Render product item
+        <View style={styles.purchaseFooter}>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor.background }]}>
+            <Text style={[styles.statusText, { color: statusColor.text }]}>{item.status}</Text>
+          </View>
+          <Text style={[styles.purchaseMeta, { color: COLORS.muted }]}>
+            {item.quantity} units • {item.supplier}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity 
-      style={styles.productCard}
+    <TouchableOpacity
+      style={[styles.productCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
       onPress={() => handleProductSelect(item)}
       activeOpacity={0.7}
     >
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+      <View style={styles.productRow}>
+        <View style={styles.productInfo}>
+          <Text style={[styles.purchaseName, { color: COLORS.primary }]}>{item.name}</Text>
+          <Text style={[styles.productMetaText, { color: COLORS.muted }]}>
+            {item.category} • {item.sku}
+          </Text>
+        </View>
+        <Text style={[styles.productPrice, { color: COLORS.accent }]}>${item.price.toFixed(2)}</Text>
       </View>
-      
-      <View style={styles.productDetails}>
-        <Text style={styles.productDetail}>Stock: {item.stock}</Text>
-        <Text style={styles.productDetail}>{item.category}</Text>
-        {item.supplier && (
-          <Text style={styles.productSupplier}>Supplier: {item.supplier}</Text>
-        )}
+      <View style={styles.productFooter}>
+        <Text style={[styles.productMetaText, { color: COLORS.muted }]}>Stock: {item.stock}</Text>
+        <Text style={[styles.productMetaText, { color: COLORS.muted }]}>
+          {item.supplier || 'No supplier'}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
-  // Loading state
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={ADMIN_COLORS.primary} />
-        <Text style={styles.loadingText}>Loading purchases...</Text>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={[styles.loadingText, { color: COLORS.muted }]}>Loading purchases...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: COLORS.background }]}>
       <ScrollView style={styles.scrollView}>
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Purchase Orders</Text>
-          <Text style={styles.subtitle}>Manage inventory purchases</Text>
+          <Text style={[styles.title, { color: COLORS.primary }]}>Purchases</Text>
+          <Text style={[styles.subtitle, { color: COLORS.muted }]}>Track inventory buying and supplier orders</Text>
         </View>
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          {statCards.map((stat, index) => (
-            <View key={index} style={styles.statCardWrapper}>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
-                  <Ionicons name={stat.icon} size={20} color={stat.color} />
-                </View>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statTitle}>{stat.title}</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.statsScroll}
+          contentContainerStyle={styles.statsContent}
+        >
+          {statCards.map((stat) => (
+            <View
+              key={stat.title}
+              style={[styles.statCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
+            >
+              <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
+                <Ionicons name={stat.icon} size={20} color={stat.color} />
               </View>
+              <Text style={[styles.statValue, { color: COLORS.primary }]}>{stat.value}</Text>
+              <Text style={[styles.statTitle, { color: COLORS.muted }]}>{stat.title}</Text>
             </View>
           ))}
-        </View>
+        </ScrollView>
 
-        {/* Actions */}
-        <View style={styles.actionsCard}>
-          <TouchableOpacity
-            style={styles.newPurchaseButton}
-            onPress={() => setIsProductModalOpen(true)}
-          >
-            <Ionicons name="add" size={20} color="#FFFFFF" />
-            <Text style={styles.newPurchaseText}>New Purchase</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={[styles.searchCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+          <View style={styles.searchHeader}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Purchase History</Text>
+              <Text style={[styles.sectionSubtitle, { color: COLORS.muted }]}>
+                {filteredPurchases.length} purchases found
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: COLORS.primary }]}
+              onPress={openCreatePurchase}
+            >
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>Add Purchase</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Search Section */}
-        <View style={styles.searchCard}>
-          <Text style={styles.sectionTitle}>Purchase History</Text>
-          <Text style={styles.sectionSubtitle}>
-            {filteredPurchases.length} purchases found
-          </Text>
-          
           <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={18} color="#6B7280" />
+            <View style={[styles.searchBar, { backgroundColor: COLORS.input }]}>
+              <Ionicons name="search" size={18} color={COLORS.muted} />
               <TextInput
                 placeholder="Search purchases..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                style={styles.searchInput}
-                placeholderTextColor="#9CA3AF"
+                style={[styles.searchInput, { color: COLORS.primary }]}
+                placeholderTextColor={COLORS.muted}
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                  <Ionicons name="close-circle" size={18} color={COLORS.muted} />
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
           </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.filterContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: statusFilter === 'all' ? COLORS.accent : COLORS.input,
+                    borderColor: statusFilter === 'all' ? COLORS.accent : COLORS.border,
+                  },
+                ]}
+                onPress={() => setStatusFilter('all')}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    { color: statusFilter === 'all' ? '#FFFFFF' : COLORS.primary },
+                  ]}
+                >
+                  All Statuses
+                </Text>
+              </TouchableOpacity>
+              {PURCHASE_STATUS_OPTIONS.map((status) => {
+                const isActive = statusFilter === status;
+                return (
+                  <TouchableOpacity
+                    key={status}
+                    style={[
+                      styles.filterChip,
+                      {
+                        backgroundColor: isActive ? COLORS.primary : COLORS.input,
+                        borderColor: isActive ? COLORS.primary : COLORS.border,
+                      },
+                    ]}
+                    onPress={() => setStatusFilter(status)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: isActive ? '#FFFFFF' : COLORS.primary },
+                      ]}
+                    >
+                      {status}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
         </View>
 
-        {/* Purchases List */}
         {filteredPurchases.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No purchases found</Text>
-            <Text style={styles.emptyText}>
-              {searchQuery 
+            <Ionicons name="cart-outline" size={64} color={COLORS.border} />
+            <Text style={[styles.emptyTitle, { color: COLORS.primary }]}>No purchases found</Text>
+            <Text style={[styles.emptyText, { color: COLORS.muted }]}>
+              {searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your search'
-                : 'Start by creating a purchase order'
-              }
+                : 'Start by recording your first purchase'}
             </Text>
-            {searchQuery && (
+            {searchQuery || statusFilter !== 'all' ? (
               <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setSearchQuery('')}
+                style={[styles.clearButton, { backgroundColor: COLORS.primary }]}
+                onPress={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                }}
               >
-                <Text style={styles.clearButtonText}>Clear Search</Text>
+                <Text style={styles.clearButtonText}>Clear Filters</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: COLORS.primary }]}
+                onPress={openCreatePurchase}
+              >
+                <Ionicons name="add" size={20} color="#FFFFFF" />
+                <Text style={styles.addButtonText}>Add Purchase</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -370,53 +575,77 @@ const AdminPurchases = () => {
         )}
       </ScrollView>
 
-      {/* Product Selection Modal */}
       <Modal
         visible={isProductModalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setIsProductModalOpen(false)}
       >
-        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Product</Text>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
+          <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Select Product</Text>
             <TouchableOpacity onPress={() => setIsProductModalOpen(false)}>
-              <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
+              <Ionicons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={18} color="#6B7280" />
+          <View style={styles.modalSearchContainer}>
+            <View style={[styles.searchBar, { backgroundColor: COLORS.input }]}>
+              <Ionicons name="search" size={18} color={COLORS.muted} />
               <TextInput
                 placeholder="Search products..."
-                style={styles.searchInput}
-                placeholderTextColor="#9CA3AF"
+                value={productSearchQuery}
+                onChangeText={setProductSearchQuery}
+                style={[styles.searchInput, { color: COLORS.primary }]}
+                placeholderTextColor={COLORS.muted}
               />
+              {productSearchQuery ? (
+                <TouchableOpacity onPress={() => setProductSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.muted} />
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
 
-          <FlatList
-            data={products}
-            renderItem={renderProductItem}
-            keyExtractor={(item) => item.id.toString()}
-            style={styles.productsList}
-          />
+          {filteredProducts.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="cube-outline" size={56} color={COLORS.border} />
+              <Text style={[styles.emptyTitle, { color: COLORS.primary }]}>No products match</Text>
+              <Text style={[styles.emptyText, { color: COLORS.muted }]}>Try another search term.</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredProducts}
+              renderItem={renderProductItem}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.productsList}
+              contentContainerStyle={styles.productsContent}
+            />
+          )}
         </SafeAreaView>
       </Modal>
 
-      {/* Create Purchase Modal */}
       <Modal
         visible={isPurchaseModalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setIsPurchaseModalOpen(false)}
+        onRequestClose={() => {
+          setIsPurchaseModalOpen(false);
+          resetForm();
+        }}
       >
-        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>New Purchase</Text>
-            <TouchableOpacity onPress={() => setIsPurchaseModalOpen(false)}>
-              <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
+          <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
+              {editingPurchase ? 'Edit Purchase' : 'New Purchase'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setIsPurchaseModalOpen(false);
+                resetForm();
+              }}
+            >
+              <Ionicons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
@@ -424,264 +653,325 @@ const AdminPurchases = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={{ flex: 1 }}
           >
-          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
-            {selectedProduct && (
-              <View style={styles.selectedProduct}>
-                <Text style={styles.productLabel}>Product</Text>
-                <Text style={styles.productName}>{selectedProduct.name}</Text>
-                <View style={styles.productInfoRow}>
-                  <Text style={styles.productInfoText}>
-                    Stock: {selectedProduct.stock} • ${selectedProduct.price.toFixed(2)}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.formContainer}>
-              {/* Supplier */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Supplier</Text>
-                <TextInput
-                  value={formData.supplier}
-                  onChangeText={(text) => setFormData({ ...formData, supplier: text })}
-                  placeholder="Enter supplier name"
-                  style={styles.formInput}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              {/* Unit Type */}
-              {selectedProduct?.packSize && (
-                <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>Purchase Type</Text>
-                  <View style={styles.unitTypeContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.unitTypeButton,
-                        formData.unitType === 'single' && styles.unitTypeButtonActive
-                      ]}
-                      onPress={() => setFormData({ ...formData, unitType: 'single' })}
-                    >
-                      <Text style={[
-                        styles.unitTypeText,
-                        formData.unitType === 'single' && styles.unitTypeTextActive
-                      ]}>
-                        Single Units
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.unitTypeButton,
-                        formData.unitType === 'pack' && styles.unitTypeButtonActive
-                      ]}
-                      onPress={() => setFormData({ ...formData, unitType: 'pack' })}
-                    >
-                      <Text style={[
-                        styles.unitTypeText,
-                        formData.unitType === 'pack' && styles.unitTypeTextActive
-                      ]}>
-                        Packs ({selectedProduct.packSize} units)
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-
-              {/* Quantity */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>
-                  Quantity {formData.unitType === 'pack' && `(packs)`}
-                </Text>
-                <TextInput
-                  value={formData.quantity}
-                  onChangeText={(text) => setFormData({ ...formData, quantity: text })}
-                  placeholder="Enter quantity"
-                  keyboardType="numeric"
-                  style={styles.formInput}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              {/* Unit Cost */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>
-                  {formData.unitType === 'pack' ? 'Cost per Pack' : 'Cost per Unit'}
-                </Text>
-                <TextInput
-                  value={formData.unitCost}
-                  onChangeText={(text) => setFormData({ ...formData, unitCost: text })}
-                  placeholder="0.00"
-                  keyboardType="decimal-pad"
-                  style={styles.formInput}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              {/* Profit Margin */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Profit Margin (%)</Text>
-                <TextInput
-                  value={formData.profitMargin}
-                  onChangeText={(text) => setFormData({ ...formData, profitMargin: text })}
-                  placeholder="30"
-                  keyboardType="numeric"
-                  style={styles.formInput}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              {/* Summary */}
-              {formData.quantity && formData.unitCost && (
-                <View style={styles.summaryCard}>
-                  <Text style={styles.summaryTitle}>Order Summary</Text>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Total Cost</Text>
-                    <Text style={styles.summaryValue}>${totalFormCost.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Suggested Price</Text>
-                    <Text style={styles.suggestedPrice}>${suggestedPrice.toFixed(2)}</Text>
-                  </View>
-                  {formData.unitType === 'pack' && selectedProduct?.packSize && (
-                    <View style={styles.summaryRow}>
-                      <Text style={styles.summaryLabel}>Units Added</Text>
-                      <Text style={styles.summaryValue}>
-                        {parseInt(formData.quantity) * selectedProduct.packSize}
+            <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+              {selectedProduct ? (
+                <View style={[styles.selectedProductCard, { backgroundColor: COLORS.input, borderColor: COLORS.border }]}>
+                  <View style={styles.selectedProductHeader}>
+                    <View style={styles.purchaseInfo}>
+                      <Text style={[styles.formLabel, { color: COLORS.muted }]}>Product</Text>
+                      <Text style={[styles.purchaseName, { color: COLORS.primary }]}>{selectedProduct.name}</Text>
+                      <Text style={[styles.productMetaText, { color: COLORS.muted }]}>
+                        {selectedProduct.category} • Stock: {selectedProduct.stock}
                       </Text>
                     </View>
-                  )}
+                    <TouchableOpacity
+                      style={[styles.changeProductButton, { borderColor: COLORS.border }]}
+                      onPress={() => {
+                        setIsPurchaseModalOpen(false);
+                        setIsProductModalOpen(true);
+                      }}
+                    >
+                      <Text style={[styles.changeProductText, { color: COLORS.primary }]}>Change</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              )}
-            </View>
+              ) : null}
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={[styles.submitButton, isSubmittingPurchase && styles.submitButtonDisabled]}
-              onPress={handlePurchaseSubmit}
-              disabled={isSubmittingPurchase}
-            >
-              <View style={styles.buttonContent}>
-                {isSubmittingPurchase ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+              <View style={styles.formContainer}>
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Supplier *</Text>
+                  <TextInput
+                    value={formData.supplier}
+                    onChangeText={(text) => setFormData((prev) => ({ ...prev, supplier: text }))}
+                    placeholder="Enter supplier name"
+                    style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
+                    placeholderTextColor={COLORS.muted}
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Status</Text>
+                  <View style={styles.filterContainer}>
+                    {PURCHASE_STATUS_OPTIONS.map((status) => {
+                      const isActive = formData.status === status;
+                      return (
+                        <TouchableOpacity
+                          key={status}
+                          style={[
+                            styles.optionChip,
+                            {
+                              backgroundColor: isActive ? COLORS.primary : COLORS.input,
+                              borderColor: isActive ? COLORS.primary : COLORS.border,
+                            },
+                          ]}
+                          onPress={() => setFormData((prev) => ({ ...prev, status }))}
+                        >
+                          <Text
+                            style={[
+                              styles.optionChipText,
+                              { color: isActive ? '#FFFFFF' : COLORS.primary },
+                            ]}
+                          >
+                            {status}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {selectedProduct?.packSize ? (
+                  <View style={styles.formGroup}>
+                    <Text style={[styles.formLabel, { color: COLORS.primary }]}>Purchase Type</Text>
+                    <View style={styles.toggleRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.toggleButton,
+                          {
+                            backgroundColor: formData.unitType === 'single' ? COLORS.primary : COLORS.input,
+                            borderColor: formData.unitType === 'single' ? COLORS.primary : COLORS.border,
+                          },
+                        ]}
+                        onPress={() => setFormData((prev) => ({ ...prev, unitType: 'single' }))}
+                      >
+                        <Text
+                          style={[
+                            styles.toggleButtonText,
+                            { color: formData.unitType === 'single' ? '#FFFFFF' : COLORS.primary },
+                          ]}
+                        >
+                          Single Units
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.toggleButton,
+                          {
+                            backgroundColor: formData.unitType === 'pack' ? COLORS.primary : COLORS.input,
+                            borderColor: formData.unitType === 'pack' ? COLORS.primary : COLORS.border,
+                          },
+                        ]}
+                        onPress={() => setFormData((prev) => ({ ...prev, unitType: 'pack' }))}
+                      >
+                        <Text
+                          style={[
+                            styles.toggleButtonText,
+                            { color: formData.unitType === 'pack' ? '#FFFFFF' : COLORS.primary },
+                          ]}
+                        >
+                          Packs ({selectedProduct.packSize})
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 ) : null}
-                <Text style={styles.submitButtonText}>
-                  {isSubmittingPurchase ? 'Saving Purchase...' : 'Create Purchase'}
-                </Text>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>
+                    Quantity {formData.unitType === 'pack' ? '(packs)' : '(units)'}
+                  </Text>
+                  <TextInput
+                    value={formData.quantity}
+                    onChangeText={(text) => setFormData((prev) => ({ ...prev, quantity: text }))}
+                    placeholder="Enter quantity"
+                    keyboardType="numeric"
+                    style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
+                    placeholderTextColor={COLORS.muted}
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>
+                    {formData.unitType === 'pack' ? 'Cost per Pack' : 'Cost per Unit'}
+                  </Text>
+                  <TextInput
+                    value={formData.unitCost}
+                    onChangeText={(text) => setFormData((prev) => ({ ...prev, unitCost: text }))}
+                    placeholder="0.00"
+                    keyboardType="decimal-pad"
+                    style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
+                    placeholderTextColor={COLORS.muted}
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Profit Margin (%)</Text>
+                  <TextInput
+                    value={formData.profitMargin}
+                    onChangeText={(text) => setFormData((prev) => ({ ...prev, profitMargin: text }))}
+                    placeholder="30"
+                    keyboardType="decimal-pad"
+                    style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
+                    placeholderTextColor={COLORS.muted}
+                  />
+                </View>
+
+                {(formData.quantity || formData.unitCost) && selectedProduct ? (
+                  <View style={[styles.summaryCard, { backgroundColor: COLORS.input, borderColor: COLORS.border }]}>
+                    <Text style={[styles.summaryTitle, { color: COLORS.primary }]}>Purchase Summary</Text>
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: COLORS.muted }]}>Units Added</Text>
+                      <Text style={[styles.summaryValue, { color: COLORS.primary }]}>{unitsAdded || 0}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: COLORS.muted }]}>Effective Unit Cost</Text>
+                      <Text style={[styles.summaryValue, { color: COLORS.primary }]}>${effectiveUnitCost.toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: COLORS.muted }]}>Total Cost</Text>
+                      <Text style={[styles.summaryValue, { color: COLORS.primary }]}>${totalFormCost.toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: COLORS.muted }]}>Suggested Price</Text>
+                      <Text style={[styles.summaryAccent, { color: COLORS.accent }]}>${suggestedPrice.toFixed(2)}</Text>
+                    </View>
+                  </View>
+                ) : null}
               </View>
-            </TouchableOpacity>
-          </ScrollView>
+
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  { backgroundColor: COLORS.primary },
+                  isSubmittingPurchase && styles.submitButtonDisabled,
+                ]}
+                onPress={handlePurchaseSubmit}
+                disabled={isSubmittingPurchase}
+              >
+                <View style={styles.buttonContent}>
+                  {isSubmittingPurchase ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+                  <Text style={styles.submitButtonText}>
+                    {isSubmittingPurchase
+                      ? editingPurchase
+                        ? 'Updating Purchase...'
+                        : 'Saving Purchase...'
+                      : editingPurchase
+                        ? 'Update Purchase'
+                        : 'Create Purchase'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
-      {/* Purchase Details Modal */}
       <Modal
         visible={!!selectedPurchase}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedPurchase(null)}
       >
-        {selectedPurchase && (
-          <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Order #{selectedPurchase.id}</Text>
+        {selectedPurchase ? (
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
+            <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
+              <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Purchase Details</Text>
               <TouchableOpacity onPress={() => setSelectedPurchase(null)}>
-                <Ionicons name="close" size={24} color={ADMIN_COLORS.text} />
+                <Ionicons name="close" size={24} color={COLORS.primary} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              style={styles.modalScroll}
-              contentContainerStyle={styles.purchaseDetailScrollContent}
-            >
-              <View style={styles.purchaseDetailStack}>
-                <View style={styles.purchaseDetailHero}>
-                  <Text style={styles.purchaseDetailHeroValue}>
-                    ${selectedPurchase.total.toFixed(2)}
-                  </Text>
-                  <Text style={styles.purchaseDetailHeroLabel}>Total Purchase Cost</Text>
+            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.detailScrollContent}>
+              <View style={styles.detailStack}>
+                <View style={[styles.detailHero, { backgroundColor: COLORS.primary }]}>
+                  <Text style={styles.detailHeroValue}>${selectedPurchase.total.toFixed(2)}</Text>
+                  <Text style={styles.detailHeroLabel}>{selectedPurchase.productName}</Text>
                 </View>
 
-                <View style={styles.purchaseDetailSection}>
-                  <View style={styles.purchaseDetailFieldWide}>
-                    <Text style={styles.purchaseDetailFieldLabel}>Product</Text>
-                    <Text style={styles.purchaseDetailFieldValue}>{selectedPurchase.productName}</Text>
+                <View style={[styles.detailCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Order Number</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedPurchase.orderNumber}</Text>
                   </View>
-                  <View style={styles.purchaseDetailFieldWide}>
-                    <Text style={styles.purchaseDetailFieldLabel}>Supplier</Text>
-                    <Text style={styles.purchaseDetailFieldValue}>
-                      {selectedPurchase.supplier || 'Not specified'}
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Supplier</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedPurchase.supplier}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Quantity</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>{selectedPurchase.quantity} units</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Unit Cost</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>${selectedPurchase.unitCost.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Date</Text>
+                    <Text style={[styles.detailValue, { color: COLORS.primary }]}>
+                      {new Date(selectedPurchase.date).toLocaleDateString()}
                     </Text>
                   </View>
-                  <View style={styles.purchaseDetailGrid}>
-                    <View style={styles.purchaseDetailField}>
-                      <Text style={styles.purchaseDetailFieldLabel}>Quantity</Text>
-                      <Text style={styles.purchaseDetailFieldValue}>
-                        {selectedPurchase.quantity} units
-                      </Text>
-                    </View>
-                    <View style={styles.purchaseDetailField}>
-                      <Text style={styles.purchaseDetailFieldLabel}>Unit Cost</Text>
-                      <Text style={styles.purchaseDetailFieldValue}>
-                        ${selectedPurchase.unitCost.toFixed(2)}
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS.muted }]}>Status</Text>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: getPurchaseStatusColor(selectedPurchase.status).background },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusText,
+                          { color: getPurchaseStatusColor(selectedPurchase.status).text },
+                        ]}
+                      >
+                        {selectedPurchase.status}
                       </Text>
                     </View>
                   </View>
                 </View>
 
-                <View style={styles.purchaseDetailStatsCard}>
-                  <Text style={styles.purchaseDetailStatsTitle}>Purchase Summary</Text>
-                  <View style={styles.purchaseDetailMetaGrid}>
-                    <View style={styles.purchaseDetailMetaRow}>
-                      <Text style={styles.purchaseDetailMetaLabel}>Order ID</Text>
-                      <Text style={styles.purchaseDetailMetaValue}>#{selectedPurchase.id}</Text>
-                    </View>
-                    <View style={styles.purchaseDetailMetaRow}>
-                      <Text style={styles.purchaseDetailMetaLabel}>Date</Text>
-                      <Text style={styles.purchaseDetailMetaValue}>
-                        {new Date(selectedPurchase.date).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    <View style={styles.purchaseDetailMetaRow}>
-                      <Text style={styles.purchaseDetailMetaLabel}>Total Cost</Text>
-                      <Text style={[styles.purchaseDetailMetaValue, styles.purchaseDetailAccentValue]}>
-                        ${selectedPurchase.total.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.secondaryActionButton, { backgroundColor: COLORS.primary }]}
+                    onPress={() => handleEditPurchase(selectedPurchase)}
+                  >
+                    <Text style={styles.secondaryActionText}>Edit Purchase</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.destructiveButton,
+                      { backgroundColor: COLORS.danger },
+                      isDeletingPurchase && styles.submitButtonDisabled,
+                    ]}
+                    onPress={() => handleDeletePurchase(selectedPurchase)}
+                    disabled={isDeletingPurchase}
+                  >
+                    {isDeletingPurchase ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.destructiveButtonText}>
+                      {isDeletingPurchase ? 'Deleting...' : 'Delete Purchase'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </ScrollView>
           </SafeAreaView>
-        )}
+        ) : null}
       </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // Main container
   container: {
     flex: 1,
-    backgroundColor: ADMIN_COLORS.background,
   },
   scrollView: {
     flex: 1,
   },
-
-  // Loading
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
   },
-
-  // Header
   header: {
     paddingHorizontal: 20,
     paddingTop: 24,
@@ -689,113 +979,109 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
-    color: ADMIN_COLORS.text,
+    fontWeight: '700',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
   },
-
-  // Stats
-  statsGrid: {
-    ...ADMIN_GRID_2X2,
-    marginHorizontal: 14,
+  statsScroll: {
     marginBottom: 20,
   },
-  statCardWrapper: {
-    ...ADMIN_GRID_ITEM,
+  statsContent: {
+    paddingHorizontal: 20,
+    paddingRight: 36,
   },
   statCard: {
-    backgroundColor: ADMIN_COLORS.surface,
+    width: 148,
     borderRadius: 12,
     padding: 16,
+    marginRight: 12,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
-    minHeight: 136,
   },
   statIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
   },
   statValue: {
     fontSize: 18,
-    fontWeight: "700",
-    color: ADMIN_COLORS.text,
+    fontWeight: '700',
     marginBottom: 4,
   },
   statTitle: {
     fontSize: 12,
-    color: ADMIN_COLORS.secondaryText,
   },
-
-  // Actions
-  actionsCard: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  newPurchaseButton: {
-    backgroundColor: ADMIN_COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  newPurchaseText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-
-  // Search Section
   searchCard: {
-    backgroundColor: ADMIN_COLORS.surface,
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    color: ADMIN_COLORS.text,
-    marginBottom: 4,
+    fontWeight: '700',
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
-    marginBottom: 16,
+    marginTop: 2,
+  },
+  addButton: {
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   searchContainer: {
-    marginBottom: 4,
+    marginBottom: 12,
   },
   searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
+    borderColor: COLORS.border,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: ADMIN_COLORS.text,
     marginLeft: 8,
+    marginRight: 8,
   },
-
-  // Purchases List
+  filterContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
   purchasesList: {
     marginHorizontal: 20,
   },
@@ -803,251 +1089,201 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   purchaseCard: {
-    backgroundColor: ADMIN_COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
   },
   purchaseHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
     marginBottom: 12,
   },
-  productName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: ADMIN_COLORS.text,
+  purchaseInfo: {
     flex: 1,
+  },
+  purchaseName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  purchaseDate: {
+    fontSize: 13,
   },
   purchaseAmount: {
     fontSize: 18,
-    fontWeight: "700",
-    color: ADMIN_COLORS.accentStrong,
+    fontWeight: '700',
   },
-  purchaseDetails: {
-    gap: 8,
+  purchaseFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
-  detailText: {
+  purchaseMeta: {
     fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
-    marginLeft: 4,
+    flex: 1,
+    textAlign: 'right',
   },
-
-  // Empty State
   emptyState: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 60,
+    paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    fontWeight: '600',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 16,
   },
   clearButton: {
-    backgroundColor: ADMIN_COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   clearButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
   },
-
-  // Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: ADMIN_COLORS.background,
   },
   modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: ADMIN_COLORS.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: ADMIN_COLORS.text,
+    fontWeight: '700',
+  },
+  modalSearchContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   modalScroll: {
     flex: 1,
     padding: 20,
   },
-
-  // Product Selection Modal
-  productsList: {
-    flex: 1,
-    padding: 20,
+  formContainer: {
+    gap: 20,
   },
-  productCard: {
-    backgroundColor: ADMIN_COLORS.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+  selectedProductCard: {
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
-  },
-  productInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: ADMIN_COLORS.accentStrong,
-  },
-  productDetails: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  productDetail: {
-    fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
-  },
-  productSupplier: {
-    fontSize: 13,
-    color: ADMIN_COLORS.accentStrong,
-    fontWeight: "500",
-  },
-
-  // Purchase Form Modal
-  selectedProduct: {
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
   },
-  productLabel: {
+  selectedProductHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  changeProductButton: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  changeProductText: {
     fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
-    marginBottom: 4,
-  },
-  productInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  productInfoText: {
-    fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
-  },
-
-  // Form
-  formContainer: {
-    gap: 20,
+    fontWeight: '600',
   },
   formGroup: {
     gap: 8,
   },
   formLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    fontWeight: '600',
   },
   formInput: {
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#111827",
   },
-  unitTypeContainer: {
-    flexDirection: "row",
+  optionChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  optionChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  toggleRow: {
+    flexDirection: 'row',
     gap: 12,
   },
-  unitTypeButton: {
+  toggleButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
     borderRadius: 12,
     paddingVertical: 12,
-    alignItems: "center",
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
+    alignItems: 'center',
   },
-  unitTypeButtonActive: {
-    backgroundColor: ADMIN_COLORS.primary,
-    borderColor: ADMIN_COLORS.primary,
-  },
-  unitTypeText: {
+  toggleButtonText: {
     fontSize: 14,
-    fontWeight: "500",
-    color: ADMIN_COLORS.secondaryText,
+    fontWeight: '500',
   },
-  unitTypeTextActive: {
-    color: "#FFFFFF",
-  },
-
-  // Summary
   summaryCard: {
-    backgroundColor: ADMIN_COLORS.surfaceMuted,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderRadius: 16,
     padding: 16,
-    marginTop: 12,
+    gap: 12,
   },
   summaryTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: ADMIN_COLORS.text,
-    marginBottom: 16,
+    fontWeight: '700',
   },
   summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
   },
   summaryLabel: {
     fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
   },
   summaryValue: {
     fontSize: 14,
-    fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    fontWeight: '600',
   },
-  suggestedPrice: {
+  summaryAccent: {
     fontSize: 14,
-    fontWeight: "700",
-    color: ADMIN_COLORS.accentStrong,
+    fontWeight: '700',
   },
-
-  // Submit Button
   submitButton: {
-    backgroundColor: ADMIN_COLORS.primary,
     borderRadius: 12,
     paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 20,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 24,
   },
   submitButtonDisabled: {
     opacity: 0.7,
@@ -1059,129 +1295,109 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
-
-  // Details Modal
-  detailsContainer: {
-    marginTop: 12,
+  productsList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
-  purchaseDetailScrollContent: {
-    padding: 20,
+  productCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  productRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 10,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  productFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  productMetaText: {
+    fontSize: 13,
+  },
+  detailScrollContent: {
     paddingBottom: 28,
   },
-  purchaseDetailStack: {
+  detailStack: {
     gap: 20,
   },
-  purchaseDetailHero: {
-    backgroundColor: ADMIN_COLORS.primary,
+  detailHero: {
     borderRadius: 16,
     padding: 28,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  purchaseDetailHeroValue: {
+  detailHeroValue: {
     fontSize: 34,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
-  purchaseDetailHeroLabel: {
+  detailHeroLabel: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     opacity: 0.92,
   },
-  purchaseDetailSection: {
-    gap: 16,
-  },
-  purchaseDetailGrid: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  purchaseDetailField: {
-    flex: 1,
-    backgroundColor: ADMIN_COLORS.surface,
+  detailCard: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
     padding: 16,
-    gap: 8,
+    gap: 14,
   },
-  purchaseDetailFieldWide: {
-    backgroundColor: ADMIN_COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
-    padding: 16,
-    gap: 8,
-  },
-  purchaseDetailFieldLabel: {
-    fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
-  },
-  purchaseDetailFieldValue: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: ADMIN_COLORS.text,
-  },
-  purchaseDetailStatsCard: {
-    backgroundColor: ADMIN_COLORS.navyTint,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: ADMIN_COLORS.border,
-    padding: 16,
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: 12,
-  },
-  purchaseDetailStatsTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: ADMIN_COLORS.text,
-  },
-  purchaseDetailMetaGrid: {
-    gap: 10,
-  },
-  purchaseDetailMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-  },
-  purchaseDetailMetaLabel: {
-    fontSize: 14,
-    color: ADMIN_COLORS.secondaryText,
-  },
-  purchaseDetailMetaValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: ADMIN_COLORS.text,
-  },
-  purchaseDetailAccentValue: {
-    color: ADMIN_COLORS.accentStrong,
-  },
-  detailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
- 
-  detailItemLarge: {
-    width: "100%",
-    marginBottom: 12,
   },
   detailLabel: {
-    fontSize: 13,
-    color: ADMIN_COLORS.secondaryText,
-    marginBottom: 4,
+    fontSize: 14,
   },
   detailValue: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: ADMIN_COLORS.text,
+    fontSize: 14,
+    fontWeight: '600',
+    flexShrink: 1,
+    textAlign: 'right',
   },
-  totalCost: {
-    color: ADMIN_COLORS.accentStrong,
+  actionButtons: {
+    gap: 12,
+  },
+  secondaryActionButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  secondaryActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  destructiveButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  destructiveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

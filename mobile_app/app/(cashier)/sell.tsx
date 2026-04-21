@@ -985,7 +985,8 @@ const CashierSell = () => {
                 </Text>
               </View>
 
-              <TouchableOpacity
+            <View style={styles.receiptActions}>
+                <TouchableOpacity
                 style={[
                   styles.printReceiptButton,
                   isPrintingReceipt && styles.checkoutButtonDisabled,
@@ -1011,6 +1012,9 @@ const CashierSell = () => {
                   Start New Sale
                 </Text>
               </TouchableOpacity>
+            </View>
+
+
             </ScrollView>
           </SafeAreaView>
         </Modal>
@@ -1188,6 +1192,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+    
   },
   cartSection: {
     backgroundColor: '#FFFFFF',
@@ -1634,9 +1639,10 @@ const styles = StyleSheet.create({
   },
   newSaleButton: {
     backgroundColor: '#0F172A',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
+    flex:1
   },
   newSaleButtonText: {
     fontSize: 16,
@@ -1644,11 +1650,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   printReceiptButton: {
-    marginTop: 12,
+   
     backgroundColor: '#0F172A',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
+    flex:1,
   },
   receiptButtonContent: {
     flexDirection: 'row',
@@ -1660,6 +1667,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
+  },
+  receiptActions: {
+    flexDirection: 'row',
+    flex:1,
+    gap: 12,
+    justifyContent: 'space-between',
+
   },
 });
 

@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  TextInput, 
+import { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
   Alert,
   Modal,
   FlatList,
@@ -15,14 +15,14 @@ import {
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { addAsset, deleteAsset } from '../../../store/slices/assetsSlice';
-import { fetchAssets } from '../../../store/slices/assetsSlice';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { fetchAssets } from '../../../store/slices/assetsSlice';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { AssetRecord } from '../../../store/types';
 import { apiClient } from '../../../services/api';
 import { ADMIN_COLORS, ADMIN_GRID_2X2, ADMIN_GRID_ITEM } from '../../../theme/adminUi';
 
+const MAX_CURRENCY_VALUE = 9_999_999_999.99;
 type ConditionFilter = 'all' | AssetRecord['condition'];
 
 interface AssetFormData {
@@ -42,6 +42,40 @@ interface StatCard {
   color: string;
 }
 
+const COLORS = {
+  primary: '#0f172a',
+  accent: '#f97316',
+  background: '#ffffff',
+  card: '#ffffff',
+  border: '#e2e8f0',
+  input: '#f8fafc',
+  muted: '#64748b',
+  mutedLight: '#f8fafc',
+  danger: '#ea580c',
+  success: '#0f172a',
+  warning: '#f97316',
+};
+
+const CATEGORY_OPTIONS = ['Equipment', 'Furniture', 'Vehicle', 'Electronics', 'Software', 'Other'];
+const CONDITION_OPTIONS = [
+  { value: 'all' as const, label: 'All' },
+  { value: 'excellent' as const, label: 'Excellent' },
+  { value: 'good' as const, label: 'Good' },
+  { value: 'fair' as const, label: 'Fair' },
+  { value: 'poor' as const, label: 'Poor' },
+];
+
+const getConditionColor = (condition: AssetRecord['condition']) => {
+  const colorMap: Record<AssetRecord['condition'], string> = {
+    excellent: COLORS.success,
+    good: COLORS.primary,
+    fair: COLORS.warning,
+    poor: COLORS.danger,
+  };
+
+  return colorMap[condition] ?? COLORS.muted;
+};
+
 const AdminAssets = () => {
   const { assets } = useAppSelector((state) => state.assets);
   const { user } = useAppSelector((state) => state.auth);
@@ -51,8 +85,7 @@ const AdminAssets = () => {
     if (!user?.businessId) return;
     dispatch(fetchAssets(user.businessId));
   }, [dispatch, user?.businessId]);
-  
-  const [filteredAssets, setFilteredAssets] = useState<AssetRecord[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmittingAsset, setIsSubmittingAsset] = useState(false);
   const [isDeletingAsset, setIsDeletingAsset] = useState(false);
@@ -60,8 +93,9 @@ const AdminAssets = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [conditionFilter, setConditionFilter] = useState<ConditionFilter>('all');
   const [selectedAsset, setSelectedAsset] = useState<AssetRecord | null>(null);
+  const [editingAsset, setEditingAsset] = useState<AssetRecord | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  
+
   const [formData, setFormData] = useState<AssetFormData>({
     name: '',
     category: '',
@@ -72,120 +106,100 @@ const AdminAssets = () => {
     location: '',
   });
 
-  // Colors based on your Tailwind config
-  const COLORS = {
-    primary: '#0f172a',
-    primaryLight: '#1e293b',
-    accent: '#f97316',
-    accentLight: '#fb923c',
-    background: '#ffffff',
-    card: '#ffffff',
-    border: '#e2e8f0',
-    input: '#f8fafc',
-    destructive: '#ea580c',
-    muted: '#64748b',
-    mutedLight: '#f8fafc',
-    success: '#0f172a',
-    warning: '#f97316',
-    danger: '#ea580c',
-  };
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      setFilteredAssets(assets);
-    }, 1000);
+    const timer = setTimeout(() => setIsLoading(false), 600);
     return () => clearTimeout(timer);
   }, [assets]);
 
-  useEffect(() => {
-    let filtered = assets;
+  const filteredAssets = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (asset) =>
-          asset.name.toLowerCase().includes(query) ||
-          asset.category.toLowerCase().includes(query) ||
-          asset.location.toLowerCase().includes(query),
-      );
-    }
+    return assets.filter((asset) => {
+      const matchesSearch =
+        !query ||
+        asset.name.toLowerCase().includes(query) ||
+        asset.category.toLowerCase().includes(query) ||
+        asset.location.toLowerCase().includes(query);
 
-    if (conditionFilter !== 'all') {
-      filtered = filtered.filter((asset) => asset.condition === conditionFilter);
-    }
+      const matchesCondition = conditionFilter === 'all' || asset.condition === conditionFilter;
 
-    setFilteredAssets(filtered);
-  }, [searchQuery, conditionFilter, assets]);
+      return matchesSearch && matchesCondition;
+    });
+  }, [assets, conditionFilter, searchQuery]);
 
-  // Calculate statistics
   const totalValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
   const totalPurchaseValue = assets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
   const depreciation = totalPurchaseValue - totalValue;
-  const depreciationPercentage = totalPurchaseValue > 0 ? (depreciation / totalPurchaseValue) * 100 : 0;
 
-  // Stat cards configuration
   const statCards: StatCard[] = [
     {
-      title: "Total Assets",
+      title: 'Total Assets',
       value: assets.length.toString(),
-      icon: "cube-outline",
+      icon: 'cube-outline',
       color: COLORS.primary,
     },
     {
-      title: "Current Value",
+      title: 'Current Value',
       value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-      icon: "cash-outline",
+      icon: 'cash-outline',
       color: COLORS.success,
     },
     {
-      title: "Purchase Value",
+      title: 'Purchase Value',
       value: `$${totalPurchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-      icon: "receipt-outline",
+      icon: 'receipt-outline',
       color: COLORS.accent,
     },
     {
-      title: "Depreciation",
+      title: 'Depreciation',
       value: `$${depreciation.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-      icon: "trending-down-outline",
+      icon: 'trending-down-outline',
       color: COLORS.danger,
     },
   ];
 
-  // Category options
-  const categoryOptions = [
-    'Equipment',
-    'Furniture',
-    'Vehicle',
-    'Electronics',
-    'Software',
-    'Other'
-  ];
-
-  // Condition options
-  const conditionOptions = [
-    { value: 'all' as const, label: 'All' },
-    { value: 'excellent' as const, label: 'Excellent' },
-    { value: 'good' as const, label: 'Good' },
-    { value: 'fair' as const, label: 'Fair' },
-    { value: 'poor' as const, label: 'Poor' },
-  ];
-
-  // Get condition color
-  const getConditionColor = (condition: AssetRecord['condition']) => {
-    const colorMap: Record<AssetRecord['condition'], string> = {
-      excellent: COLORS.success,
-      good: COLORS.primary,
-      fair: COLORS.warning,
-      poor: COLORS.danger,
-    };
-    return colorMap[condition] || COLORS.muted;
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      category: '',
+      purchaseValue: '',
+      currentValue: '',
+      purchaseDate: new Date(),
+      condition: 'good',
+      location: '',
+    });
+    setEditingAsset(null);
   };
 
-  // Handle form submission
+  const openCreateAsset = () => {
+    resetForm();
+    setIsAssetModalOpen(true);
+  };
+
+  const handleEditAsset = (asset: AssetRecord) => {
+    setSelectedAsset(null);
+    setEditingAsset(asset);
+    setFormData({
+      name: asset.name,
+      category: asset.category,
+      purchaseValue: asset.purchaseValue.toFixed(2),
+      currentValue: asset.currentValue.toFixed(2),
+      purchaseDate: new Date(asset.purchaseDate),
+      condition: asset.condition,
+      location: asset.location,
+    });
+    setIsAssetModalOpen(true);
+  };
+
   const handleSubmit = async () => {
-    if (!formData.name || !formData.category || !formData.purchaseValue || !formData.currentValue || !formData.location) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (
+      !formData.name.trim() ||
+      !formData.category ||
+      !formData.purchaseValue ||
+      !formData.currentValue ||
+      !formData.location.trim()
+    ) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
 
@@ -194,60 +208,74 @@ const AdminAssets = () => {
       return;
     }
 
+    const purchaseValue = Number.parseFloat(formData.purchaseValue);
+    const currentValue = Number.parseFloat(formData.currentValue);
+
+    if (!Number.isFinite(purchaseValue) || purchaseValue <= 0) {
+      Alert.alert('Error', 'Purchase value must be greater than zero.');
+      return;
+    }
+
+    if (!Number.isFinite(currentValue) || currentValue < 0) {
+      Alert.alert('Error', 'Current value must be zero or greater.');
+      return;
+    }
+
+    if (purchaseValue > MAX_CURRENCY_VALUE || currentValue > MAX_CURRENCY_VALUE) {
+      Alert.alert('Error', `Values must be below ${MAX_CURRENCY_VALUE.toFixed(2)}.`);
+      return;
+    }
+
     setIsSubmittingAsset(true);
     try {
-      const createdAsset = await apiClient.createAsset(
-        {
-          name: formData.name,
-          category: formData.category,
-          purchaseValue: parseFloat(formData.purchaseValue),
-          currentValue: parseFloat(formData.currentValue),
-          purchaseDate: formData.purchaseDate.toISOString().split('T')[0],
-          condition: formData.condition,
-          location: formData.location,
-        },
-        user.businessId,
-      );
+      const payload = {
+        name: formData.name.trim(),
+        category: formData.category,
+        purchaseValue: Number(purchaseValue.toFixed(2)),
+        currentValue: Number(currentValue.toFixed(2)),
+        purchaseDate: formData.purchaseDate.toISOString().split('T')[0],
+        condition: formData.condition,
+        location: formData.location.trim(),
+        businessId: user.businessId,
+      };
 
-      dispatch(addAsset(createdAsset));
+      if (editingAsset) {
+        await apiClient.updateAsset(editingAsset.id, payload);
+      } else {
+        await apiClient.createAsset(payload, user.businessId);
+      }
 
-      Alert.alert('Success', 'Asset added successfully');
+      dispatch(fetchAssets(user.businessId));
+      Alert.alert('Success', editingAsset ? 'Asset updated successfully.' : 'Asset added successfully.');
       setIsAssetModalOpen(false);
-      setFormData({
-        name: '',
-        category: '',
-        purchaseValue: '',
-        currentValue: '',
-        purchaseDate: new Date(),
-        condition: 'good',
-        location: '',
-      });
+      resetForm();
     } catch (error) {
-      console.error('Error creating asset:', error);
-      const message = error instanceof Error ? error.message : 'Failed to add asset';
+      console.error('Error saving asset:', error);
+      const message = error instanceof Error ? error.message : 'Failed to save asset';
       Alert.alert('Error', message);
     } finally {
       setIsSubmittingAsset(false);
     }
   };
 
-  // Handle asset deletion
   const handleDeleteAsset = (asset: AssetRecord) => {
     Alert.alert(
       'Delete Asset',
       `Are you sure you want to delete "${asset.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             setIsDeletingAsset(true);
             try {
               await apiClient.deleteAsset(asset.id);
-              dispatch(deleteAsset(asset.id));
-              Alert.alert('Success', 'Asset deleted successfully');
+              if (user?.businessId) {
+                dispatch(fetchAssets(user.businessId));
+              }
               setSelectedAsset(null);
+              Alert.alert('Success', 'Asset deleted successfully.');
             } catch (error) {
               console.error('Error deleting asset:', error);
               const message = error instanceof Error ? error.message : 'Failed to delete asset';
@@ -255,19 +283,18 @@ const AdminAssets = () => {
             } finally {
               setIsDeletingAsset(false);
             }
-          }
+          },
         },
-      ]
+      ],
     );
   };
 
-  // Render asset item
   const renderAssetItem = ({ item }: { item: AssetRecord }) => {
     const conditionColor = getConditionColor(item.condition);
     const depreciationValue = item.purchaseValue - item.currentValue;
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.assetCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
         onPress={() => setSelectedAsset(item)}
         activeOpacity={0.7}
@@ -283,7 +310,7 @@ const AdminAssets = () => {
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.assetDetails}>
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
@@ -294,12 +321,17 @@ const AdminAssets = () => {
               ${item.currentValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={[styles.assetDate, { color: COLORS.muted }]}>
               {new Date(item.purchaseDate).toLocaleDateString()}
             </Text>
-            <Text style={[styles.depreciationText, { color: depreciationValue > 0 ? COLORS.danger : COLORS.success }]}>
+            <Text
+              style={[
+                styles.depreciationText,
+                { color: depreciationValue > 0 ? COLORS.danger : COLORS.success },
+              ]}
+            >
               ${depreciationValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Text>
           </View>
@@ -308,7 +340,6 @@ const AdminAssets = () => {
     );
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: COLORS.background }]}>
@@ -321,16 +352,14 @@ const AdminAssets = () => {
   return (
     <View style={[styles.container, { backgroundColor: COLORS.background }]}>
       <ScrollView style={styles.scrollView}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: COLORS.primary }]}>Assets</Text>
           <Text style={[styles.subtitle, { color: COLORS.muted }]}>Manage business assets</Text>
         </View>
 
-        {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          {statCards.map((stat, index) => (
-            <View key={index} style={styles.statCardWrapper}>
+          {statCards.map((stat) => (
+            <View key={stat.title} style={styles.statCardWrapper}>
               <View style={[styles.statCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
                 <View style={[styles.statIcon, { backgroundColor: `${stat.color}15` }]}>
                   <Ionicons name={stat.icon} size={20} color={stat.color} />
@@ -342,7 +371,6 @@ const AdminAssets = () => {
           ))}
         </View>
 
-        {/* Search and Actions Section */}
         <View style={[styles.searchCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
           <View style={styles.searchHeader}>
             <View>
@@ -353,14 +381,13 @@ const AdminAssets = () => {
             </View>
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: COLORS.primary }]}
-              onPress={() => setIsAssetModalOpen(true)}
+              onPress={openCreateAsset}
             >
               <Ionicons name="add" size={20} color="#FFFFFF" />
               <Text style={styles.addButtonText}>Add Asset</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Search Input */}
           <View style={styles.searchContainer}>
             <View style={[styles.searchBar, { backgroundColor: COLORS.input }]}>
               <Ionicons name="search" size={18} color={COLORS.muted} />
@@ -371,36 +398,37 @@ const AdminAssets = () => {
                 style={[styles.searchInput, { color: COLORS.primary }]}
                 placeholderTextColor={COLORS.muted}
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
                   <Ionicons name="close-circle" size={18} color={COLORS.muted} />
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
           </View>
 
-          {/* Condition Filter */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filterContainer}>
-              {conditionOptions.map((option) => {
+              {CONDITION_OPTIONS.map((option) => {
                 const isActive = conditionFilter === option.value;
-                const conditionColor = option.value !== 'all' ? getConditionColor(option.value) : COLORS.primary;
+                const conditionColor = option.value === 'all' ? COLORS.primary : getConditionColor(option.value);
                 return (
                   <TouchableOpacity
                     key={option.value}
                     style={[
                       styles.filterButton,
-                      { 
+                      {
                         backgroundColor: isActive ? conditionColor : COLORS.input,
-                        borderColor: isActive ? conditionColor : COLORS.border
-                      }
+                        borderColor: isActive ? conditionColor : COLORS.border,
+                      },
                     ]}
                     onPress={() => setConditionFilter(option.value)}
                   >
-                    <Text style={[
-                      styles.filterButtonText,
-                      { color: isActive ? '#FFFFFF' : COLORS.primary }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.filterButtonText,
+                        { color: isActive ? '#FFFFFF' : COLORS.primary },
+                      ]}
+                    >
                       {option.label}
                     </Text>
                   </TouchableOpacity>
@@ -410,18 +438,16 @@ const AdminAssets = () => {
           </ScrollView>
         </View>
 
-        {/* Assets List */}
         {filteredAssets.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="cube-outline" size={64} color={COLORS.border} />
             <Text style={[styles.emptyTitle, { color: COLORS.primary }]}>No assets found</Text>
             <Text style={[styles.emptyText, { color: COLORS.muted }]}>
-              {searchQuery || conditionFilter !== 'all' 
+              {searchQuery || conditionFilter !== 'all'
                 ? 'Try adjusting your search'
-                : 'Start by adding your first asset'
-              }
+                : 'Start by adding your first asset'}
             </Text>
-            {(searchQuery || conditionFilter !== 'all') && (
+            {searchQuery || conditionFilter !== 'all' ? (
               <TouchableOpacity
                 style={[styles.clearButton, { backgroundColor: COLORS.primary }]}
                 onPress={() => {
@@ -430,6 +456,14 @@ const AdminAssets = () => {
                 }}
               >
                 <Text style={styles.clearButtonText}>Clear Filters</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: COLORS.primary }]}
+                onPress={openCreateAsset}
+              >
+                <Ionicons name="add" size={20} color="#FFFFFF" />
+                <Text style={styles.addButtonText}>Add Asset</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -445,17 +479,26 @@ const AdminAssets = () => {
         )}
       </ScrollView>
 
-      {/* Add Asset Modal */}
       <Modal
         visible={isAssetModalOpen}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setIsAssetModalOpen(false)}
+        onRequestClose={() => {
+          setIsAssetModalOpen(false);
+          resetForm();
+        }}
       >
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
           <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
-            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Add Asset</Text>
-            <TouchableOpacity onPress={() => setIsAssetModalOpen(false)}>
+            <Text style={[styles.modalTitle, { color: COLORS.primary }]}>
+              {editingAsset ? 'Edit Asset' : 'Add Asset'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setIsAssetModalOpen(false);
+                resetForm();
+              }}
+            >
               <Ionicons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
@@ -464,199 +507,183 @@ const AdminAssets = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={{ flex: 1 }}
           >
-          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
-            <View style={styles.formContainer}>
-              {/* Asset Name */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Asset Name *</Text>
-                <TextInput
-                  value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  placeholder="Enter asset name"
-                  style={[styles.formInput, { 
-                    backgroundColor: COLORS.input,
-                    borderColor: COLORS.border,
-                    color: COLORS.primary 
-                  }]}
-                  placeholderTextColor={COLORS.muted}
-                />
-              </View>
+            <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+              <View style={styles.formContainer}>
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Asset Name *</Text>
+                  <TextInput
+                    value={formData.name}
+                    onChangeText={(text) => setFormData((prev) => ({ ...prev, name: text }))}
+                    placeholder="Enter asset name"
+                    style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
+                    placeholderTextColor={COLORS.muted}
+                  />
+                </View>
 
-              {/* Category */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Category *</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.categoryContainer}>
-                    {categoryOptions.map((category) => (
-                      <TouchableOpacity
-                        key={category}
-                        style={[
-                          styles.categoryButton,
-                          { 
-                            backgroundColor: formData.category === category ? COLORS.primary : COLORS.input,
-                            borderColor: formData.category === category ? COLORS.primary : COLORS.border
-                          }
-                        ]}
-                        onPress={() => setFormData({ ...formData, category })}
-                      >
-                        <Text style={[
-                          styles.categoryButtonText,
-                          { color: formData.category === category ? '#FFFFFF' : COLORS.primary }
-                        ]}>
-                          {category}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Category *</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.categoryContainer}>
+                      {CATEGORY_OPTIONS.map((category) => {
+                        const isActive = formData.category === category;
+                        return (
+                          <TouchableOpacity
+                            key={category}
+                            style={[
+                              styles.categoryButton,
+                              {
+                                backgroundColor: isActive ? COLORS.primary : COLORS.input,
+                                borderColor: isActive ? COLORS.primary : COLORS.border,
+                              },
+                            ]}
+                            onPress={() => setFormData((prev) => ({ ...prev, category }))}
+                          >
+                            <Text
+                              style={[
+                                styles.categoryButtonText,
+                                { color: isActive ? '#FFFFFF' : COLORS.primary },
+                              ]}
+                            >
+                              {category}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </View>
+
+                <View style={styles.formRow}>
+                  <View style={[styles.formGroup, styles.formGroupHalf]}>
+                    <Text style={[styles.formLabel, { color: COLORS.primary }]}>Purchase Value *</Text>
+                    <TextInput
+                      value={formData.purchaseValue}
+                      onChangeText={(text) => setFormData((prev) => ({ ...prev, purchaseValue: text }))}
+                      placeholder="0.00"
+                      keyboardType="decimal-pad"
+                      style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
+                      placeholderTextColor={COLORS.muted}
+                    />
                   </View>
-                </ScrollView>
-              </View>
+                  <View style={[styles.formGroup, styles.formGroupHalf]}>
+                    <Text style={[styles.formLabel, { color: COLORS.primary }]}>Current Value *</Text>
+                    <TextInput
+                      value={formData.currentValue}
+                      onChangeText={(text) => setFormData((prev) => ({ ...prev, currentValue: text }))}
+                      placeholder="0.00"
+                      keyboardType="decimal-pad"
+                      style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
+                      placeholderTextColor={COLORS.muted}
+                    />
+                  </View>
+                </View>
 
-              {/* Purchase and Current Value */}
-              <View style={styles.formRow}>
-                <View style={[styles.formGroup, styles.formGroupHalf]}>
-                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Purchase Value *</Text>
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Purchase Date</Text>
+                  <TouchableOpacity
+                    style={[styles.dateButton, { backgroundColor: COLORS.input, borderColor: COLORS.border }]}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Ionicons name="calendar-outline" size={18} color={COLORS.muted} />
+                    <Text style={[styles.dateButtonText, { color: COLORS.primary }]}>
+                      {formData.purchaseDate.toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDatePicker ? (
+                    <DateTimePicker
+                      value={formData.purchaseDate}
+                      mode="date"
+                      display="default"
+                      onChange={(_, date) => {
+                        setShowDatePicker(false);
+                        if (date) {
+                          setFormData((prev) => ({ ...prev, purchaseDate: date }));
+                        }
+                      }}
+                    />
+                  ) : null}
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Condition</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.conditionContainer}>
+                      {(['excellent', 'good', 'fair', 'poor'] as AssetRecord['condition'][]).map((condition) => {
+                        const isActive = formData.condition === condition;
+                        const conditionColor = getConditionColor(condition);
+                        return (
+                          <TouchableOpacity
+                            key={condition}
+                            style={[
+                              styles.conditionButton,
+                              {
+                                backgroundColor: isActive ? conditionColor : COLORS.input,
+                                borderColor: isActive ? conditionColor : COLORS.border,
+                              },
+                            ]}
+                            onPress={() => setFormData((prev) => ({ ...prev, condition }))}
+                          >
+                            <Text
+                              style={[
+                                styles.conditionButtonText,
+                                { color: isActive ? '#FFFFFF' : COLORS.primary },
+                              ]}
+                            >
+                              {condition.charAt(0).toUpperCase() + condition.slice(1)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Location *</Text>
                   <TextInput
-                    value={formData.purchaseValue}
-                    onChangeText={(text) => setFormData({ ...formData, purchaseValue: text })}
-                    placeholder="0.00"
-                    keyboardType="decimal-pad"
-                    style={[styles.formInput, { 
-                      backgroundColor: COLORS.input,
-                      borderColor: COLORS.border,
-                      color: COLORS.primary 
-                    }]}
+                    value={formData.location}
+                    onChangeText={(text) => setFormData((prev) => ({ ...prev, location: text }))}
+                    placeholder="Enter location"
+                    style={[styles.formInput, { backgroundColor: COLORS.input, borderColor: COLORS.border, color: COLORS.primary }]}
                     placeholderTextColor={COLORS.muted}
                   />
                 </View>
-                <View style={[styles.formGroup, styles.formGroupHalf]}>
-                  <Text style={[styles.formLabel, { color: COLORS.primary }]}>Current Value *</Text>
-                  <TextInput
-                    value={formData.currentValue}
-                    onChangeText={(text) => setFormData({ ...formData, currentValue: text })}
-                    placeholder="0.00"
-                    keyboardType="decimal-pad"
-                    style={[styles.formInput, { 
-                      backgroundColor: COLORS.input,
-                      borderColor: COLORS.border,
-                      color: COLORS.primary 
-                    }]}
-                    placeholderTextColor={COLORS.muted}
-                  />
-                </View>
               </View>
 
-              {/* Purchase Date */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Purchase Date</Text>
-                <TouchableOpacity
-                  style={[styles.dateButton, { 
-                    backgroundColor: COLORS.input,
-                    borderColor: COLORS.border 
-                  }]}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Ionicons name="calendar-outline" size={18} color={COLORS.muted} />
-                  <Text style={[styles.dateButtonText, { color: COLORS.primary }]}>
-                    {formData.purchaseDate.toLocaleDateString()}
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  { backgroundColor: COLORS.accent },
+                  isSubmittingAsset && styles.submitButtonDisabled,
+                ]}
+                onPress={handleSubmit}
+                disabled={isSubmittingAsset}
+              >
+                <View style={styles.buttonContent}>
+                  {isSubmittingAsset ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+                  <Text style={styles.submitButtonText}>
+                    {isSubmittingAsset
+                      ? editingAsset
+                        ? 'Updating Asset...'
+                        : 'Saving Asset...'
+                      : editingAsset
+                        ? 'Update Asset'
+                        : 'Add Asset'}
                   </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={formData.purchaseDate}
-                    mode="date"
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowDatePicker(false);
-                      if (date) {
-                        setFormData({ ...formData, purchaseDate: date });
-                      }
-                    }}
-                  />
-                )}
-              </View>
-
-              {/* Condition */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Condition</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.conditionContainer}>
-                    {(['excellent', 'good', 'fair', 'poor'] as AssetRecord['condition'][]).map((condition) => {
-                      const conditionColor = getConditionColor(condition);
-                      const isActive = formData.condition === condition;
-                      return (
-                        <TouchableOpacity
-                          key={condition}
-                          style={[
-                            styles.conditionButton,
-                            { 
-                              backgroundColor: isActive ? conditionColor : COLORS.input,
-                              borderColor: isActive ? conditionColor : COLORS.border
-                            }
-                          ]}
-                          onPress={() => setFormData({ ...formData, condition })}
-                        >
-                          <Text style={[
-                            styles.conditionButtonText,
-                            { color: isActive ? '#FFFFFF' : COLORS.primary }
-                          ]}>
-                            {condition.charAt(0).toUpperCase() + condition.slice(1)}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </ScrollView>
-              </View>
-
-              {/* Location */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: COLORS.primary }]}>Location *</Text>
-                <TextInput
-                  value={formData.location}
-                  onChangeText={(text) => setFormData({ ...formData, location: text })}
-                  placeholder="Enter location"
-                  style={[styles.formInput, { 
-                    backgroundColor: COLORS.input,
-                    borderColor: COLORS.border,
-                    color: COLORS.primary 
-                  }]}
-                  placeholderTextColor={COLORS.muted}
-                />
-              </View>
-            </View>
-
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                { backgroundColor: COLORS.accent },
-                isSubmittingAsset && styles.submitButtonDisabled,
-              ]}
-              onPress={handleSubmit}
-              disabled={isSubmittingAsset}
-            >
-              <View style={styles.buttonContent}>
-                {isSubmittingAsset ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : null}
-                <Text style={styles.submitButtonText}>
-                  {isSubmittingAsset ? 'Saving Asset...' : 'Add Asset'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
-      {/* Asset Details Modal */}
       <Modal
         visible={!!selectedAsset}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedAsset(null)}
       >
-        {selectedAsset && (
+        {selectedAsset ? (
           <SafeAreaView style={[styles.modalContainer, { backgroundColor: COLORS.background }]} edges={['top', 'bottom']}>
             <View style={[styles.modalHeader, { borderBottomColor: COLORS.border }]}>
               <Text style={[styles.modalTitle, { color: COLORS.primary }]}>Asset Details</Text>
@@ -665,10 +692,7 @@ const AdminAssets = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              style={styles.modalScroll}
-              contentContainerStyle={styles.assetDetailScrollContent}
-            >
+            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.assetDetailScrollContent}>
               <View style={styles.assetDetailStack}>
                 <View style={[styles.assetDetailHero, { backgroundColor: COLORS.primary }]}>
                   <Text style={styles.assetDetailHeroValue}>
@@ -680,9 +704,7 @@ const AdminAssets = () => {
                 <View style={styles.assetDetailSection}>
                   <View style={styles.assetDetailFieldWide}>
                     <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Asset Name</Text>
-                    <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>
-                      {selectedAsset.name}
-                    </Text>
+                    <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>{selectedAsset.name}</Text>
                   </View>
                   <View style={styles.assetDetailFieldWide}>
                     <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Condition</Text>
@@ -700,15 +722,11 @@ const AdminAssets = () => {
                   <View style={styles.assetDetailGrid}>
                     <View style={styles.assetDetailField}>
                       <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Category</Text>
-                      <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>
-                        {selectedAsset.category}
-                      </Text>
+                      <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>{selectedAsset.category}</Text>
                     </View>
                     <View style={styles.assetDetailField}>
                       <Text style={[styles.assetDetailFieldLabel, { color: COLORS.muted }]}>Location</Text>
-                      <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>
-                        {selectedAsset.location}
-                      </Text>
+                      <Text style={[styles.assetDetailFieldValue, { color: COLORS.primary }]}>{selectedAsset.location}</Text>
                     </View>
                   </View>
                 </View>
@@ -749,6 +767,12 @@ const AdminAssets = () => {
 
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
+                    style={[styles.secondaryActionButton, { backgroundColor: COLORS.primary }]}
+                    onPress={() => handleEditAsset(selectedAsset)}
+                  >
+                    <Text style={styles.secondaryActionText}>Edit Asset</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[
                       styles.deleteButton,
                       { backgroundColor: COLORS.danger },
@@ -770,33 +794,28 @@ const AdminAssets = () => {
               </View>
             </ScrollView>
           </SafeAreaView>
-        )}
+        ) : null}
       </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // Main container
   container: {
     flex: 1,
   },
   scrollView: {
     flex: 1,
   },
-
-  // Loading
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
   },
-
-  // Header
   header: {
     paddingHorizontal: 20,
     paddingTop: 24,
@@ -804,14 +823,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
   },
-
-  // Stats
   statsGrid: {
     ...ADMIN_GRID_2X2,
     marginHorizontal: 14,
@@ -830,20 +847,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
   },
   statValue: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: 4,
   },
   statTitle: {
     fontSize: 12,
   },
-
-  // Search Section
   searchCard: {
     marginHorizontal: 20,
     marginBottom: 20,
@@ -852,14 +867,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   searchHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -869,26 +884,26 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   addButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     marginLeft: 6,
   },
-
-  // Search
   searchContainer: {
     marginBottom: 16,
   },
   searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   searchInput: {
     flex: 1,
@@ -896,10 +911,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginRight: 8,
   },
-
-  // Filter
   filterContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
     paddingVertical: 4,
   },
@@ -911,10 +924,8 @@ const styles = StyleSheet.create({
   },
   filterButtonText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: '500',
   },
-
-  // Assets List
   assetsList: {
     marginHorizontal: 20,
   },
@@ -928,9 +939,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   assetHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   assetInfo: {
@@ -938,7 +949,7 @@ const styles = StyleSheet.create({
   },
   assetName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
     marginBottom: 4,
   },
   assetCategory: {
@@ -951,19 +962,19 @@ const styles = StyleSheet.create({
   },
   conditionText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   assetDetails: {
     gap: 8,
   },
   detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   detailText: {
     fontSize: 13,
@@ -971,32 +982,31 @@ const styles = StyleSheet.create({
   },
   assetValue: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   assetDate: {
     fontSize: 13,
   },
   depreciationText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
   },
-
-  // Empty State
   emptyState: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 60,
+    paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '600',
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 16,
   },
   clearButton: {
@@ -1005,33 +1015,29 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   clearButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
   },
-
-  // Modal
   modalContainer: {
     flex: 1,
   },
   modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   modalScroll: {
     flex: 1,
     padding: 20,
   },
-
-  // Form
   formContainer: {
     gap: 24,
   },
@@ -1039,7 +1045,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   formRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 16,
   },
   formGroupHalf: {
@@ -1047,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   formLabel: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   formInput: {
     borderWidth: 1,
@@ -1057,7 +1063,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   categoryContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
     paddingVertical: 4,
   },
@@ -1069,11 +1075,11 @@ const styles = StyleSheet.create({
   },
   categoryButtonText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: '500',
   },
   dateButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -1084,7 +1090,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   conditionContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
     paddingVertical: 4,
   },
@@ -1096,13 +1102,14 @@ const styles = StyleSheet.create({
   },
   conditionButtonText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: '500',
   },
   submitButton: {
     borderRadius: 12,
     paddingVertical: 16,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 20,
+    marginBottom: 24,
   },
   submitButtonDisabled: {
     opacity: 0.7,
@@ -1114,17 +1121,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "600",
-  },
-
-  // Details Modal
-  detailsContainer: {
-    gap: 24,
+    fontWeight: '600',
   },
   assetDetailScrollContent: {
-    padding: 20,
     paddingBottom: 28,
   },
   assetDetailStack: {
@@ -1133,25 +1134,25 @@ const styles = StyleSheet.create({
   assetDetailHero: {
     borderRadius: 16,
     padding: 28,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   assetDetailHeroValue: {
     fontSize: 34,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   assetDetailHeroLabel: {
     fontSize: 14,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     opacity: 0.92,
   },
   assetDetailSection: {
     gap: 16,
   },
   assetDetailGrid: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 16,
   },
   assetDetailField: {
@@ -1176,7 +1177,7 @@ const styles = StyleSheet.create({
   },
   assetDetailFieldValue: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   assetDetailStatsCard: {
     borderRadius: 16,
@@ -1186,15 +1187,15 @@ const styles = StyleSheet.create({
   },
   assetDetailStatsTitle: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   assetDetailMetaGrid: {
     gap: 10,
   },
   assetDetailMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: 12,
   },
   assetDetailMetaLabel: {
@@ -1202,49 +1203,33 @@ const styles = StyleSheet.create({
   },
   assetDetailMetaValue: {
     fontSize: 14,
-    fontWeight: "600",
-  },
-  detailsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  assetNameLarge: {
-    fontSize: 24,
-    fontWeight: "700",
-    flex: 1,
-    marginRight: 12,
-  },
-  detailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  
-  detailLabel: {
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   actionButtons: {
-    marginTop: 16,
+    gap: 12,
+  },
+  secondaryActionButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  secondaryActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,
   },
   deleteButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
 });
 

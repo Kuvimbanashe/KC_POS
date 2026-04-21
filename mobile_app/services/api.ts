@@ -51,6 +51,7 @@ interface CreatePurchasePayload {
   unitCost: number;
   total: number;
   supplier: string;
+  status?: PurchaseRecord['status'];
   businessId?: number | null;
 }
 interface CreateExpensePayload {
@@ -59,6 +60,7 @@ interface CreateExpensePayload {
   description: string;
   paymentMethod?: 'Bank Transfer' | 'Cash' | 'Check' | 'Online Payment';
   vendor?: string;
+  status?: ExpenseRecord['status'];
   businessId?: number | null;
 }
 
@@ -524,8 +526,8 @@ export const apiClient = {
       }),
     });
   },
-  async createPurchase(payload: CreatePurchasePayload): Promise<void> {
-    await request('/purchases/', {
+  async createPurchase(payload: CreatePurchasePayload): Promise<PurchaseRecord> {
+    const data = await request<BackendPurchase>('/purchases/', {
       method: 'POST',
       body: JSON.stringify({
         business: payload.businessId,
@@ -536,12 +538,38 @@ export const apiClient = {
         total: roundCurrency(payload.total),
         supplier: payload.supplier,
         order_number: `PO-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        status: 'Completed',
+        status: payload.status ?? 'Completed',
       }),
     });
+    return mapPurchase(data);
   },
-  async createExpense(payload: CreateExpensePayload): Promise<void> {
-    await request('/expenses/', {
+  async updatePurchase(
+    purchaseId: number,
+    payload: Partial<CreatePurchasePayload>,
+  ): Promise<PurchaseRecord> {
+    const body: Record<string, unknown> = {};
+    if (payload.businessId !== undefined) body.business = payload.businessId;
+    if (payload.productId !== undefined) body.product = payload.productId;
+    if (payload.productName !== undefined) body.product_name = payload.productName;
+    if (payload.quantity !== undefined) body.quantity = payload.quantity;
+    if (payload.unitCost !== undefined) body.unit_cost = roundCurrency(payload.unitCost);
+    if (payload.total !== undefined) body.total = roundCurrency(payload.total);
+    if (payload.supplier !== undefined) body.supplier = payload.supplier;
+    if (payload.status !== undefined) body.status = payload.status;
+
+    const data = await request<BackendPurchase>(`/purchases/${purchaseId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return mapPurchase(data);
+  },
+  async deletePurchase(purchaseId: number): Promise<void> {
+    await request<void>(`/purchases/${purchaseId}/`, {
+      method: 'DELETE',
+    });
+  },
+  async createExpense(payload: CreateExpensePayload): Promise<ExpenseRecord> {
+    const data = await request<BackendExpense>('/expenses/', {
       method: 'POST',
       body: JSON.stringify({
         business: payload.businessId,
@@ -550,9 +578,34 @@ export const apiClient = {
         description: payload.description,
         payment_method: payload.paymentMethod ?? 'Cash',
         vendor: payload.vendor ?? 'General',
-        status: 'Paid',
+        status: payload.status ?? 'Paid',
         receipt_number: `EXP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       }),
+    });
+    return mapExpense(data);
+  },
+  async updateExpense(
+    expenseId: number,
+    payload: Partial<CreateExpensePayload>,
+  ): Promise<ExpenseRecord> {
+    const body: Record<string, unknown> = {};
+    if (payload.businessId !== undefined) body.business = payload.businessId;
+    if (payload.category !== undefined) body.category = payload.category;
+    if (payload.amount !== undefined) body.amount = roundCurrency(payload.amount);
+    if (payload.description !== undefined) body.description = payload.description;
+    if (payload.paymentMethod !== undefined) body.payment_method = payload.paymentMethod;
+    if (payload.vendor !== undefined) body.vendor = payload.vendor;
+    if (payload.status !== undefined) body.status = payload.status;
+
+    const data = await request<BackendExpense>(`/expenses/${expenseId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return mapExpense(data);
+  },
+  async deleteExpense(expenseId: number): Promise<void> {
+    await request<void>(`/expenses/${expenseId}/`, {
+      method: 'DELETE',
     });
   },
 
@@ -626,8 +679,44 @@ export const apiClient = {
     return mapAsset(data);
   },
 
+  async updateAsset(
+    assetId: number,
+    payload: Partial<{
+      name: string;
+      category: string;
+      purchaseValue: number;
+      currentValue: number;
+      purchaseDate: string;
+      condition: AssetRecord['condition'];
+      location: string;
+      businessId: number | null;
+    }>,
+  ): Promise<AssetRecord> {
+    const body: Record<string, unknown> = {};
+    if (payload.businessId !== undefined) body.business = payload.businessId;
+    if (payload.name !== undefined) body.name = payload.name;
+    if (payload.category !== undefined) body.category = payload.category;
+    if (payload.purchaseValue !== undefined) body.purchase_value = roundCurrency(payload.purchaseValue);
+    if (payload.currentValue !== undefined) body.current_value = roundCurrency(payload.currentValue);
+    if (payload.purchaseDate !== undefined) body.purchase_date = payload.purchaseDate;
+    if (payload.condition !== undefined) body.condition = payload.condition;
+    if (payload.location !== undefined) body.location = payload.location;
+
+    const data = await request<BackendAsset>(`/assets/${assetId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return mapAsset(data);
+  },
+
   async deleteAsset(assetId: number): Promise<void> {
     await request<void>(`/assets/${assetId}/`, {
+      method: 'DELETE',
+    });
+  },
+
+  async deleteProduct(productId: number): Promise<void> {
+    await request<void>(`/products/${productId}/`, {
       method: 'DELETE',
     });
   },
